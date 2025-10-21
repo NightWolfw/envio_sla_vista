@@ -1,0 +1,5 @@
+config.py
+grupos_whatsapp.xlsx
+venv/
+.idea/
+__pycache__/
