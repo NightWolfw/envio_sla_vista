@@ -33,6 +33,9 @@ class GPSVistaDB:
         conn = self.conectar()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
+        # 🔧 CORREÇÃO: Converter CRs para string antes de passar para ANY
+        cr_strings = [str(cr) for cr in cr_list]
+
         query = """
         SELECT
             A.numero AS "Numero",
@@ -54,7 +57,7 @@ class GPSVistaDB:
         ORDER BY A.terminoreal NULLS LAST, A.prazo;
         """
 
-        cursor.execute(query, (cr_list, inicio_periodo, fim_periodo))
+        cursor.execute(query, (cr_strings, inicio_periodo, fim_periodo))
         resultados = cursor.fetchall()
         conn.close()
 
