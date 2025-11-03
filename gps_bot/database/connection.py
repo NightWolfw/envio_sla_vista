@@ -27,13 +27,13 @@ def buscar_grupos_whatsapp():
         # Query para buscar grupos do WhatsApp com dados de envio
         query = """
         SELECT 
-            id as "ID",
+            group_id as "ID",
             nome_grupo as "Nome do Grupo", 
             envio as "Envio",
             dia_todo as "DiaTodo",
             cr as "CR"
         FROM grupos_whatsapp 
-        WHERE ativo = true
+        WHERE envio = true
         ORDER BY nome_grupo
         """
 
@@ -83,7 +83,7 @@ def buscar_grupos_por_cr(cr_list):
             dia_todo as "DiaTodo",
             cr as "CR"
         FROM grupos_whatsapp 
-        WHERE ativo = true 
+        WHERE envio = true 
         AND cr = ANY(%s)
         ORDER BY nome_grupo
         """
@@ -151,14 +151,14 @@ CREATE TABLE grupos_whatsapp (
     envio BOOLEAN DEFAULT FALSE,
     dia_todo BOOLEAN DEFAULT FALSE, 
     cr NUMERIC,
-    ativo BOOLEAN DEFAULT TRUE,
+    envio BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Índices para melhor performance
 CREATE INDEX idx_grupos_cr ON grupos_whatsapp(cr);
-CREATE INDEX idx_grupos_ativo ON grupos_whatsapp(ativo);
+CREATE INDEX idx_grupos_envio ON grupos_whatsapp(envio);
 """)
             return False
 
