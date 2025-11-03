@@ -14,7 +14,7 @@ def tarefa_agendada(horario):
     print(f"Executando tarefa para horário {horario}...")
 
     # Obtenha os grupos para esse horário (implemente seu leitor de excel que filtra baseado no horário)
-    from services.excel_reader import GruposReader
+    from services.grupos_reader import GruposReader
     grupos_reader = GruposReader()
     grupos = grupos_reader.obter_grupos_filtrados(horario)
 
