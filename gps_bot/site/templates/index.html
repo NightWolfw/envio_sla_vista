@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gerenciamento WhatsApp SLA</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-warning { background: #ffc107; color: #333; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn:hover {
+            opacity: 0.85;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .upload-section {
+            border: 2px dashed #007bff;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+        }
+        .upload-section h2 {
+            color: #007bff;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+        .upload-section p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .flash {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+        .flash-success { background: #d4edda; color: #155724; }
+        .flash-error { background: #f8d7da; color: #721c24; }
+        .export-section {
+            text-align: center;
+            padding: 20px;
+        }
+        input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Gerenciamento WhatsApp SLA</h1>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash flash-success">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="nav-buttons">
+            <a href="/" class="btn btn-primary">🏠 Home</a>
+            <a href="/gerenciar" class="btn btn-warning">📋 Gerenciar Grupos</a>
+            <a href="/mensagens" class="btn btn-success">📨 Mensagens Agendadas</a>
+            <a href="/envio-rapido" class="btn btn-info" target="_blank">⚡ Envio Rápido</a>
+        </div>
+
+        <div class="upload-section">
+            <h2>📥 Importar Planilha Excel</h2>
+            <p>Selecione o arquivo grupos_whatsapp.xlsx</p>
+            <form method="POST" action="/upload" enctype="multipart/form-data">
+                <input type="file" name="file" accept=".xlsx" required>
+                <br>
+                <button type="submit" class="btn btn-primary">Importar Planilha</button>
+            </form>
+        </div>
+
+        <div class="export-section">
+            <a href="/export" class="btn btn-success">📤 Exportar Dados do Banco</a>
+
+            <form method="POST" action="/atualizar-estrutura" style="display: inline; margin-left: 10px;">
+                <button type="submit" class="btn btn-primary">🔄 Atualizar Dados Estrutura</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
