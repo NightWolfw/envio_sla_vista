@@ -18,7 +18,14 @@
         .btn-secondary { background: #6c757d; color: white; }
         .btn:hover { opacity: 0.8; }
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; }
-        .grupos-list { max-height: 250px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #fafafa; }
+        .grupos-list {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background: #fafafa;
+        }
         .grupo-item {
             padding: 8px;
             margin-bottom: 8px;
@@ -79,6 +86,65 @@
             padding: 20px;
             color: #999;
         }
+
+        /* FILTROS AVANÇADOS */
+        .filtros-avancados { margin-bottom: 20px; }
+        .btn-filtro {
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-filtro:hover { background: #0056b3; }
+        #indicadorFiltros {
+            background: #ffc107;
+            color: #333;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .painel-filtros {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+        }
+        .filtros-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .filtro-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #555;
+        }
+        .filtro-item select,
+        .filtro-item input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .filtros-acoes {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -94,18 +160,121 @@
             <div class="form-group">
                 <label>Selecionar Grupos *</label>
 
+                <!-- FILTROS AVANÇADOS -->
+                <div class="filtros-avancados">
+                    <button type="button" class="btn-filtro" onclick="toggleFiltros()">
+                        🔍 Filtros Avançados <span id="indicadorFiltros"></span>
+                    </button>
+
+                    <div class="painel-filtros" id="painelFiltros" style="display: none;">
+                        <form method="GET" id="formFiltros">
+                            <div class="filtros-grid">
+                                <div class="filtro-item">
+                                    <label>Diretor Executivo</label>
+                                    <select name="diretor_executivo" onchange="document.getElementById('formFiltros').submit()">
+                                        <option value="">Todos</option>
+                                        {% for valor in filtros_valores.diretor_executivo %}
+                                        <option value="{{ valor }}" {% if filtros.get('diretor_executivo') == valor %}selected{% endif %}>{{ valor }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="filtro-item">
+                                    <label>Diretor Regional</label>
+                                    <select name="diretor_regional" onchange="document.getElementById('formFiltros').submit()">
+                                        <option value="">Todos</option>
+                                        {% for valor in filtros_valores.diretor_regional %}
+                                        <option value="{{ valor }}" {% if filtros.get('diretor_regional') == valor %}selected{% endif %}>{{ valor }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="filtro-item">
+                                    <label>Gerente Regional</label>
+                                    <select name="gerente_regional" onchange="document.getElementById('formFiltros').submit()">
+                                        <option value="">Todos</option>
+                                        {% for valor in filtros_valores.gerente_regional %}
+                                        <option value="{{ valor }}" {% if filtros.get('gerente_regional') == valor %}selected{% endif %}>{{ valor }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="filtro-item">
+                                    <label>Gerente</label>
+                                    <select name="gerente" onchange="document.getElementById('formFiltros').submit()">
+                                        <option value="">Todos</option>
+                                        {% for valor in filtros_valores.gerente %}
+                                        <option value="{{ valor }}" {% if filtros.get('gerente') == valor %}selected{% endif %}>{{ valor }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="filtro-item">
+                                    <label>Supervisor</label>
+                                    <select name="supervisor" onchange="document.getElementById('formFiltros').submit()">
+                                        <option value="">Todos</option>
+                                        {% for valor in filtros_valores.supervisor %}
+                                        <option value="{{ valor }}" {% if filtros.get('supervisor') == valor %}selected{% endif %}>{{ valor }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="filtro-item">
+                                    <label>Cliente</label>
+                                    <select name="cliente" onchange="document.getElementById('formFiltros').submit()">
+                                        <option value="">Todos</option>
+                                        {% for valor in filtros_valores.cliente %}
+                                        <option value="{{ valor }}" {% if filtros.get('cliente') == valor %}selected{% endif %}>{{ valor }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="filtro-item">
+                                    <label>PEC 01</label>
+                                    <select name="pec_01" onchange="document.getElementById('formFiltros').submit()">
+                                        <option value="">Todos</option>
+                                        {% for valor in filtros_valores.pec_01 %}
+                                        <option value="{{ valor }}" {% if filtros.get('pec_01') == valor %}selected{% endif %}>{{ valor }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="filtro-item">
+                                    <label>PEC 02</label>
+                                    <select name="pec_02" onchange="document.getElementById('formFiltros').submit()">
+                                        <option value="">Todos</option>
+                                        {% for valor in filtros_valores.pec_02 %}
+                                        <option value="{{ valor }}" {% if filtros.get('pec_02') == valor %}selected{% endif %}>{{ valor }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="filtro-item">
+                                    <label>CR</label>
+                                    <input type="text" name="cr" placeholder="Digite o CR..." value="{{ filtros.get('cr', '') }}">
+                                </div>
+                            </div>
+
+                            <div class="filtros-acoes">
+                                <button type="submit" class="btn btn-primary">Aplicar</button>
+                                <button type="button" class="btn btn-secondary" onclick="limparFiltros()">Limpar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 <div class="todos-checkbox">
                     <input type="checkbox" name="grupos" value="todos" id="checkTodos" onchange="toggleTodos()">
-                    <label for="checkTodos" style="font-weight: bold; margin: 0;">Enviar para TODOS os grupos</label>
+                    <label for="checkTodos" style="font-weight: bold; margin: 0;">Enviar para TODOS os grupos filtrados ({{ grupos|length }})</label>
                 </div>
 
                 <div class="search-box">
-                    <input type="text" id="searchGrupos" placeholder="🔍 Buscar por nome ou CR..." onkeyup="filtrarGrupos()">
+                    <input type="text" id="searchGrupos" placeholder="🔍 Buscar por nome..." onkeyup="filtrarGruposNome()">
                 </div>
 
                 <div class="grupos-list" id="gruposList">
                     {% for grupo in grupos %}
-                    <div class="grupo-item" data-nome="{{ grupo[2]|lower }}" data-cr="{{ grupo[4] if grupo[4] else '' }}">
+                    <div class="grupo-item" data-nome="{{ grupo[2]|lower }}">
                         <input type="checkbox" name="grupos" value="{{ grupo[1] }}" id="grupo_{{ loop.index }}" class="grupo-individual">
                         <label for="grupo_{{ loop.index }}">{{ grupo[2] }}</label>
                         {% if grupo[4] %}
@@ -203,7 +372,7 @@
             });
         }
 
-        function filtrarGrupos() {
+        function filtrarGruposNome() {
             const searchText = document.getElementById('searchGrupos').value.toLowerCase();
             const grupoItems = document.querySelectorAll('.grupo-item');
             const noResults = document.getElementById('noResults');
@@ -211,10 +380,8 @@
 
             grupoItems.forEach(item => {
                 const nome = item.getAttribute('data-nome');
-                const cr = item.getAttribute('data-cr');
 
-                // Busca por nome OU por CR
-                if (nome.includes(searchText) || cr.includes(searchText)) {
+                if (nome.includes(searchText)) {
                     item.style.display = 'flex';
                     visibleCount++;
                 } else {
@@ -222,13 +389,35 @@
                 }
             });
 
-            // Mostra mensagem se não encontrou nada
             if (visibleCount === 0) {
                 noResults.classList.remove('hidden');
             } else {
                 noResults.classList.add('hidden');
             }
         }
+
+        function toggleFiltros() {
+            const painel = document.getElementById('painelFiltros');
+            painel.style.display = painel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function limparFiltros() {
+            window.location.href = window.location.pathname;
+        }
+
+        // Atualiza indicador de filtros ativos
+        document.addEventListener('DOMContentLoaded', function() {
+            const params = new URLSearchParams(window.location.search);
+            let count = 0;
+            params.forEach((value, key) => {
+                if (value) count++;
+            });
+
+            if (count > 0) {
+                document.getElementById('indicadorFiltros').textContent = `${count} ativo(s)`;
+                document.getElementById('painelFiltros').style.display = 'block';
+            }
+        });
     </script>
 </body>
 </html>

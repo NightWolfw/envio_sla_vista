@@ -3,6 +3,7 @@ import schedule
 from datetime import datetime
 import sys
 import os
+from app import atualizar_dados_estrutura_multi_cr
 
 # Adiciona o diretório pai ao path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,7 +19,7 @@ def job_atualizar_estrutura():
     print(f"{'=' * 60}\n")
 
     try:
-        atualizar_dados_estrutura()
+        atualizar_dados_estrutura_multi_cr()
     except Exception as e:
         print(f"❌ Erro na atualização agendada: {e}")
 

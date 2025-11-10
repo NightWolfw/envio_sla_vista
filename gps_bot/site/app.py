@@ -98,11 +98,17 @@ def exportar_bd_para_excel():
     return output
 
 
-def buscar_grupos(filtro_id=None, filtro_cr=None, filtro_nome=None):
+def buscar_grupos(filtro_id=None, filtro_cr=None, filtro_nome=None, filtros=None):
     conn = conectar_bd()
     cur = conn.cursor()
 
-    query = "SELECT * FROM grupos_whatsapp WHERE 1=1"
+    query = """
+        SELECT id, group_id, nome_grupo, envio, cr,
+               cliente, pec_01, pec_02,
+               diretorexecutivo, dia_todo
+        FROM grupos_whatsapp 
+        WHERE 1=1
+    """
     params = []
 
     if filtro_id:
@@ -116,6 +122,39 @@ def buscar_grupos(filtro_id=None, filtro_cr=None, filtro_nome=None):
     if filtro_nome:
         query += " AND nome_grupo ILIKE %s"
         params.append(f"%{filtro_nome}%")
+
+    if filtros:
+        if filtros.get('diretor_executivo'):
+            query += " AND LOWER(diretorexecutivo) LIKE LOWER(%s)"
+            params.append(f"%{filtros['diretor_executivo']}%")
+
+        if filtros.get('diretor_regional'):
+            query += " AND LOWER(diretorregional) LIKE LOWER(%s)"
+            params.append(f"%{filtros['diretor_regional']}%")
+
+        if filtros.get('gerente_regional'):
+            query += " AND LOWER(gerenteregional) LIKE LOWER(%s)"
+            params.append(f"%{filtros['gerente_regional']}%")
+
+        if filtros.get('gerente'):
+            query += " AND LOWER(gerente) LIKE LOWER(%s)"
+            params.append(f"%{filtros['gerente']}%")
+
+        if filtros.get('supervisor'):
+            query += " AND LOWER(supervisor) LIKE LOWER(%s)"
+            params.append(f"%{filtros['supervisor']}%")
+
+        if filtros.get('cliente'):
+            query += " AND LOWER(cliente) LIKE LOWER(%s)"
+            params.append(f"%{filtros['cliente']}%")
+
+        if filtros.get('pec_01'):
+            query += " AND LOWER(pec_01) LIKE LOWER(%s)"
+            params.append(f"%{filtros['pec_01']}%")
+
+        if filtros.get('pec_02'):
+            query += " AND LOWER(pec_02) LIKE LOWER(%s)"
+            params.append(f"%{filtros['pec_02']}%")
 
     query += " ORDER BY id"
 
@@ -174,18 +213,42 @@ def index():
 
 @app.route('/gerenciar')
 def gerenciar():
+    filtros_valores = obter_valores_unicos_filtros(apenas_ativos=False)  # TODOS os grupos
+
     filtro_id = request.args.get('filtro_id', '')
     filtro_cr = request.args.get('filtro_cr', '')
     filtro_nome = request.args.get('filtro_nome', '')
 
-    grupos = buscar_grupos(filtro_id, filtro_cr, filtro_nome)
+    filtros = {
+        'diretor_executivo': request.args.get('diretor_executivo', ''),
+        'diretor_regional': request.args.get('diretor_regional', ''),
+        'gerente_regional': request.args.get('gerente_regional', ''),
+        'gerente': request.args.get('gerente', ''),
+        'supervisor': request.args.get('supervisor', ''),
+        'cliente': request.args.get('cliente', ''),
+        'pec_01': request.args.get('pec_01', ''),
+        'pec_02': request.args.get('pec_02', ''),
+        'cr': filtro_cr
+    }
+
+    filtros = {k: v for k, v in filtros.items() if v}
+
+    grupos = buscar_grupos(filtro_id, filtro_cr, filtro_nome, filtros if filtros else None)
 
     return render_template('gerenciar.html',
                            grupos=grupos,
                            filtro_id=filtro_id,
                            filtro_cr=filtro_cr,
-                           filtro_nome=filtro_nome)
-
+                           filtro_nome=filtro_nome,
+                           filtro_diretor_executivo=filtros.get('diretor_executivo', ''),
+                           filtro_diretor_regional=filtros.get('diretor_regional', ''),
+                           filtro_gerente_regional=filtros.get('gerente_regional', ''),
+                           filtro_gerente=filtros.get('gerente', ''),
+                           filtro_supervisor=filtros.get('supervisor', ''),
+                           filtro_cliente=filtros.get('cliente', ''),
+                           filtro_pec_01=filtros.get('pec_01', ''),
+                           filtro_pec_02=filtros.get('pec_02', ''),
+                           filtros_valores=filtros_valores)
 
 @app.route('/editar/<int:grupo_id>')
 def editar(grupo_id):
@@ -239,33 +302,32 @@ def toggle_envio(grupo_id):
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
-        flash('Nenhum arquivo selecionado')
-        return redirect(request.url)
+        flash('Nenhum arquivo foi enviado')
+        return redirect(url_for('index'))
 
     file = request.files['file']
 
     if file.filename == '':
-        flash('Nenhum arquivo selecionado')
-        return redirect(request.url)
+        flash('Nenhum arquivo foi selecionado')
+        return redirect(url_for('index'))
 
     if file and file.filename.endswith('.xlsx'):
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-
         try:
-            recriar_tabela()
+            # Salva arquivo
+            filepath = os.path.join('uploads', file.filename)
+            file.save(filepath)
+
+            # Importa com UPSERT (update ou insert)
             importar_excel_para_bd(filepath)
-            flash('Planilha importada com sucesso!')
+
+            flash('Planilha importada/atualizada com sucesso!')
         except Exception as e:
             flash(f'Erro ao importar: {str(e)}')
-        finally:
-            os.remove(filepath)
 
         return redirect(url_for('index'))
     else:
-        flash('Apenas arquivos .xlsx são permitidos')
-        return redirect(request.url)
+        flash('Por favor, envie um arquivo .xlsx')
+        return redirect(url_for('index'))
 
 
 @app.route('/export')
@@ -284,18 +346,252 @@ def export_file():
 
 
 # ============================================
+# FUNÇÕES PARA MÚLTIPLOS CRs
+# ============================================
+
+def adicionar_cr_ao_grupo(grupo_id, cr):
+    """Adiciona um CR a um grupo"""
+    conn = conectar_bd()
+    cur = conn.cursor()
+    try:
+        cur.execute("INSERT INTO grupo_cr (grupo_id, cr) VALUES (%s, %s)", (grupo_id, cr))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cur.close()
+        conn.close()
+
+
+def remover_cr_do_grupo(grupo_id, cr):
+    """Remove um CR de um grupo"""
+    conn = conectar_bd()
+    cur = conn.cursor()
+    try:
+        cur.execute("DELETE FROM grupo_cr WHERE grupo_id = %s AND cr = %s", (grupo_id, cr))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cur.close()
+        conn.close()
+
+
+def listar_crs_do_grupo(grupo_id):
+    """Lista todos os CRs de um grupo (principal + adicionais)"""
+    conn = conectar_bd()
+    cur = conn.cursor()
+
+    # Busca CR principal
+    cur.execute("SELECT cr FROM grupos_whatsapp WHERE id = %s", (grupo_id,))
+    resultado = cur.fetchone()
+    cr_principal = resultado[0] if resultado else None
+
+    # Busca CRs adicionais
+    cur.execute("SELECT cr FROM grupo_cr WHERE grupo_id = %s ORDER BY cr", (grupo_id,))
+    crs_adicionais = [row[0] for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    # Monta lista completa
+    todos_crs = []
+    if cr_principal:
+        todos_crs.append(cr_principal)
+    todos_crs.extend(crs_adicionais)
+
+    return todos_crs
+
+
+def limpar_crs_adicionais_grupo(grupo_id):
+    """Remove todos os CRs adicionais de um grupo"""
+    conn = conectar_bd()
+    cur = conn.cursor()
+    try:
+        cur.execute("DELETE FROM grupo_cr WHERE grupo_id = %s", (grupo_id,))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============================================
 # FUNÇÕES PARA MENSAGENS AGENDADAS
 # ============================================
 
-def listar_todos_grupos():
-    """Retorna lista de todos os grupos disponíveis com CR"""
+def listar_todos_grupos(filtros=None, apenas_ativos=False):
+    """Retorna lista de grupos com filtros opcionais"""
     conn = conectar_bd()
     cur = conn.cursor()
-    cur.execute("SELECT id, group_id, nome_grupo, envio, cr FROM grupos_whatsapp ORDER BY nome_grupo")
+
+    query = """
+        SELECT id, group_id, nome_grupo, envio, cr, 
+               cliente, pec_01, pec_02,
+               diretorexecutivo, diretorregional, 
+               gerenteregional, gerente, supervisor
+        FROM grupos_whatsapp 
+        WHERE 1=1
+    """
+    params = []
+
+    # Filtro invisível para mostrar apenas grupos com envio = true
+    if apenas_ativos:
+        query += " AND envio = true"
+
+    if filtros:
+        if filtros.get('diretor_executivo'):
+            query += " AND LOWER(diretorexecutivo) LIKE LOWER(%s)"
+            params.append(f"%{filtros['diretor_executivo']}%")
+
+        if filtros.get('diretor_regional'):
+            query += " AND LOWER(diretorregional) LIKE LOWER(%s)"
+            params.append(f"%{filtros['diretor_regional']}%")
+
+        if filtros.get('gerente_regional'):
+            query += " AND LOWER(gerenteregional) LIKE LOWER(%s)"
+            params.append(f"%{filtros['gerente_regional']}%")
+
+        if filtros.get('gerente'):
+            query += " AND LOWER(gerente) LIKE LOWER(%s)"
+            params.append(f"%{filtros['gerente']}%")
+
+        if filtros.get('supervisor'):
+            query += " AND LOWER(supervisor) LIKE LOWER(%s)"
+            params.append(f"%{filtros['supervisor']}%")
+
+        if filtros.get('cliente'):
+            query += " AND LOWER(cliente) LIKE LOWER(%s)"
+            params.append(f"%{filtros['cliente']}%")
+
+        if filtros.get('pec_01'):
+            query += " AND LOWER(pec_01) LIKE LOWER(%s)"
+            params.append(f"%{filtros['pec_01']}%")
+
+        if filtros.get('pec_02'):
+            query += " AND LOWER(pec_02) LIKE LOWER(%s)"
+            params.append(f"%{filtros['pec_02']}%")
+
+        if filtros.get('cr'):
+            query += " AND cr LIKE %s"
+            params.append(f"%{filtros['cr']}%")
+
+    query += " ORDER BY nome_grupo"
+
+    cur.execute(query, params)
     grupos = cur.fetchall()
     cur.close()
     conn.close()
     return grupos
+
+
+def obter_valores_unicos_filtros():
+    """Retorna valores únicos para os filtros dropdown (apenas grupos ativos)"""
+    conn = conectar_bd()
+    cur = conn.cursor()
+
+    filtros = {}
+
+    # Adiciona WHERE envio = true em todas as queries
+
+    # Diretores Executivos
+    cur.execute(
+        "SELECT DISTINCT diretorexecutivo FROM grupos_whatsapp WHERE diretorexecutivo IS NOT NULL AND envio = true ORDER BY diretorexecutivo")
+    filtros['diretor_executivo'] = [row[0] for row in cur.fetchall()]
+
+    # Diretores Regionais
+    cur.execute(
+        "SELECT DISTINCT diretorregional FROM grupos_whatsapp WHERE diretorregional IS NOT NULL AND envio = true ORDER BY diretorregional")
+    filtros['diretor_regional'] = [row[0] for row in cur.fetchall()]
+
+    # Gerentes Regionais
+    cur.execute(
+        "SELECT DISTINCT gerenteregional FROM grupos_whatsapp WHERE gerenteregional IS NOT NULL AND envio = true ORDER BY gerenteregional")
+    filtros['gerente_regional'] = [row[0] for row in cur.fetchall()]
+
+    # Gerentes
+    cur.execute(
+        "SELECT DISTINCT gerente FROM grupos_whatsapp WHERE gerente IS NOT NULL AND envio = true ORDER BY gerente")
+    filtros['gerente'] = [row[0] for row in cur.fetchall()]
+
+    # Supervisores
+    cur.execute(
+        "SELECT DISTINCT supervisor FROM grupos_whatsapp WHERE supervisor IS NOT NULL AND envio = true ORDER BY supervisor")
+    filtros['supervisor'] = [row[0] for row in cur.fetchall()]
+
+    # Clientes
+    cur.execute(
+        "SELECT DISTINCT cliente FROM grupos_whatsapp WHERE cliente IS NOT NULL AND envio = true ORDER BY cliente")
+    filtros['cliente'] = [row[0] for row in cur.fetchall()]
+
+    # PEC 01
+    cur.execute("SELECT DISTINCT pec_01 FROM grupos_whatsapp WHERE pec_01 IS NOT NULL AND envio = true ORDER BY pec_01")
+    filtros['pec_01'] = [row[0] for row in cur.fetchall()]
+
+    # PEC 02
+    cur.execute("SELECT DISTINCT pec_02 FROM grupos_whatsapp WHERE pec_02 IS NOT NULL AND envio = true ORDER BY pec_02")
+    filtros['pec_02'] = [row[0] for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+    return filtros
+
+
+def obter_valores_unicos_filtros(apenas_ativos=False):
+    """Retorna valores únicos para os filtros dropdown"""
+    conn = conectar_bd()
+    cur = conn.cursor()
+
+    filtros = {}
+
+    # Adiciona filtro de envio = true apenas se especificado
+    where_clause = "WHERE {campo} IS NOT NULL"
+    if apenas_ativos:
+        where_clause = "WHERE {campo} IS NOT NULL AND envio = true"
+
+    # Diretores Executivos
+    cur.execute(
+        f"SELECT DISTINCT diretorexecutivo FROM grupos_whatsapp {where_clause.format(campo='diretorexecutivo')} ORDER BY diretorexecutivo")
+    filtros['diretor_executivo'] = [row[0] for row in cur.fetchall()]
+
+    # Diretores Regionais
+    cur.execute(
+        f"SELECT DISTINCT diretorregional FROM grupos_whatsapp {where_clause.format(campo='diretorregional')} ORDER BY diretorregional")
+    filtros['diretor_regional'] = [row[0] for row in cur.fetchall()]
+
+    # Gerentes Regionais
+    cur.execute(
+        f"SELECT DISTINCT gerenteregional FROM grupos_whatsapp {where_clause.format(campo='gerenteregional')} ORDER BY gerenteregional")
+    filtros['gerente_regional'] = [row[0] for row in cur.fetchall()]
+
+    # Gerentes
+    cur.execute(f"SELECT DISTINCT gerente FROM grupos_whatsapp {where_clause.format(campo='gerente')} ORDER BY gerente")
+    filtros['gerente'] = [row[0] for row in cur.fetchall()]
+
+    # Supervisores
+    cur.execute(
+        f"SELECT DISTINCT supervisor FROM grupos_whatsapp {where_clause.format(campo='supervisor')} ORDER BY supervisor")
+    filtros['supervisor'] = [row[0] for row in cur.fetchall()]
+
+    # Clientes
+    cur.execute(f"SELECT DISTINCT cliente FROM grupos_whatsapp {where_clause.format(campo='cliente')} ORDER BY cliente")
+    filtros['cliente'] = [row[0] for row in cur.fetchall()]
+
+    # PEC 01
+    cur.execute(f"SELECT DISTINCT pec_01 FROM grupos_whatsapp {where_clause.format(campo='pec_01')} ORDER BY pec_01")
+    filtros['pec_01'] = [row[0] for row in cur.fetchall()]
+
+    # PEC 02
+    cur.execute(f"SELECT DISTINCT pec_02 FROM grupos_whatsapp {where_clause.format(campo='pec_02')} ORDER BY pec_02")
+    filtros['pec_02'] = [row[0] for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+    return filtros
 
 
 def criar_mensagem_agendada(mensagem, grupos_ids, tipo_recorrencia, dias_semana, horario, data_inicio, data_fim=None):
@@ -486,14 +782,6 @@ def mensagens():
 
     return render_template('mensagens.html', mensagens=mensagens, filtro_ativo=filtro_ativo)
 
-
-@app.route('/mensagens/nova')
-def nova_mensagem():
-    """Tela para criar nova mensagem"""
-    grupos = listar_todos_grupos()
-    return render_template('nova_mensagem.html', grupos=grupos)
-
-
 @app.route('/mensagens/criar', methods=['POST'])
 def criar_mensagem():
     """Processa criação de nova mensagem"""
@@ -535,9 +823,9 @@ def editar_mensagem(mensagem_id):
         flash('Mensagem não encontrada')
         return redirect(url_for('mensagens'))
 
-    grupos = listar_todos_grupos()
-    return render_template('editar_mensagem.html', mensagem=mensagem, grupos=grupos)
-
+    filtros_valores = obter_valores_unicos_filtros(apenas_ativos=True)  # Só grupos ativos
+    grupos = listar_todos_grupos(apenas_ativos=True)
+    return render_template('editar_mensagem.html', mensagem=mensagem, grupos=grupos, filtros_valores=filtros_valores)
 
 @app.route('/mensagens/atualizar/<int:mensagem_id>', methods=['POST'])
 def atualizar_mensagem(mensagem_id):
@@ -695,10 +983,48 @@ def enviar_mensagem_agora(mensagem_id):
 
 @app.route('/envio-rapido')
 def envio_rapido():
-    """Página modal de envio rápido"""
-    grupos = listar_todos_grupos()
-    return render_template('envio_rapido.html', grupos=grupos)
+    """Página modal de envio rápido com filtros"""
+    filtros_valores = obter_valores_unicos_filtros(apenas_ativos=True)  # Só grupos ativos
 
+    filtros = {
+        'diretor_executivo': request.args.get('diretor_executivo', ''),
+        'diretor_regional': request.args.get('diretor_regional', ''),
+        'gerente_regional': request.args.get('gerente_regional', ''),
+        'gerente': request.args.get('gerente', ''),
+        'supervisor': request.args.get('supervisor', ''),
+        'cliente': request.args.get('cliente', ''),
+        'pec_01': request.args.get('pec_01', ''),
+        'pec_02': request.args.get('pec_02', ''),
+        'cr': request.args.get('cr', '')
+    }
+
+    filtros = {k: v for k, v in filtros.items() if v}
+
+    grupos = listar_todos_grupos(filtros if filtros else None, apenas_ativos=True)
+    return render_template('envio_rapido.html', grupos=grupos, filtros=filtros, filtros_valores=filtros_valores)
+
+
+@app.route('/mensagens/nova')
+def nova_mensagem():
+    """Tela para criar nova mensagem com filtros"""
+    filtros_valores = obter_valores_unicos_filtros(apenas_ativos=True)  # Só grupos ativos
+
+    filtros = {
+        'diretor_executivo': request.args.get('diretor_executivo', ''),
+        'diretor_regional': request.args.get('diretor_regional', ''),
+        'gerente_regional': request.args.get('gerente_regional', ''),
+        'gerente': request.args.get('gerente', ''),
+        'supervisor': request.args.get('supervisor', ''),
+        'cliente': request.args.get('cliente', ''),
+        'pec_01': request.args.get('pec_01', ''),
+        'pec_02': request.args.get('pec_02', ''),
+        'cr': request.args.get('cr', '')
+    }
+
+    filtros = {k: v for k, v in filtros.items() if v}
+
+    grupos = listar_todos_grupos(filtros if filtros else None, apenas_ativos=True)
+    return render_template('nova_mensagem.html', grupos=grupos, filtros=filtros, filtros_valores=filtros_valores)
 
 @app.route('/envio-rapido/enviar', methods=['POST'])
 def processar_envio_rapido():
@@ -715,8 +1041,21 @@ def processar_envio_rapido():
         cur = conn.cursor()
 
         if 'todos' in grupos_ids:
-            cur.execute("SELECT group_id, nome_grupo FROM grupos_whatsapp WHERE envio = true")
+            # Se marcou "TODOS", considera apenas os grupos visíveis (filtrados)
+            # Captura os IDs dos checkboxes individuais visíveis
+            grupos_ids_visiveis = [gid for gid in grupos_ids if gid != 'todos']
+
+            if not grupos_ids_visiveis:
+                # Se não tem nenhum checkbox individual marcado, pega todos ativos
+                cur.execute("SELECT group_id, nome_grupo FROM grupos_whatsapp WHERE envio = true")
+            else:
+                # Usa apenas os grupos visíveis (filtrados)
+                placeholders = ','.join(['%s'] * len(grupos_ids_visiveis))
+                cur.execute(
+                    f"SELECT group_id, nome_grupo FROM grupos_whatsapp WHERE group_id IN ({placeholders}) AND envio = true",
+                    grupos_ids_visiveis)
         else:
+            # Envio para grupos selecionados manualmente
             placeholders = ','.join(['%s'] * len(grupos_ids))
             cur.execute(
                 f"SELECT group_id, nome_grupo FROM grupos_whatsapp WHERE group_id IN ({placeholders}) AND envio = true",
@@ -754,7 +1093,6 @@ def processar_envio_rapido():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-
 def conectar_bd_vista():
     """Conecta ao banco de dados Vista (dw_gps)"""
     return psycopg2.connect(
@@ -766,12 +1104,11 @@ def conectar_bd_vista():
     )
 
 
-def atualizar_dados_estrutura():
+def atualizar_dados_estrutura_multi_cr():
     """
-    Atualiza dados de estrutura organizacional dos grupos
-    a partir do banco dw_vista
+    Atualiza dados de estrutura considerando múltiplos CRs por grupo
     """
-    print("🔄 Iniciando atualização de dados da estrutura...")
+    print("🔄 Iniciando atualização multi-CR...")
 
     conn_sla = conectar_bd()
     conn_vista = conectar_bd_vista()
@@ -780,94 +1117,110 @@ def atualizar_dados_estrutura():
     cur_vista = conn_vista.cursor()
 
     try:
-        # Busca todos os grupos com CR
-        cur_sla.execute("SELECT id, cr FROM grupos_whatsapp WHERE cr IS NOT NULL AND cr != ''")
-        grupos = cur_sla.fetchall()
+        # Busca todos os grupos com seus CRs
+        cur_sla.execute("""
+            SELECT DISTINCT g.id, g.cr
+            FROM grupos_whatsapp g
+            WHERE g.cr IS NOT NULL AND g.cr != ''
+        """)
 
-        total = len(grupos)
+        grupos_cr_principal = cur_sla.fetchall()
+
+        total = len(grupos_cr_principal)
         atualizados = 0
         erros = 0
 
         print(f"📊 Total de grupos para atualizar: {total}")
 
-        for grupo_id, cr in grupos:
+        for grupo_id, cr_principal in grupos_cr_principal:
             try:
-                # Tenta com CR original E sem zeros à esquerda
-                cr_com_zeros = cr
-                cr_sem_zeros = cr.lstrip('0') if cr else None
+                # Busca todos os CRs do grupo (principal + adicionais)
+                cur_sla.execute("""
+                    SELECT cr FROM grupo_cr WHERE grupo_id = %s
+                """, (grupo_id,))
+                crs_adicionais = [row[0] for row in cur_sla.fetchall()]
 
-                if not cr_sem_zeros:
-                    cr_sem_zeros = '0'  # Se ficar vazio, usa '0'
+                todos_crs = [cr_principal] + crs_adicionais
+                todos_crs = [cr for cr in todos_crs if cr]  # Remove None/vazios
 
-                print(f"🔍 Buscando CR: {cr_com_zeros} (também testando: {cr_sem_zeros})")
+                print(f"🔍 Grupo {grupo_id}: Buscando CRs {todos_crs}")
 
-                # Busca dados da estrutura (tenta com os dois formatos)
-                cur_vista.execute("""
-                    SELECT 
-                        cliente,
-                        nivel_01 as pec_01,
-                        nivel_02 as pec_02,
-                        id_cr
-                    FROM dw_vista.dm_estrutura
-                    WHERE crno::text = %s OR crno::text = %s
-                    LIMIT 1
-                """, (cr_com_zeros, cr_sem_zeros))
+                # Tenta buscar dados de cada CR até encontrar
+                for cr in todos_crs:
+                    cr_com_zeros = cr
+                    cr_sem_zeros = cr.lstrip('0') if cr else None
 
-                estrutura = cur_vista.fetchone()
+                    if not cr_sem_zeros:
+                        cr_sem_zeros = '0'
 
-                if estrutura:
-                    cliente, pec_01, pec_02, id_cr = estrutura
-
-                    # Busca dados de gestores (dm_cr)
+                    # Busca dados da estrutura
                     cur_vista.execute("""
                         SELECT 
-                            diretorexecutivo,
-                            diretorregional,
-                            gerenteregional,
-                            gerente,
-                            supervisor
-                        FROM dw_vista.dm_cr
-                        WHERE id_cr = %s
+                            cliente,
+                            nivel_01 as pec_01,
+                            nivel_02 as pec_02,
+                            id_cr
+                        FROM dw_vista.dm_estrutura
+                        WHERE crno::text = %s OR crno::text = %s
                         LIMIT 1
-                    """, (id_cr,))
+                    """, (cr_com_zeros, cr_sem_zeros))
 
-                    gestores = cur_vista.fetchone()
+                    estrutura = cur_vista.fetchone()
 
-                    if gestores:
-                        diretor_exec, diretor_reg, gerente_reg, gerente, supervisor = gestores
+                    if estrutura:
+                        cliente, pec_01, pec_02, id_cr = estrutura
 
-                        # Atualiza no banco SLA
-                        cur_sla.execute("""
-                            UPDATE grupos_whatsapp
-                            SET cliente = %s,
-                                pec_01 = %s,
-                                pec_02 = %s,
-                                diretorexecutivo = %s,
-                                diretorregional = %s,
-                                gerenteregional = %s,
-                                gerente = %s,
-                                supervisor = %s,
-                                ultima_atualizacao = CURRENT_TIMESTAMP
-                            WHERE id = %s
-                        """, (cliente, pec_01, pec_02, diretor_exec, diretor_reg,
-                              gerente_reg, gerente, supervisor, grupo_id))
+                        # Busca dados de gestores
+                        cur_vista.execute("""
+                            SELECT 
+                                diretorexecutivo,
+                                diretorregional,
+                                gerenteregional,
+                                gerente,
+                                supervisor
+                            FROM dw_vista.dm_cr
+                            WHERE id_cr = %s
+                            LIMIT 1
+                        """, (id_cr,))
 
-                        atualizados += 1
-                        print(f"  ✅ Grupo ID {grupo_id} (CR {cr}) atualizado")
-                        print(f"     Cliente: {cliente} | PEC: {pec_01}/{pec_02}")
+                        gestores = cur_vista.fetchone()
+
+                        if gestores:
+                            diretor_exec, diretor_reg, gerente_reg, gerente, supervisor = gestores
+
+                            # Atualiza no banco SLA
+                            cur_sla.execute("""
+                                UPDATE grupos_whatsapp
+                                SET cliente = %s,
+                                    pec_01 = %s,
+                                    pec_02 = %s,
+                                    diretorexecutivo = %s,
+                                    diretorregional = %s,
+                                    gerenteregional = %s,
+                                    gerente = %s,
+                                    supervisor = %s,
+                                    ultima_atualizacao = CURRENT_TIMESTAMP
+                                WHERE id = %s
+                            """, (cliente, pec_01, pec_02, diretor_exec, diretor_reg,
+                                  gerente_reg, gerente, supervisor, grupo_id))
+
+                            atualizados += 1
+                            print(f"  ✅ Grupo {grupo_id} atualizado com CR {cr}")
+                            print(f"     Cliente: {cliente} | PEC: {pec_01}/{pec_02}")
+                            break  # Encontrou dados, para de buscar
+                        else:
+                            print(f"  ⚠️ Gestores não encontrados para CR {cr} (id_cr: {id_cr})")
                     else:
-                        print(f"  ⚠️ Gestores não encontrados para CR {cr} (id_cr: {id_cr})")
-                else:
-                    print(f"  ⚠️ Estrutura não encontrada para CR {cr}")
+                        print(f"  ⚠️ Estrutura não encontrada para CR {cr}")
 
             except Exception as e:
                 erros += 1
-                print(f"  ❌ Erro ao processar CR {cr}: {str(e)}")
+                print(f"  ❌ Erro ao processar grupo {grupo_id}: {str(e)}")
 
         conn_sla.commit()
 
         print(f"\n{'=' * 60}")
-        print(f"✅ Atualização concluída!")
+        print(f"✅ Atualização multi-CR concluída!")
         print(f"   Total: {total} | Atualizados: {atualizados} | Erros: {erros}")
         print(f"{'=' * 60}\n")
 
@@ -881,46 +1234,154 @@ def atualizar_dados_estrutura():
         conn_sla.close()
         conn_vista.close()
 
+
+# Alias para manter compatibilidade
+def atualizar_dados_estrutura():
+    """Wrapper para manter compatibilidade com código existente"""
+    return atualizar_dados_estrutura_multi_cr()
+
+
 def importar_excel_para_bd(caminho_arquivo):
-    """Importa dados do Excel e atualiza estrutura organizacional"""
+    """Importa dados do Excel com suporte a múltiplos CRs (UPSERT com tratamento de erro por linha)"""
     df = pd.read_excel(caminho_arquivo)
     conn = conectar_bd()
-    cur = conn.cursor()
 
-    for _, row in df.iterrows():
-        dia_todo = None if pd.isna(row['DiaTodo']) else row['DiaTodo']
+    grupos_novos = 0
+    grupos_atualizados = 0
+    crs_adicionais_total = 0
+    erros = 0
 
-        if pd.isna(row['CR']):
-            cr = None
-        else:
-            cr_valor = int(row['CR'])
-            cr = f"{cr_valor:05d}"
+    print(f"📥 Iniciando importação de {len(df)} linhas...")
 
-        cur.execute("""
-            INSERT INTO grupos_whatsapp (group_id, nome_grupo, envio, dia_todo, cr) 
-            VALUES (%s, %s, %s, %s, %s)
-        """, (row['ID'], row['Nome do Grupo'], row['Envio'], dia_todo, cr))
+    for index, row in df.iterrows():
+        cur = conn.cursor()
 
-    conn.commit()
-    cur.close()
+        try:
+            # Converte DiaTodo para boolean
+            dia_todo = None if pd.isna(row['DiaTodo']) else bool(row['DiaTodo'])
+
+            # Converte Envio para boolean (aceita 0/1, True/False, "TRUE"/"FALSE")
+            if pd.isna(row['Envio']):
+                envio = False
+            else:
+                envio_valor = row['Envio']
+                if isinstance(envio_valor, (int, float)):
+                    envio = bool(int(envio_valor))
+                elif isinstance(envio_valor, str):
+                    envio = envio_valor.upper() in ['TRUE', '1', 'SIM', 'YES']
+                else:
+                    envio = bool(envio_valor)
+
+            # Processa múltiplos CRs separados por vírgula
+            if pd.isna(row['CR']):
+                cr_principal = None
+                crs_adicionais = []
+            else:
+                cr_str = str(row['CR']).strip()
+
+                # Se tem vírgula, separa múltiplos CRs
+                if ',' in cr_str:
+                    crs = [c.strip() for c in cr_str.split(',') if c.strip()]
+                    # Formata com zeros à esquerda
+                    crs_formatados = []
+                    for c in crs:
+                        try:
+                            crs_formatados.append(f"{int(float(c)):05d}")  # float() pra aceitar "123.0"
+                        except:
+                            crs_formatados.append(c)
+
+                    cr_principal = crs_formatados[0] if crs_formatados else None
+                    crs_adicionais = crs_formatados[1:] if len(crs_formatados) > 1 else []
+                else:
+                    # CR único
+                    try:
+                        cr_principal = f"{int(float(cr_str)):05d}"
+                    except:
+                        cr_principal = cr_str
+                    crs_adicionais = []
+
+            # Verifica se grupo já existe (UPSERT)
+            cur.execute("SELECT id FROM grupos_whatsapp WHERE group_id = %s", (row['ID'],))
+            grupo_existente = cur.fetchone()
+
+            if grupo_existente:
+                grupo_id = grupo_existente[0]
+                # UPDATE: Atualiza grupo existente
+                cur.execute("""
+                    UPDATE grupos_whatsapp 
+                    SET nome_grupo = %s, 
+                        envio = %s, 
+                        dia_todo = %s, 
+                        cr = %s
+                    WHERE id = %s
+                """, (row['Nome do Grupo'], envio, dia_todo, cr_principal, grupo_id))
+                grupos_atualizados += 1
+
+                # Limpa CRs adicionais antigos desse grupo
+                cur.execute("DELETE FROM grupo_cr WHERE grupo_id = %s", (grupo_id,))
+            else:
+                # INSERT: Novo grupo
+                cur.execute("""
+                    INSERT INTO grupos_whatsapp (group_id, nome_grupo, envio, dia_todo, cr) 
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (row['ID'], row['Nome do Grupo'], envio, dia_todo, cr_principal))
+
+                grupo_id = cur.fetchone()[0]
+                grupos_novos += 1
+
+            # Adiciona CRs secundários na tabela grupo_cr
+            for cr_adicional in crs_adicionais:
+                cur.execute("""
+                    INSERT INTO grupo_cr (grupo_id, cr) 
+                    VALUES (%s, %s)
+                """, (grupo_id, cr_adicional))
+                crs_adicionais_total += 1
+
+            # Commit individual por linha
+            conn.commit()
+            cur.close()
+
+            if (index + 1) % 50 == 0:
+                print(f"  ✅ Processadas {index + 1}/{len(df)} linhas...")
+
+        except Exception as e:
+            # Rollback apenas dessa linha
+            conn.rollback()
+            cur.close()
+            erros += 1
+            print(f"  ❌ Erro na linha {index + 1} ({row.get('Nome do Grupo', 'N/A')}): {str(e)[:150]}")
+            continue
+
     conn.close()
 
+    print(f"\n{'=' * 60}")
+    print(f"✅ Importação concluída!")
+    print(f"   Grupos novos: {grupos_novos}")
+    print(f"   Grupos atualizados: {grupos_atualizados}")
+    print(f"   CRs adicionais: {crs_adicionais_total}")
+    print(f"   Erros: {erros}")
+    print(f"{'=' * 60}\n")
+
     # Atualiza dados da estrutura após importar
-    print("📥 Planilha importada. Atualizando dados da estrutura...")
-    atualizar_dados_estrutura()
+    if grupos_novos + grupos_atualizados > 0:
+        print("📊 Atualizando dados da estrutura organizacional...")
+        try:
+            atualizar_dados_estrutura_multi_cr()
+        except Exception as e:
+            print(f"⚠️ Erro na atualização de estrutura: {e}")
 
 
 @app.route('/atualizar-estrutura', methods=['POST'])
 def trigger_atualizar_estrutura():
     """Rota para atualizar manualmente os dados da estrutura"""
     try:
-        atualizar_dados_estrutura()
+        atualizar_dados_estrutura_multi_cr()
         flash('Dados da estrutura atualizados com sucesso!')
     except Exception as e:
         flash(f'Erro ao atualizar estrutura: {str(e)}')
 
     return redirect(url_for('index'))
-
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)
