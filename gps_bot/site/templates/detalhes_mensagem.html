@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes da Mensagem</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }
+        h1, h2 { color: #333; margin-bottom: 20px; }
+        .info-box { background: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 30px; }
+        .info-row { display: flex; margin-bottom: 10px; }
+        .info-label { font-weight: bold; min-width: 150px; color: #555; }
+        .info-value { color: #333; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-warning { background: #ffc107; color: #333; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn:hover { opacity: 0.8; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; font-weight: bold; }
+        .status-badge { padding: 5px 10px; border-radius: 3px; font-size: 12px; }
+        .badge-ativo { background: #d4edda; color: #155724; }
+        .badge-inativo { background: #f8d7da; color: #721c24; }
+        .badge-sucesso { background: #d4edda; color: #155724; }
+        .badge-erro { background: #f8d7da; color: #721c24; }
+        .grupos-destino { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .grupo-tag { background: #e9ecef; padding: 5px 10px; border-radius: 3px; font-size: 14px; }
+        .section { margin-top: 40px; }
+        .button-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Detalhes da Mensagem #{{ mensagem[0] }}</h1>
+
+        <div class="button-group" style="margin-bottom: 20px;">
+            <a href="/mensagens" class="btn btn-warning">← Voltar</a>
+            <a href="/mensagens/editar/{{ mensagem[0] }}" class="btn btn-primary">✏️ Editar</a>
+
+            <form method="POST" action="/mensagens/enviar-agora/{{ mensagem[0] }}" style="display: inline;" onsubmit="return confirm('Enviar mensagem AGORA para todos os grupos selecionados?')">
+                <button type="submit" class="btn btn-success">📤 Enviar Agora</button>
+            </form>
+        </div>
+
+        <div class="info-box">
+            <div class="info-row">
+                <div class="info-label">Status:</div>
+                <div class="info-value">
+                    <span class="status-badge {% if mensagem[8] %}badge-ativo{% else %}badge-inativo{% endif %}">
+                        {% if mensagem[8] %}Ativo{% else %}Inativo{% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Mensagem:</div>
+                <div class="info-value">{{ mensagem[1] }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Tipo:</div>
+                <div class="info-value">{{ mensagem[3] }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Horário:</div>
+                <div class="info-value">{{ mensagem[5] }}</div>
+            </div>
+            {% if mensagem[3] == 'RECORRENTE' and mensagem[4] %}
+            <div class="info-row">
+                <div class="info-label">Dias da Semana:</div>
+                <div class="info-value">
+                    {% set dias = {0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb'} %}
+                    {% for dia in mensagem[4] %}{{ dias[dia] }}{% if not loop.last %}, {% endif %}{% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <div class="info-label">Data Início:</div>
+                <div class="info-value">{{ mensagem[6] }}</div>
+            </div>
+            {% if mensagem[7] %}
+            <div class="info-row">
+                <div class="info-label">Data Fim:</div>
+                <div class="info-value">{{ mensagem[7] }}</div>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <div class="info-label">Criado em:</div>
+                <div class="info-value">{{ mensagem[9].strftime('%d/%m/%Y %H:%M:%S') if mensagem[9] else '-' }}</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Grupos de Destino ({{ grupos|length }})</h2>
+            {% if mensagem[2] and mensagem[2][0] == 'TODOS' %}
+                <p style="color: #666; margin-top: 10px;">✅ Enviando para TODOS os grupos ativos</p>
+            {% endif %}
+            <div class="grupos-destino">
+                {% for grupo in grupos %}
+                <div class="grupo-tag">{{ grupo[1] }}</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Histórico de Envios (últimos 100)</h2>
+            {% if logs %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Grupo</th>
+                        <th>Status</th>
+                        <th>Enviado em</th>
+                        <th>Erro</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log[0] }}</td>
+                        <td>{{ log[3] }}</td>
+                        <td>
+                            <span class="status-badge badge-{{ log[5]|lower }}">{{ log[5] }}</span>
+                        </td>
+                        <td>{{ log[7].strftime('%d/%m/%Y %H:%M:%S') if log[7] else '-' }}</td>
+                        <td>{{ log[6] if log[6] else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="color: #999; text-align: center; padding: 30px;">Nenhum envio realizado ainda</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
