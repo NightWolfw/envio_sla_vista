@@ -1,28 +1,129 @@
 {% extends "base.html" %}
 
-{% block title %}Início{% endblock %}
+{% block title %}Início - Envio SLA{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-4 mb-3">
-        <a href="/grupos/" class="btn btn-primary btn-lg w-100">
-            <i class="bi bi-people"></i> Gerenciar Grupos
-        </a>
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h2 class="mb-4">Bem-vindo ao Sistema de Envio SLA WhatsApp</h2>
+        </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <a href="/mensagens/" class="btn btn-success btn-lg w-100">
-            <i class="bi bi-calendar-check"></i> Mensagens Agendadas
-        </a>
+
+    <!-- Cards de Navegação -->
+    <div class="row mb-5">
+        <div class="col-md-3 mb-3">
+            <a href="/grupos/" class="text-decoration-none">
+                <div class="card hover-card shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-people display-1 text-primary"></i>
+                        <h5 class="card-title mt-3">Gerenciar Grupos</h5>
+                        <p class="card-text text-muted">Gerencie grupos WhatsApp</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 mb-3">
+            <a href="/mensagens/" class="text-decoration-none">
+                <div class="card hover-card shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-calendar-check display-1 text-success"></i>
+                        <h5 class="card-title mt-3">Mensagens Agendadas</h5>
+                        <p class="card-text text-muted">Agende mensagens recorrentes</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 mb-3">
+            <a href="/envio/" class="text-decoration-none">
+                <div class="card hover-card shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-send display-1 text-warning"></i>
+                        <h5 class="card-title mt-3">Envio Rápido</h5>
+                        <p class="card-text text-muted">Envie mensagens imediatas</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 mb-3">
+            <a href="/sla/agendar" class="text-decoration-none">
+                <div class="card hover-card shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-file-earmark-pdf display-1 text-info"></i>
+                        <h5 class="card-title mt-3">Agendar SLA PDF</h5>
+                        <p class="card-text text-muted">Agende envio de relatórios</p>
+                    </div>
+                </div>
+            </a>
+        </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <a href="/envio/" class="btn btn-warning btn-lg w-100">
-            <i class="bi bi-send"></i> Envio Rápido
-        </a>
+
+    <!-- Seção de Importação/Exportação -->
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-upload"></i> Importar Planilha de Grupos</h5>
+                </div>
+                <div class="card-body">
+                    <form action="/upload" method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="fileInput" class="form-label">Selecione o arquivo Excel (.xlsx)</label>
+                            <input type="file" class="form-control" id="fileInput" name="file" accept=".xlsx" required>
+                            <small class="text-muted">
+                                A planilha deve conter as colunas: ID Grupo, Nome do Grupo, Envio Ativo, CR, Cliente, etc.
+                            </small>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-upload"></i> Importar Grupos
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-download"></i> Exportar Planilha de Grupos</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Baixe uma planilha Excel com todos os grupos cadastrados no sistema.
+                    </p>
+                    <a href="/export" class="btn btn-success w-100">
+                        <i class="bi bi-download"></i> Exportar Grupos
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <a href="/sla/agendar" class="btn btn-info btn-lg w-100">
-            <i class="bi bi-file-earmark-pdf"></i> Agendar SLA PDF
-        </a>
+
+    <!-- Estatísticas (opcional) -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informações do Sistema</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h3 class="text-primary">{{ total_grupos or 0 }}</h3>
+                            <p class="text-muted">Grupos Cadastrados</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3 class="text-success">{{ total_mensagens or 0 }}</h3>
+                            <p class="text-muted">Mensagens Agendadas</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3 class="text-warning">{{ total_envios or 0 }}</h3>
+                            <p class="text-muted">Envios Realizados</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
