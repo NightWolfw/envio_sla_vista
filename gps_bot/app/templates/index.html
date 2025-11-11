@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Início - Envio SLA{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Header -->
+    <div class="col-12 mb-4">
+        <h1 class="display-4">
+            <i class="bi bi-whatsapp text-success"></i> Sistema de Envio SLA
+        </h1>
+        <p class="lead text-muted">Gerencie grupos e mensagens agendadas do WhatsApp</p>
+    </div>
+
+    <!-- Cards de Ações -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm hover-card">
+            <div class="card-body text-center">
+                <i class="bi bi-people display-1 text-primary"></i>
+                <h5 class="card-title mt-3">Gerenciar Grupos</h5>
+                <p class="card-text">Cadastre, edite e organize os grupos de WhatsApp</p>
+                <a href="/grupos/" class="btn btn-primary">
+                    <i class="bi bi-arrow-right-circle"></i> Acessar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm hover-card">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar-check display-1 text-success"></i>
+                <h5 class="card-title mt-3">Mensagens Agendadas</h5>
+                <p class="card-text">Programe envios automáticos recorrentes</p>
+                <a href="/mensagens/" class="btn btn-success">
+                    <i class="bi bi-arrow-right-circle"></i> Acessar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm hover-card">
+            <div class="card-body text-center">
+                <i class="bi bi-send display-1 text-warning"></i>
+                <h5 class="card-title mt-3">Envio Rápido</h5>
+                <p class="card-text">Envie mensagens imediatas para grupos</p>
+                <a href="/envio/" class="btn btn-warning">
+                    <i class="bi bi-arrow-right-circle"></i> Acessar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Importar/Exportar -->
+    <div class="col-12 mt-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-arrow-up"></i> Importar/Exportar Dados</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Importar Grupos do Excel</h6>
+                        <form action="/upload" method="POST" enctype="multipart/form-data">
+                            <div class="input-group">
+                                <input type="file" class="form-control" name="file" accept=".xlsx" required>
+                                <button class="btn btn-info" type="submit">
+                                    <i class="bi bi-upload"></i> Importar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Exportar Grupos para Excel</h6>
+                        <a href="/export" class="btn btn-outline-info">
+                            <i class="bi bi-download"></i> Exportar Excel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

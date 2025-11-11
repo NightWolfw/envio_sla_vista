@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Grupo{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-warning">
+        <h4 class="mb-0"><i class="bi bi-pencil"></i> Editar Grupo</h4>
+    </div>
+    <div class="card-body">
+        <form action="/grupos/atualizar/{{ grupo[0] }}" method="POST">
+            <div class="mb-3">
+                <label class="form-label">ID do Grupo</label>
+                <input type="text" class="form-control" name="group_id" value="{{ grupo[1] }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Nome do Grupo</label>
+                <input type="text" class="form-control" name="nome_grupo" value="{{ grupo[2] }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">CR</label>
+                <input type="text" class="form-control" name="cr" value="{{ grupo[4] }}">
+            </div>
+            <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" name="envio" {{ 'checked' if grupo[3] }}>
+                <label class="form-check-label">Envio Ativo</label>
+            </div>
+            <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" name="dia_todo" {{ 'checked' if grupo[9] }}>
+                <label class="form-check-label">Dia Todo</label>
+            </div>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle"></i> Salvar
+            </button>
+            <a href="/grupos/" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> Cancelar
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}
