@@ -1,10 +1,82 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Mensagens Agendadas{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-success text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0"><i class="bi bi-calendar-check"></i> Mensagens Agendadas</h4>
+            <a href="/mensagens/nova" class="btn btn-light">
+                <i class="bi bi-plus-circle"></i> Nova Mensagem
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Filtros -->
+        <form method="GET" class="mb-3">
+            <div class="btn-group" role="group">
+                <a href="/mensagens/" class="btn btn-outline-primary {% if not filtro_ativo %}active{% endif %}">
+                    Todas
+                </a>
+                <a href="/mensagens/?ativo=true" class="btn btn-outline-success {% if filtro_ativo == 'true' %}active{% endif %}">
+                    Ativas
+                </a>
+                <a href="/mensagens/?ativo=false" class="btn btn-outline-secondary {% if filtro_ativo == 'false' %}active{% endif %}">
+                    Inativas
+                </a>
+            </div>
+        </form>
+
+        <!-- Tabela -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Mensagem</th>
+                        <th>Tipo</th>
+                        <th>Horário</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for msg in mensagens %}
+                    <tr id="mensagem-{{ msg[0] }}">
+                        <td>{{ msg[0] }}</td>
+                        <td>{{ msg[1][:50] }}{% if msg[1]|length > 50 %}...{% endif %}</td>
+                        <td>
+                            <span class="badge bg-info">{{ msg[3] }}</span>
+                        </td>
+                        <td>{{ msg[5] }}</td>
+                        <td>
+                            <span class="badge badge-status bg-{{ 'success' if msg[8] else 'secondary' }}">
+                                {{ 'Ativa' if msg[8] else 'Inativa' }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="/mensagens/editar/{{ msg[0] }}" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button onclick="toggleMensagemAtiva({{ msg[0] }})" class="btn btn-sm btn-info">
+                                <i class="bi bi-toggle-on"></i>
+                            </button>
+                            <form action="/mensagens/deletar/{{ msg[0] }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Deletar?')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/mensagens.js') }}"></script>
+{% endblock %}

@@ -21,10 +21,85 @@ body {
     font-size: 1.5rem;
 }
 
+/* TABELA RESPONSIVA COM COLUNAS FIXAS */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+}
+
 .table {
     background-color: white;
+    min-width: 1400px;
+}
+
+.table th {
+    white-space: nowrap;
+    font-size: 0.85rem;
+    position: sticky;
+    top: 0;
+    background-color: #212529;
+    z-index: 10;
+}
+
+.table td {
+    white-space: nowrap;
+    font-size: 0.85rem;
+    vertical-align: middle;
+}
+
+/* COLUNAS FIXAS (CONGELADAS) - Envio e Ações */
+.table th:nth-last-child(-n+2),
+.table td:nth-last-child(-n+2) {
+    position: sticky;
+    right: 0;
+    z-index: 5;
+    background-color: white;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+}
+
+.table th:nth-last-child(-n+2) {
+    background-color: #212529;
+    z-index: 15;
+}
+
+/* Coluna Ações (última) */
+.table th:last-child,
+.table td:last-child {
+    right: 0;
+}
+
+/* Coluna Envio (penúltima) */
+.table th:nth-last-child(2),
+.table td:nth-last-child(2) {
+    right: 120px; /* Largura da coluna Ações */
+}
+
+.table td.text-nowrap {
+    min-width: 120px;
 }
 
 footer {
     margin-top: auto;
+}
+
+/* Modal customizado */
+.modal-lg-custom {
+    max-width: 90%;
+}
+
+/* Checkbox de grupos em grid */
+.grupos-grid {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+}
+
+/* Barra de ações em massa */
+#acoesMassa {
+    position: sticky;
+    top: 0;
+    z-index: 20;
 }

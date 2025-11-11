@@ -1,18 +1,16 @@
-"""
-Serviço de agendamento de mensagens
-Verifica mensagens agendadas e executa envios
-"""
 from datetime import datetime, time
 from app.models.mensagem import listar_mensagens
 from app.models.grupo import listar_grupos
 from app.models.log import registrar_envio
-from app.services.whatsapp import enviar_mensagem
+from app.services.whatsapp import enviar_mensagem, enviar_pdf_mensagem
 from app.models.database import get_db_site
+from app.models.sla import buscar_tarefas_para_sla
+from app.services.pdf_generator import gerar_pdf_sla
 
 
 def verificar_e_executar_envios():
     """
-    Verifica mensagens agendadas que devem ser enviadas agora
+    Verifica mensagens agendadas e envios de SLA PDF que devem ser enviados agora
     Chamado periodicamente pelo scheduler externo
     """
     print(f"⏰ Verificando envios às {datetime.now().strftime('%H:%M:%S')}")
@@ -22,9 +20,8 @@ def verificar_e_executar_envios():
     horario_atual = agora.strftime('%H:%M')
     data_atual = agora.date()
 
-    # Busca mensagens ativas
+    # Busca mensagens agendadas ativas
     mensagens = listar_mensagens(apenas_ativas=True)
-
     envios_realizados = 0
 
     for mensagem in mensagens:
@@ -40,7 +37,6 @@ def verificar_e_executar_envios():
         # Verifica se está no período ativo
         if data_atual < data_inicio:
             continue
-
         if data_fim and data_atual > data_fim:
             continue
 
@@ -56,17 +52,20 @@ def verificar_e_executar_envios():
             if data_atual != data_inicio:
                 continue
 
-        # Executa envio
+        # Executa envio de mensagem
         print(f"📤 Enviando mensagem ID {mensagem_id}")
         grupos = obter_grupos_para_envio(grupos_selecionados)
-
         for group_id, nome_grupo in grupos:
             sucesso, erro = enviar_mensagem(group_id, texto)
             status = 'SUCESSO' if sucesso else 'ERRO'
             registrar_envio(mensagem_id, group_id, nome_grupo, texto, status, erro)
             envios_realizados += 1
 
-    print(f"✅ Total de envios realizados: {envios_realizados}")
+    print(f"✅ Total de envios de mensagem realizados: {envios_realizados}")
+
+    # Aqui você pode adicionar a lógica para agendamento de SLA PDF
+    # verificar_e_executar_sla_pdf()
+
     return envios_realizados
 
 
@@ -87,7 +86,6 @@ def obter_grupos_para_envio(grupos_selecionados):
     grupos = cur.fetchall()
     cur.close()
     conn.close()
-
     return grupos
 
 
@@ -96,13 +94,11 @@ def enviar_mensagem_imediata(mensagem_id):
     from app.models.mensagem import obter_mensagem
 
     mensagem = obter_mensagem(mensagem_id)
-
     if not mensagem:
         return {'sucesso': False, 'erro': 'Mensagem não encontrada'}
 
     texto = mensagem[1]
     grupos_selecionados = mensagem[2]
-
     grupos = obter_grupos_para_envio(grupos_selecionados)
 
     if not grupos:
@@ -110,12 +106,10 @@ def enviar_mensagem_imediata(mensagem_id):
 
     sucessos = 0
     erros = 0
-
     for group_id, nome_grupo in grupos:
         sucesso, erro = enviar_mensagem(group_id, texto)
         status = 'SUCESSO' if sucesso else 'ERRO'
         registrar_envio(mensagem_id, group_id, nome_grupo, texto, status, erro)
-
         if sucesso:
             sucessos += 1
         else:
