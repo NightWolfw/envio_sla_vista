@@ -5,67 +5,198 @@
 {% block content %}
 <div class="card shadow-sm">
     <div class="card-header bg-primary text-white">
-        <h4 class="mb-0"><i class="bi bi-people"></i> Gerenciar Grupos</h4>
+    <h4 class="mb-0"><i class="bi bi-people"></i> Gerenciar Grupos WhatsApp</h4>
     </div>
     <div class="card-body">
-        <!-- Filtros -->
-        <form method="GET" class="mb-4">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" class="form-control" name="filtro_id" placeholder="Filtrar por ID" value="{{ filtro_id }}">
+        <!-- Filtros Avançados -->
+        <form method="GET" class="mb-4" id="formFiltros">
+            <div class="row g-2">
+                <!-- Filtros Simples -->
+                <div class="col-md-2">
+                    <input type="text" class="form-control form-control-sm" name="filtro_id"
+                           placeholder="Filtrar por ID" value="{{ filtro_id }}">
                 </div>
-                <div class="col-md-4">
-                    <input type="text" class="form-control" name="filtro_nome" placeholder="Filtrar por Nome" value="{{ filtro_nome }}">
+                <div class="col-md-3">
+                    <input type="text" class="form-control form-control-sm" name="filtro_nome"
+                           placeholder="Filtrar por Nome" value="{{ filtro_nome }}">
                 </div>
-                <div class="col-md-4">
-                    <input type="text" class="form-control" name="filtro_cr" placeholder="Filtrar por CR" value="{{ filtro_cr }}">
+                <div class="col-md-2">
+                    <input type="text" class="form-control form-control-sm" name="filtro_cr"
+                           placeholder="Filtrar por CR" value="{{ filtro_cr }}">
                 </div>
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary">
+
+                <!-- Filtros Dropdown -->
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" name="diretor_executivo">
+                        <option value="">Diretor Executivo</option>
+                        {% for opt in filtros_valores.diretor_executivo %}
+                        <option value="{{ opt }}" {% if filtro_diretor_executivo==opt %}selected{% endif %}>
+                            {{ opt }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" name="diretor_regional">
+                        <option value="">Diretor Regional</option>
+                        {% for opt in filtros_valores.diretor_regional %}
+                        <option value="{{ opt }}" {% if filtro_diretor_regional==opt %}selected{% endif %}>
+                            {{ opt }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" name="gerente_regional">
+                        <option value="">Gerente Regional</option>
+                        {% for opt in filtros_valores.gerente_regional %}
+                        <option value="{{ opt }}" {% if filtro_gerente_regional==opt %}selected{% endif %}>
+                            {{ opt }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" name="gerente">
+                        <option value="">Gerente</option>
+                        {% for opt in filtros_valores.gerente %}
+                        <option value="{{ opt }}" {% if filtro_gerente==opt %}selected{% endif %}>
+                            {{ opt }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" name="supervisor">
+                        <option value="">Supervisor</option>
+                        {% for opt in filtros_valores.supervisor %}
+                        <option value="{{ opt }}" {% if filtro_supervisor==opt %}selected{% endif %}>
+                            {{ opt }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" name="cliente">
+                        <option value="">Cliente</option>
+                        {% for opt in filtros_valores.cliente %}
+                        <option value="{{ opt }}" {% if filtro_cliente==opt %}selected{% endif %}>
+                            {{ opt }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" name="pec_01">
+                        <option value="">PEC 01</option>
+                        {% for opt in filtros_valores.pec_01 %}
+                        <option value="{{ opt }}" {% if filtro_pec_01==opt %}selected{% endif %}>
+                            {{ opt }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" name="pec_02">
+                        <option value="">PEC 02</option>
+                        {% for opt in filtros_valores.pec_02 %}
+                        <option value="{{ opt }}" {% if filtro_pec_02==opt %}selected{% endif %}>
+                            {{ opt }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Botões -->
+                <div class="col-12 mt-2">
+                    <button type="submit" class="btn btn-primary btn-sm">
                         <i class="bi bi-search"></i> Filtrar
                     </button>
-                    <a href="/grupos/" class="btn btn-secondary">
-                        <i class="bi bi-x-circle"></i> Limpar
+                    <a href="/grupos/" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-x-circle"></i> Limpar Filtros
                     </a>
+                    <span class="badge bg-info ms-3">Total: {{ grupos|length }} grupos</span>
                 </div>
             </div>
         </form>
 
-        <!-- Tabela -->
+        <!-- Ações em Massa -->
+        <div class="mb-3 p-3 bg-light border rounded" id="acoesMassa" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong><span id="countSelecionados">0</span> grupos selecionados</strong>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deletarEmMassa()">
+                        <i class="bi bi-trash"></i> Deletar Selecionados
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="desmarcarTodos()">
+                        <i class="bi bi-x-circle"></i> Desmarcar Todos
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Grupos -->
         <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="table-light">
+            <table class="table table-striped table-hover table-sm">
+                <thead class="table-dark">
                     <tr>
-                        <th>ID Grupo</th>
-                        <th>Nome</th>
-                        <th>CR</th>
-                        <th>Cliente</th>
-                        <th>Envio</th>
-                        <th>Ações</th>
+                        <th style="min-width: 50px;">
+                            <input type="checkbox" class="form-check-input" id="selectAll"
+                                   onchange="marcarTodosTabela(this)">
+                        </th>
+                        <th style="min-width: 150px;">ID Grupo</th>
+                        <th style="min-width: 200px;">Nome do Grupo</th>
+                        <th style="min-width: 80px;">CR</th>
+                        <th style="min-width: 120px;">Cliente</th>
+                        <th style="min-width: 100px;">PEC 01</th>
+                        <th style="min-width: 100px;">PEC 02</th>
+                        <th style="min-width: 120px;">Dir. Exec.</th>
+                        <th style="min-width: 120px;">Gerente</th>
+                        <th style="min-width: 120px;">Supervisor</th>
+                        <!-- COLUNAS FIXAS (devem ser as últimas) -->
+                        <th style="min-width: 80px;">Envio</th>
+                        <th style="min-width: 120px;">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for grupo in grupos %}
                     <tr>
-                        <td><code>{{ grupo[1] }}</code></td>
+                        <td>
+                            <input type="checkbox" class="form-check-input grupo-checkbox-tabela"
+                                   value="{{ grupo[0] }}" onchange="atualizarContadorSelecao()">
+                        </td>
+                        <td><small><code>{{ grupo[1] }}</code></small></td>
                         <td>{{ grupo[2] }}</td>
-                        <td>{{ grupo[4] }}</td>
-                        <td>{{ grupo[5] or '-' }}</td>
+                        <td><span class="badge bg-secondary">{{ grupo[4] or '-' }}</span></td>
+                        <td><small>{{ grupo[5] or '-' }}</small></td>
+                        <td><small>{{ grupo[6] or '-' }}</small></td>
+                        <td><small>{{ grupo[7] or '-' }}</small></td>
+                        <td><small>{{ grupo[8] or '-' }}</small></td>
+                        <td><small>{{ grupo[11] or '-' }}</small></td>
+                        <td><small>{{ grupo[12] or '-' }}</small></td>
+                        <!-- COLUNAS FIXAS -->
                         <td>
                             <span class="badge bg-{{ 'success' if grupo[3] else 'danger' }}">
                                 {{ 'Ativo' if grupo[3] else 'Inativo' }}
                             </span>
                         </td>
-                        <td>
-                            <a href="/grupos/editar/{{ grupo[0] }}" class="btn btn-sm btn-warning">
+                        <td class="text-nowrap">
+                            <a href="/grupos/editar/{{ grupo[0] }}" class="btn btn-sm btn-warning" title="Editar">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <form action="/grupos/deletar/{{ grupo[0] }}" method="POST" style="display:inline;">
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Deletar?')">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-sm btn-danger"
+                                    onclick="deletarGrupo({{ grupo[0] }}, '{{ grupo[2] }}')" title="Deletar">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="12" class="text-center text-muted">Nenhum grupo encontrado</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -73,4 +204,104 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de envio rápido continua igual... -->
+<!-- (código do modal que já está lá) -->
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Marcar/desmarcar todos na tabela
+function marcarTodosTabela(checkbox) {
+    const checkboxes = document.querySelectorAll('.grupo-checkbox-tabela');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    atualizarContadorSelecao();
+}
+
+// Desmarcar todos
+function desmarcarTodos() {
+    document.getElementById('selectAll').checked = false;
+    marcarTodosTabela(document.getElementById('selectAll'));
+}
+
+// Atualizar contador de selecionados
+function atualizarContadorSelecao() {
+    const selecionados = document.querySelectorAll('.grupo-checkbox-tabela:checked');
+    const count = selecionados.length;
+
+    document.getElementById('countSelecionados').textContent = count;
+
+    // Mostra/esconde barra de ações em massa
+    if (count > 0) {
+        document.getElementById('acoesMassa').style.display = 'block';
+    } else {
+        document.getElementById('acoesMassa').style.display = 'none';
+    }
+
+    // Atualiza checkbox "selecionar todos"
+    const total = document.querySelectorAll('.grupo-checkbox-tabela').length;
+    document.getElementById('selectAll').checked = count === total && count > 0;
+}
+
+// Deletar grupo individual
+function deletarGrupo(grupoId, nomeGrupo) {
+    if (!confirm(`Tem certeza que deseja deletar o grupo "${nomeGrupo}"?`)) {
+        return;
+    }
+
+    fetch(`/grupos/deletar/${grupoId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Erro ao deletar grupo');
+        }
+    })
+    .catch(error => {
+        alert('Erro: ' + error);
+    });
+}
+
+// Deletar em massa
+function deletarEmMassa() {
+    const selecionados = document.querySelectorAll('.grupo-checkbox-tabela:checked');
+    const ids = Array.from(selecionados).map(cb => cb.value);
+
+    if (ids.length === 0) {
+        alert('Selecione pelo menos um grupo');
+        return;
+    }
+
+    if (!confirm(`Tem certeza que deseja deletar ${ids.length} grupos selecionados? Esta ação não pode ser desfeita!`)) {
+        return;
+    }
+
+    // Envia requisição para deletar
+    fetch('/grupos/deletar-massa', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids: ids })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`${data.deletados} grupos deletados com sucesso!`);
+            location.reload();
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Erro: ' + error);
+    });
+}
+</script>
 {% endblock %}

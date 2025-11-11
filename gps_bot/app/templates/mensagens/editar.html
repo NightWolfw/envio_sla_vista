@@ -1,10 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Editar Mensagem{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-warning">
+        <h4 class="mb-0"><i class="bi bi-pencil"></i> Editar Mensagem Agendada</h4>
+    </div>
+    <div class="card-body">
+        <form action="/mensagens/atualizar/{{ mensagem[0] }}" method="POST">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Mensagem</label>
+                <textarea class="form-control" name="mensagem" rows="5" required>{{ mensagem[1] }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Tipo</label>
+                <select class="form-select" name="tipo_recorrencia" id="tipo_recorrencia" required>
+                    <option value="UNICO" {% if mensagem[3] == 'UNICO' %}selected{% endif %}>Único</option>
+                    <option value="RECORRENTE" {% if mensagem[3] == 'RECORRENTE' %}selected{% endif %}>Recorrente</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Horário</label>
+                <input type="time" class="form-control" name="horario" value="{{ mensagem[5] }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Data Início</label>
+                <input type="date" class="form-control" name="data_inicio" value="{{ mensagem[6] }}" required>
+            </div>
+
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle"></i> Salvar
+            </button>
+            <a href="/mensagens/" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/mensagens.js') }}"></script>
+{% endblock %}

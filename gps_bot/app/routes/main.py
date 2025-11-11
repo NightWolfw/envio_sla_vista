@@ -54,3 +54,7 @@ def export_file():
     except Exception as e:
         flash(f'Erro ao exportar: {str(e)}')
         return redirect(url_for('main.index'))
+
+@bp.route('/health')
+def health():
+    return {'status': 'ok', 'timestamp': datetime.now().isoformat()}

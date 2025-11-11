@@ -1,10 +1,82 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Nova Mensagem{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-success text-white">
+        <h4 class="mb-0"><i class="bi bi-plus-circle"></i> Nova Mensagem Agendada</h4>
+    </div>
+    <div class="card-body">
+        <form action="/mensagens/criar" method="POST">
+            <!-- Mensagem -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Mensagem</label>
+                <textarea class="form-control" name="mensagem" rows="5" required></textarea>
+            </div>
+
+            <!-- Tipo de Recorrência -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Tipo de Recorrência</label>
+                <select class="form-select" name="tipo_recorrencia" id="tipo_recorrencia" required>
+                    <option value="UNICO">Único (uma vez)</option>
+                    <option value="RECORRENTE">Recorrente (dias da semana)</option>
+                </select>
+            </div>
+
+            <!-- Dias da Semana (só pra recorrente) -->
+            <div class="mb-3" id="dias_semana_container" style="display:none;">
+                <label class="form-label fw-bold">Dias da Semana</label>
+                <div class="row">
+                    <div class="col-md-3"><input type="checkbox" name="dias_semana" value="0"> Segunda</div>
+                    <div class="col-md-3"><input type="checkbox" name="dias_semana" value="1"> Terça</div>
+                    <div class="col-md-3"><input type="checkbox" name="dias_semana" value="2"> Quarta</div>
+                    <div class="col-md-3"><input type="checkbox" name="dias_semana" value="3"> Quinta</div>
+                    <div class="col-md-3"><input type="checkbox" name="dias_semana" value="4"> Sexta</div>
+                    <div class="col-md-3"><input type="checkbox" name="dias_semana" value="5"> Sábado</div>
+                    <div class="col-md-3"><input type="checkbox" name="dias_semana" value="6"> Domingo</div>
+                </div>
+            </div>
+
+            <!-- Horário -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Horário</label>
+                <input type="time" class="form-control" name="horario" required>
+            </div>
+
+            <!-- Data Início -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Data Início</label>
+                <input type="date" class="form-control" name="data_inicio" required>
+            </div>
+
+            <!-- Data Fim (opcional) -->
+            <div class="mb-3" id="data_fim_container">
+                <label class="form-label fw-bold">Data Fim (opcional)</label>
+                <input type="date" class="form-control" name="data_fim">
+            </div>
+
+            <!-- Grupos -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Grupos</label>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" name="grupos" value="todos">
+                    <label class="form-check-label">Todos os grupos ativos</label>
+                </div>
+            </div>
+
+            <!-- Botões -->
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle"></i> Criar Mensagem
+            </button>
+            <a href="/mensagens/" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> Cancelar
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/mensagens.js') }}"></script>
+{% endblock %}

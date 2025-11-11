@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  envio_sla_app:
+    build: .
+    container_name: envio_sla_app
+    restart: unless-stopped
+
+    ports:
+      - "5000:5000"
+
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY}
+
+      # Banco Site (AGORA PODE USAR O NOME DO CONTAINER!)
+      - DB_SITE_HOST=dw_sla
+      - DB_SITE_PORT=5432  # PORTA INTERNA (não 5433!)
+      - DB_SITE_DATABASE=${DB_SITE_DATABASE}
+      - DB_SITE_USER=${DB_SITE_USER}
+      - DB_SITE_PASSWORD=${DB_SITE_PASSWORD}
+
+      # Banco Vista (servidor externo)
+      - DB_VISTA_HOST=${DB_VISTA_HOST}
+      - DB_VISTA_PORT=${DB_VISTA_PORT}
+      - DB_VISTA_DATABASE=${DB_VISTA_DATABASE}
+      - DB_VISTA_USER=${DB_VISTA_USER}
+      - DB_VISTA_PASSWORD=${DB_VISTA_PASSWORD}
+
+      # Evolution API
+      - EVOLUTION_URL=http://evolution_api:8080
+      - EVOLUTION_APIKEY=${EVOLUTION_APIKEY}
+      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE}
+
+      - UPLOAD_FOLDER=/app/app/static/uploads
+      - EXCEL_PATH=/app/grupos_whatsapp.xlsx
+
+    volumes:
+      - ./app/static/uploads:/app/app/static/uploads
+      - ./logs:/app/logs
+
+    networks:
+      - envio_sla_network
+
+networks:
+  envio_sla_network:
+    external: true
