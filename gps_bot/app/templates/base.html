@@ -29,14 +29,11 @@
                             <i class="bi bi-house-door"></i> Início
                         </a>
                     </li>
-                    <!-- Remove link se estiver na página de grupos -->
-                    {% if request.path != '/grupos/' %}
                     <li class="nav-item">
                         <a class="nav-link" href="/grupos/">
                             <i class="bi bi-people"></i> Grupos
                         </a>
                     </li>
-                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="/mensagens/">
                             <i class="bi bi-calendar-check"></i> Mensagens
@@ -45,6 +42,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/envio/">
                             <i class="bi bi-send"></i> Envio Rápido
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/sla/agendar">
+                            <i class="bi bi-file-earmark-pdf"></i> Agendar SLA PDF
                         </a>
                     </li>
                 </ul>

@@ -121,3 +121,12 @@ def enviar_mensagem_imediata(mensagem_id):
         'sucessos': sucessos,
         'erros': erros
     }
+
+
+def agendar_sla_pdf(grupos_ids, mensagem, data_inicio, data_fim, tipos_tarefa, data_envio, hora_envio):
+    """
+    Agenda o envio de SLA PDF para os grupos selecionados
+    """
+    # Aqui você pode salvar os dados do agendamento no banco ou em um job do scheduler
+    # Exemplo: salva no banco ou agenda job
+    pass

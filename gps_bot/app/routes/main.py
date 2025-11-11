@@ -3,6 +3,8 @@ from werkzeug.utils import secure_filename
 import os
 from config import UPLOAD_FOLDER
 from app.services.excel import importar_excel, exportar_excel
+from flask import Blueprint, render_template
+from app.routes import sla
 
 bp = Blueprint('main', __name__)
 
@@ -58,3 +60,8 @@ def export_file():
 @bp.route('/health')
 def health():
     return {'status': 'ok', 'timestamp': datetime.now().isoformat()}
+
+@bp.route('/')
+def index():
+    return render_template('index.html')
+
