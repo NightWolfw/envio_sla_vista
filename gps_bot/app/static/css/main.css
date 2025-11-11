@@ -1,0 +1,30 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.hover-card {
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
+}
+
+.card {
+    border-radius: 10px;
+    border: none;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+.table {
+    background-color: white;
+}
+
+footer {
+    margin-top: auto;
+}
