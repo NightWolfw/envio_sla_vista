@@ -37,9 +37,11 @@ def create_app():
     app.register_blueprint(envio_bp)
     app.register_blueprint(sla_bp)
 
-    # Iniciar scheduler (garantindo que só inicia uma vez)
-    from app.services.scheduler_service import iniciar_scheduler
-    iniciar_scheduler(app)
+    # ✅ CORREÇÃO: Só inicia scheduler no processo principal (não no reloader)
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
+        with app.app_context():
+            from app.services.scheduler_service import iniciar_scheduler
+            iniciar_scheduler(app)
 
     return app
 
