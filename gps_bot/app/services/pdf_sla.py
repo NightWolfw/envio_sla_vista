@@ -94,12 +94,13 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
 
     # Tabela de tarefas
     if tarefas:
-        # Cabeçalho
-        data = [['Nº', 'Descrição', 'Disponib.', 'Prazo', 'Início Real', 'Término Real', 'Status', 'Executor', 'Local']]
+        # Cabeçalho (mudei "Descrição" para "Nome" pra ficar mais claro)
+        data = [['Nº', 'Nome', 'Disponib.', 'Prazo', 'Início Real', 'Término Real', 'Status', 'Executor', 'Local']]
 
         # Dados
         for tarefa in tarefas:
             numero = str(tarefa.get('numero', ''))
+            # ✅ Agora 'descricao' contém o valor de t.nome
             descricao = quebrar_texto(tarefa.get('descricao', ''), 25)
             disponibilizacao = tarefa.get('disponibilizacao').strftime('%d/%m %H:%M') if tarefa.get(
                 'disponibilizacao') else ''
@@ -164,4 +165,3 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
     doc.build(elements)
 
     return filepath
-

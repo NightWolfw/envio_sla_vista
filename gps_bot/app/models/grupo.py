@@ -16,30 +16,55 @@ def listar_grupos(filtros=None):
     params = []
 
     if filtros:
+        # ✅ Filtro por ID
+        if 'id' in filtros and filtros['id']:
+            query += " AND id = %s"
+            params.append(filtros['id'])
+
+        # ✅ Filtro por Nome (busca parcial)
+        if 'nome' in filtros and filtros['nome']:
+            query += " AND LOWER(nome_grupo) LIKE %s"
+            params.append(f"%{filtros['nome'].lower()}%")
+
+        # ✅ Filtro por CR
+        if 'cr' in filtros and filtros['cr']:
+            query += " AND cr = %s"
+            params.append(filtros['cr'])
+
+        # Filtro por envio
         if 'envio' in filtros:
             query += " AND envio = %s"
             params.append(filtros['envio'])
+
+        # Filtros de hierarquia
         if 'diretorexecutivo' in filtros and filtros['diretorexecutivo']:
             query += " AND diretorexecutivo = %s"
             params.append(filtros['diretorexecutivo'])
+
         if 'diretorregional' in filtros and filtros['diretorregional']:
             query += " AND diretorregional = %s"
             params.append(filtros['diretorregional'])
+
         if 'gerenteregional' in filtros and filtros['gerenteregional']:
             query += " AND gerenteregional = %s"
             params.append(filtros['gerenteregional'])
+
         if 'gerente' in filtros and filtros['gerente']:
             query += " AND gerente = %s"
             params.append(filtros['gerente'])
+
         if 'supervisor' in filtros and filtros['supervisor']:
             query += " AND supervisor = %s"
             params.append(filtros['supervisor'])
+
         if 'cliente' in filtros and filtros['cliente']:
             query += " AND cliente = %s"
             params.append(filtros['cliente'])
+
         if 'pec_01' in filtros and filtros['pec_01']:
             query += " AND pec_01 = %s"
             params.append(filtros['pec_01'])
+
         if 'pec_02' in filtros and filtros['pec_02']:
             query += " AND pec_02 = %s"
             params.append(filtros['pec_02'])
@@ -153,3 +178,31 @@ def obter_valores_unicos_filtros(apenas_ativos=False):
     cur.close()
     conn.close()
     return filtros
+
+
+def atualizar_grupo(grupo_id, dados):
+    """Atualiza dados de um grupo"""
+    conn = get_db_site()
+    cur = conn.cursor()
+
+    # ✅ CORRIGIDO: Usa os nomes CORRETOS das colunas
+    query = """
+        UPDATE grupos_whatsapp 
+        SET group_id = %s, 
+            nome_grupo = %s, 
+            envio = %s, 
+            cr = %s
+        WHERE id = %s
+    """
+
+    cur.execute(query, (
+        dados['group_id'],
+        dados['nome'],
+        dados['enviar_mensagem'],
+        dados['cr'],
+        grupo_id
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()

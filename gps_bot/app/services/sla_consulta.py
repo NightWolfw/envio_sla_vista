@@ -95,11 +95,11 @@ def buscar_tarefas_detalhadas(cr, data_inicio, data_fim, tipos_status=None):
 
     where_status = " OR ".join(condicoes) if condicoes else "1=0"
 
-    # Query COM LOCAL (COALESCE para valores nulos) e inicioreal/terminoreal
+    # ✅ MUDANÇA: t.nome em vez de t.descricao
     query = f"""
         SELECT 
             t.numero,
-            t.descricao,
+            t.nome AS descricao,
             t.disponibilizacao,
             t.prazo,
             t.inicioreal,
@@ -145,4 +145,3 @@ def buscar_tarefas_detalhadas(cr, data_inicio, data_fim, tipos_status=None):
     conn.close()
 
     return tarefas
-
