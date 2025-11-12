@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Listar Agendamentos SLA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">🗂️ Agendamentos de SLA Cadastrados</h2>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Grupo</th>
+                    <th>CR</th>
+                    <th>Tipo de Envio</th>
+                    <th>Dias Semana</th>
+                    <th>Data/Hora Envio</th>
+                    <th>Hora Início (Offset)</th>
+                    <th>Hora Fim (Offset)</th>
+                    <th>Criado em</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ag in agendamentos %}
+                <tr>
+                    <td>{{ ag[2] }}</td>
+                    <td>{{ ag[3] }}</td>
+                    <td>
+                        {% if ag[4] == 'resultados' %}
+                            📊 Resultados
+                        {% else %}
+                            📋 Programadas
+                        {% endif %}
+                    </td>
+                    <td>{{ ag[5] }}</td>
+                    <td>{{ ag[6].strftime('%d/%m/%Y %H:%M') if ag[6] else '-' }}</td>
+                    <td>
+                        {{ ag[7].strftime('%H:%M') if ag[7] else '-' }} ({{ ag[8] }})
+                    </td>
+                    <td>
+                        {{ ag[9].strftime('%H:%M') if ag[9] else '-' }} ({{ ag[10] }})
+                    </td>
+                    <td>{{ ag[11].strftime('%d/%m/%Y %H:%M') if ag[11] else '-' }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deletarAgendamento({{ ag[0] }})">🗑️ Excluir</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function deletarAgendamento(id) {
+    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
+    fetch(`/sla/deletar/${id}`, {
+        method: 'DELETE'
+    })
+    .then(r => r.json())
+    .then(resp => {
+        if (resp.success) {
+            alert('Agendamento excluído com sucesso!');
+            window.location.reload();
+        } else {
+            alert('Erro ao excluir: ' + resp.message);
+        }
+    });
+}
+</script>
+{% endblock %}

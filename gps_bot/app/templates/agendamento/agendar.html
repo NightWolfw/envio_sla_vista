@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Agendar Envio de SLA{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">📅 Agendar Envio de SLA PDF</h2>
+
+    <!-- Tipo de Envio -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Tipo de Envio</h5>
+        </div>
+        <div class="card-body">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="tipo_envio" id="tipo_resultados" value="resultados" checked>
+                <label class="form-check-label" for="tipo_resultados">
+                    📊 Envio de Resultados
+                </label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="tipo_envio" id="tipo_programadas" value="programadas">
+                <label class="form-check-label" for="tipo_programadas">
+                    📋 Envio de Programadas
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros Avançados -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Filtros Avançados</h5>
+            <button class="btn btn-sm btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtrosAvancados">
+                🔍 Mostrar/Ocultar Filtros
+            </button>
+        </div>
+        <div class="collapse" id="filtrosAvancados">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label>Diretor Executivo</label>
+                        <select class="form-select" id="filtro_diretor_executivo">
+                            <option value="">Todos</option>
+                            {% for valor in filtros.diretor_executivo %}
+                            <option value="{{ valor }}">{{ valor }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label>Diretor Regional</label>
+                        <select class="form-select" id="filtro_diretor_regional">
+                            <option value="">Todos</option>
+                            {% for valor in filtros.diretor_regional %}
+                            <option value="{{ valor }}">{{ valor }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label>Gerente Regional</label>
+                        <select class="form-select" id="filtro_gerente_regional">
+                            <option value="">Todos</option>
+                            {% for valor in filtros.gerente_regional %}
+                            <option value="{{ valor }}">{{ valor }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label>Gerente</label>
+                        <select class="form-select" id="filtro_gerente">
+                            <option value="">Todos</option>
+                            {% for valor in filtros.gerente %}
+                            <option value="{{ valor }}">{{ valor }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label>Supervisor</label>
+                        <select class="form-select" id="filtro_supervisor">
+                            <option value="">Todos</option>
+                            {% for valor in filtros.supervisor %}
+                            <option value="{{ valor }}">{{ valor }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label>Cliente</label>
+                        <select class="form-select" id="filtro_cliente">
+                            <option value="">Todos</option>
+                            {% for valor in filtros.cliente %}
+                            <option value="{{ valor }}">{{ valor }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label>PEC 01</label>
+                        <select class="form-select" id="filtro_pec_01">
+                            <option value="">Todos</option>
+                            {% for valor in filtros.pec_01 %}
+                            <option value="{{ valor }}">{{ valor }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label>PEC 02</label>
+                        <select class="form-select" id="filtro_pec_02">
+                            <option value="">Todos</option>
+                            {% for valor in filtros.pec_02 %}
+                            <option value="{{ valor }}">{{ valor }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar Filtros</button>
+                    <button class="btn btn-secondary" onclick="limparFiltros()">Limpar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Grupos -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Selecionar Grupos</h5>
+        </div>
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped" id="tabelaGrupos">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAll"></th>
+                            <th>Nome do Grupo</th>
+                            <th>CR</th>
+                            <th>Preview</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for grupo in grupos %}
+                        <tr data-grupo-id="{{ grupo[0] }}"
+                            data-diretor-executivo="{{ grupo[8] }}"
+                            data-diretor-regional="{{ grupo[9] }}"
+                            data-gerente-regional="{{ grupo[10] }}"
+                            data-gerente="{{ grupo[11] }}"
+                            data-supervisor="{{ grupo[12] }}"
+                            data-cliente="{{ grupo[5] }}"
+                            data-pec-01="{{ grupo[6] }}"
+                            data-pec-02="{{ grupo[7] }}">
+                            <td><input type="checkbox" class="grupo-checkbox" value="{{ grupo[0] }}"></td>
+                            <td>{{ grupo[2] }}</td>
+                            <td>{{ grupo[4] }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="mostrarPreview({{ grupo[0] }})">
+                                    👁️ Ver Preview
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuração de Agendamento -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Configuração do Agendamento</h5>
+        </div>
+        <div class="card-body">
+            <!-- Dias da Semana -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Dias da Semana</label>
+                <div class="d-flex gap-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="seg" id="dia_seg">
+                        <label class="form-check-label" for="dia_seg">Segunda</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="ter" id="dia_ter">
+                        <label class="form-check-label" for="dia_ter">Terça</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="qua" id="dia_qua">
+                        <label class="form-check-label" for="dia_qua">Quarta</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="qui" id="dia_qui">
+                        <label class="form-check-label" for="dia_qui">Quinta</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="sex" id="dia_sex">
+                        <label class="form-check-label" for="dia_sex">Sexta</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="sab" id="dia_sab">
+                        <label class="form-check-label" for="dia_sab">Sábado</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="dom" id="dia_dom">
+                        <label class="form-check-label" for="dia_dom">Domingo</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Agendamentos -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Datas e Horários de Envio</label>
+                <button class="btn btn-sm btn-success mb-2" onclick="adicionarLinha()">+ Adicionar Horário</button>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="tabelaAgendamentos">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora Envio</th>
+                                <th>Hora Início</th>
+                                <th>Dia Offset Início</th>
+                                <th>Hora Fim</th>
+                                <th>Dia Offset Fim</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="linhasAgendamento">
+                            <!-- Linhas dinâmicas aqui -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Botões -->
+            <div class="text-end">
+                <button class="btn btn-success btn-lg" onclick="salvarAgendamento()">
+                    💾 Salvar Agendamento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Preview -->
+<div class="modal fade" id="modalPreview" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Preview da Mensagem</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="conteudoPreview" style="white-space: pre-wrap; font-family: monospace;">
+                    <!-- Mensagem preview aqui -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/agendamento.js') }}"></script>
+{% endblock %}

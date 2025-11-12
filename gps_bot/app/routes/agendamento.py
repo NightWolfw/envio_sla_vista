@@ -1,8 +1,8 @@
 """
-Rotas para SLA - NOVA VERSÃO
+Rotas para agendamento de envio de SLA
 """
-from flask import Blueprint, render_template, request, jsonify, send_file, Response
-from app.models.grupo import listar_grupos, obter_valores_unicos_filtros, buscar_crs_por_grupos, obter_grupo
+from flask import Blueprint, render_template, request, jsonify, send_file
+from app.models.grupo import listar_grupos, obter_valores_unicos_filtros
 from app.models.agendamento import (
     criar_agendamento, listar_agendamentos,
     obter_agendamento, deletar_agendamento
@@ -13,17 +13,14 @@ from app.services.mensagem_agendamento import (
 )
 from app.services.sla_consulta import buscar_tarefas_por_periodo, buscar_tarefas_detalhadas
 from app.services.pdf_sla import gerar_pdf_relatorio
-from app.models.sla import buscar_tarefas_para_sla, buscar_nome_contrato_por_cr
-from app.services.pdf_generator import gerar_pdf_sla
-from app.services.whatsapp import enviar_pdf_mensagem
 from datetime import datetime, time
 
-bp = Blueprint('sla', __name__, url_prefix='/sla')
+bp = Blueprint('agendamento_sla', __name__, url_prefix='/sla-novo')
 
 
 @bp.route('/agendar', methods=['GET', 'POST'])
 def agendar():
-    """Página de agendamento de envios SLA - NOVA VERSÃO"""
+    """Página de agendamento de envios SLA"""
 
     if request.method == 'POST':
         # Recebe dados do formulário
@@ -53,7 +50,8 @@ def agendar():
             return jsonify({'success': False, 'message': str(e)}), 400
 
     # GET - Renderiza página
-    grupos = listar_grupos()
+    # Busca apenas grupos ativos
+    grupos = listar_grupos(filtros={'envio': True})
     filtros_disponiveis = obter_valores_unicos_filtros(apenas_ativos=True)
 
     return render_template(
@@ -63,37 +61,11 @@ def agendar():
     )
 
 
-@bp.route('/agendar-old', methods=['GET', 'POST'])
-def agendar_old():
-    """Página antiga de agendamento (backup)"""
-    if request.method == 'POST':
-        try:
-            grupos_ids = request.form.getlist('grupos[]')
-            mensagem = request.form['mensagem']
-            data_inicio = request.form['data_inicio']
-            data_fim = request.form['data_fim']
-            tipos_tarefa = request.form.getlist('tipos_tarefa')
-            data_envio = request.form['data_envio']
-            hora_envio = request.form['hora_envio']
-            recorrencia = request.form['recorrencia']
-
-            from app.services.scheduler import agendar_sla_pdf
-            agendar_sla_pdf(grupos_ids, mensagem, data_inicio, data_fim, tipos_tarefa, data_envio, hora_envio,
-                            recorrencia)
-            flash('Agendamento criado com sucesso!')
-            return redirect(url_for('sla.agendar_old'))
-        except Exception as e:
-            flash(f'Erro: {str(e)}')
-            return redirect(url_for('sla.agendar_old'))
-
-    grupos = listar_grupos()
-    return render_template('sla/agendar.html', grupos=grupos)
-
-
 @bp.route('/preview/<int:grupo_id>')
 def preview_mensagem(grupo_id):
     """Retorna preview da mensagem para um grupo"""
 
+    # Recebe parâmetros da query string
     tipo_envio = request.args.get('tipo_envio', 'resultados')
     data_envio = datetime.fromisoformat(request.args.get('data_envio'))
     hora_inicio = time.fromisoformat(request.args.get('hora_inicio'))
@@ -101,20 +73,25 @@ def preview_mensagem(grupo_id):
     hora_fim = time.fromisoformat(request.args.get('hora_fim'))
     dia_offset_fim = int(request.args.get('dia_offset_fim', 0))
 
+    # Busca grupo
+    from app.models.grupo import obter_grupo
     grupo = obter_grupo(grupo_id)
 
     if not grupo:
         return jsonify({'error': 'Grupo não encontrado'}), 404
 
-    cr = grupo[4]
+    cr = grupo[4]  # Assumindo posição do CR na tupla
 
+    # Calcula datas de consulta
     data_inicio, data_fim = calcular_datas_consulta(
         data_envio, hora_inicio, dia_offset_inicio,
         hora_fim, dia_offset_fim
     )
 
+    # Busca stats das tarefas
     stats = buscar_tarefas_por_periodo(cr, data_inicio, data_fim, tipo_envio)
 
+    # Formata mensagem
     if tipo_envio == 'resultados':
         mensagem = formatar_mensagem_resultados(data_inicio, data_fim, stats, data_envio)
     else:
@@ -141,13 +118,17 @@ def gerar_pdf():
     data_fim = datetime.fromisoformat(dados['data_fim'])
     tipos_status = dados.get('tipos_status', ['finalizadas', 'em_aberto', 'iniciadas'])
 
+    # Busca grupo
+    from app.models.grupo import obter_grupo
     grupo = obter_grupo(grupo_id)
 
     cr = grupo[4]
     nome_grupo = grupo[2]
 
+    # Busca tarefas detalhadas
     tarefas = buscar_tarefas_detalhadas(cr, data_inicio, data_fim, tipos_status)
 
+    # Gera PDF
     caminho_pdf = gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipos_status)
 
     return send_file(caminho_pdf, as_attachment=True)
@@ -155,7 +136,7 @@ def gerar_pdf():
 
 @bp.route('/listar')
 def listar():
-    """Lista agendamentos criados"""
+    """Lista agendamento criados"""
     agendamentos = listar_agendamentos()
     return render_template('agendamento/listar.html', agendamentos=agendamentos)
 
@@ -168,53 +149,3 @@ def deletar(agendamento_id):
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
-
-
-@bp.route('/visualizar_pdf')
-def visualizar_pdf():
-    """Rota antiga de visualizar PDF (mantida pra compatibilidade)"""
-    grupos_ids = request.args.getlist('grupos[]')
-    mensagem = request.args.get('mensagem')
-    data_inicio = request.args.get('data_inicio')
-    data_fim = request.args.get('data_fim')
-    tipos_tarefa = request.args.getlist('tipos_tarefa')
-
-    cr_list = buscar_crs_por_grupos(grupos_ids)
-
-    if not cr_list:
-        return Response("Nenhum CR encontrado para os grupos selecionados", status=400)
-
-    tarefas, incluir_finalizadas = buscar_tarefas_para_sla(cr_list, data_inicio, data_fim, tipos_tarefa)
-
-    contrato_nome = buscar_nome_contrato_por_cr(cr_list[0]) if len(cr_list) == 1 else "Multiplos Contratos"
-    periodo_str = f"{data_inicio} a {data_fim}"
-
-    pdf = gerar_pdf_sla(tarefas, cr_list[0], contrato_nome, periodo_str, incluir_finalizadas)
-
-    return Response(pdf, mimetype='application/pdf')
-
-
-@bp.route('/enviar_agora', methods=['POST'])
-def enviar_agora():
-    """Rota antiga de enviar PDF (mantida pra compatibilidade)"""
-    grupos_ids = request.form.getlist('grupos[]')
-    mensagem = request.form['mensagem']
-    data_inicio = request.form['data_inicio']
-    data_fim = request.form['data_fim']
-    tipos_tarefa = request.form.getlist('tipos_tarefa')
-
-    cr_list = buscar_crs_por_grupos(grupos_ids)
-
-    if not cr_list:
-        return jsonify({'error': 'Nenhum CR encontrado para os grupos selecionados'}), 400
-
-    tarefas, incluir_finalizadas = buscar_tarefas_para_sla(cr_list, data_inicio, data_fim, tipos_tarefa)
-
-    contrato_nome = buscar_nome_contrato_por_cr(cr_list[0]) if len(cr_list) == 1 else "Multiplos Contratos"
-    periodo_str = f"{data_inicio} a {data_fim}"
-
-    pdf = gerar_pdf_sla(tarefas, cr_list[0], contrato_nome, periodo_str, incluir_finalizadas)
-
-    resultado = enviar_pdf_mensagem(grupos_ids, mensagem, pdf)
-
-    return jsonify({'message': 'PDF enviado para os grupos!', 'resultado': resultado})
