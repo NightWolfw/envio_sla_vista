@@ -1,9 +1,16 @@
 from flask import Flask
+import logging
+import os
 import config
-
 
 def create_app():
     app = Flask(__name__)
+
+    # Logging básico
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
 
     # Configurações gerais
     app.config['SECRET_KEY'] = config.SECRET_KEY
@@ -23,13 +30,20 @@ def create_app():
     from app.routes.mensagens import bp as mensagens_bp
     from app.routes.envio import bp as envio_bp
     from app.routes.sla import bp as sla_bp
-    from app.routes.agendamento import bp as agendamento_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(grupos_bp)
     app.register_blueprint(mensagens_bp)
     app.register_blueprint(envio_bp)
     app.register_blueprint(sla_bp)
-    app.register_blueprint(agendamento_bp)
+
+    # Iniciar scheduler (garantindo que só inicia uma vez)
+    from app.services.scheduler_service import iniciar_scheduler
+    iniciar_scheduler(app)
 
     return app
+
+# Se você rodar diretamente este arquivo
+if __name__ == '__main__':
+    app = create_app()
+    app.run(debug=False, host='0.0.0.0')

@@ -1,72 +1,178 @@
 {% extends "base.html" %}
 
-{% block title %}Listar Agendamentos SLA{% endblock %}
+{% block title %}Agendamentos Ativos{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4">🗂️ Agendamentos de SLA Cadastrados</h2>
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📋 Agendamentos Ativos</h2>
+        <a href="{{ url_for('sla.agendar') }}" class="btn btn-success">
+            ➕ Novo Agendamento
+        </a>
+    </div>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>Grupo</th>
-                    <th>CR</th>
-                    <th>Tipo de Envio</th>
-                    <th>Dias Semana</th>
-                    <th>Data/Hora Envio</th>
-                    <th>Hora Início (Offset)</th>
-                    <th>Hora Fim (Offset)</th>
-                    <th>Criado em</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ag in agendamentos %}
-                <tr>
-                    <td>{{ ag[2] }}</td>
-                    <td>{{ ag[3] }}</td>
-                    <td>
-                        {% if ag[4] == 'resultados' %}
-                            📊 Resultados
-                        {% else %}
-                            📋 Programadas
-                        {% endif %}
-                    </td>
-                    <td>{{ ag[5] }}</td>
-                    <td>{{ ag[6].strftime('%d/%m/%Y %H:%M') if ag[6] else '-' }}</td>
-                    <td>
-                        {{ ag[7].strftime('%H:%M') if ag[7] else '-' }} ({{ ag[8] }})
-                    </td>
-                    <td>
-                        {{ ag[9].strftime('%H:%M') if ag[9] else '-' }} ({{ ag[10] }})
-                    </td>
-                    <td>{{ ag[11].strftime('%d/%m/%Y %H:%M') if ag[11] else '-' }}</td>
-                    <td>
-                        <button class="btn btn-sm btn-danger" onclick="deletarAgendamento({{ ag[0] }})">🗑️ Excluir</button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Tabela de Agendamentos -->
+    <div class="card">
+        <div class="card-header" style="background-color: #0d6efd; color: white;">
+            <h5 class="mb-0">Lista de Agendamentos</h5>
+        </div>
+        <div class="card-body">
+            {% if agendamentos %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead style="background-color: #0d6efd; color: white;">
+                        <tr>
+                            <th>ID</th>
+                            <th>Grupo</th>
+                            <th>CR</th>
+                            <th>Tipo</th>
+                            <th>Dias da Semana</th>
+                            <th>Próximo Envio</th>
+                            <th>Período</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for agendamento in agendamentos %}
+                        <tr>
+                            <td>{{ agendamento.id }}</td>
+                            <td>{{ agendamento.nome_grupo }}</td>
+                            <td>{{ agendamento.cr }}</td>
+                            <td>
+                                {% if agendamento.tipo_envio == 'resultados' %}
+                                    <span class="badge bg-success">📊 Resultados</span>
+                                {% else %}
+                                    <span class="badge bg-info">📋 Programadas</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ agendamento.dias_semana }}</td>
+                            <td>{{ agendamento.proximo_envio }}</td>
+                            <td>
+                                <small>
+                                    <strong>Início:</strong> {{ agendamento.hora_inicio }} (offset: {{ agendamento.dia_offset_inicio }})<br>
+                                    <strong>Fim:</strong> {{ agendamento.hora_fim }} (offset: {{ agendamento.dia_offset_fim }})
+                                </small>
+                            </td>
+                            <td>
+                                {% if agendamento.ativo %}
+                                    <span class="badge bg-success">✅ Ativo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">⏸️ Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-success" onclick="enviarAgora({{ agendamento.id }})">
+                                    📤 Enviar Agora
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="editarAgendamento({{ agendamento.id }})">
+                                    ✏️ Editar
+                                </button>
+                                <button class="btn btn-sm btn-info" onclick="verLogs({{ agendamento.id }})">
+                                    📜 Logs
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="toggleStatus({{ agendamento.id }})">
+                                    {% if agendamento.ativo %}⏸️ Pausar{% else %}▶️ Ativar{% endif %}
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deletarAgendamento({{ agendamento.id }})">
+                                    🗑️ Excluir
+                                </button>
+                            </td>
+
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <strong>ℹ️ Nenhum agendamento encontrado.</strong><br>
+                Crie um novo agendamento clicando no botão acima.
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
 <script>
 function deletarAgendamento(id) {
-    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
+    if (!confirm('Tem certeza que deseja excluir este agendamento?')) {
+        return;
+    }
+
     fetch(`/sla/deletar/${id}`, {
         method: 'DELETE'
     })
-    .then(r => r.json())
-    .then(resp => {
-        if (resp.success) {
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
             alert('Agendamento excluído com sucesso!');
             window.location.reload();
         } else {
-            alert('Erro ao excluir: ' + resp.message);
+            alert('Erro ao excluir: ' + data.message);
         }
+    })
+    .catch(error => {
+        alert('Erro: ' + error);
     });
 }
+
+function toggleStatus(id) {
+    fetch(`/sla/toggle/${id}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Status alterado com sucesso!');
+            window.location.reload();
+        } else {
+            alert('Erro: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Erro: ' + error);
+    });
+}
+
+function verLogs(agendamentoId) {
+    window.location.href = `/sla/logs/${agendamentoId}`;
+}
+
+function enviarAgora(agendamentoId) {
+    if (!confirm('Deseja enviar agora este agendamento?')) {
+        return;
+    }
+
+    // Mostra loading
+    const btn = event.target;
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Enviando...';
+
+    fetch(`/sla/enviar_agora/${agendamentoId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+
+        if (data.success) {
+            alert('✅ Envio realizado com sucesso!\n\n' + data.message);
+        } else {
+            alert('❌ Erro ao enviar:\n\n' + data.error);
+        }
+    })
+    .catch(error => {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+        alert('❌ Erro: ' + error);
+    });
+}
+    function editarAgendamento(agendamentoId) {
+    window.location.href = `/sla/editar/${agendamentoId}`;
+}
+
 </script>
 {% endblock %}

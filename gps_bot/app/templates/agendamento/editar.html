@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Agendamento{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>✏️ Editar Agendamento #{{ agendamento[0] }}</h2>
+        <a href="{{ url_for('sla.listar') }}" class="btn btn-secondary">
+            ← Voltar
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header" style="background-color: #0d6efd; color: white;">
+            <h5 class="mb-0">Dados do Agendamento</h5>
+        </div>
+        <div class="card-body">
+            <form id="formEditarAgendamento">
+                <!-- Seleção de Grupo -->
+                <div class="mb-3">
+                    <label class="form-label">Grupo WhatsApp</label>
+                    <select class="form-select" name="grupo_id" required>
+                        {% for grupo in grupos %}
+                        <option value="{{ grupo[0] }}" {% if grupo[0] == agendamento[1] %}selected{% endif %}>
+                            {{ grupo[2] }} - CR: {{ grupo[4] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Tipo de Envio -->
+                <div class="mb-3">
+                    <label class="form-label">Tipo de Envio</label>
+                    <div>
+                        <input type="radio" name="tipo_envio" value="resultados" id="tipo_resultados" 
+                               {% if agendamento[2] == 'resultados' %}checked{% endif %} required>
+                        <label for="tipo_resultados">📊 Resultados</label>
+                        
+                        <input type="radio" name="tipo_envio" value="programadas" id="tipo_programadas" class="ms-3"
+                               {% if agendamento[2] == 'programadas' %}checked{% endif %}>
+                        <label for="tipo_programadas">📋 Programadas</label>
+                    </div>
+                </div>
+
+                <!-- Dias da Semana -->
+                <div class="mb-3">
+                    <label class="form-label">Dias da Semana</label>
+                    <div>
+                        {% set dias_selecionados = agendamento[3].split(',') %}
+                        <input type="checkbox" name="dias_semana" value="seg" {% if 'seg' in dias_selecionados %}checked{% endif %}> Seg
+                        <input type="checkbox" name="dias_semana" value="ter" {% if 'ter' in dias_selecionados %}checked{% endif %}> Ter
+                        <input type="checkbox" name="dias_semana" value="qua" {% if 'qua' in dias_selecionados %}checked{% endif %}> Qua
+                        <input type="checkbox" name="dias_semana" value="qui" {% if 'qui' in dias_selecionados %}checked{% endif %}> Qui
+                        <input type="checkbox" name="dias_semana" value="sex" {% if 'sex' in dias_selecionados %}checked{% endif %}> Sex
+                        <input type="checkbox" name="dias_semana" value="sab" {% if 'sab' in dias_selecionados %}checked{% endif %}> Sáb
+                        <input type="checkbox" name="dias_semana" value="dom" {% if 'dom' in dias_selecionados %}checked{% endif %}> Dom
+                    </div>
+                </div>
+
+                <!-- Data e Hora de Envio -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Data/Hora de Envio</label>
+                        <input type="datetime-local" class="form-control" name="data_envio" 
+                               value="{{ agendamento[4].strftime('%Y-%m-%dT%H:%M') }}" required>
+                    </div>
+                </div>
+
+                <!-- Período de Consulta -->
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Hora Início</label>
+                        <input type="time" class="form-control" name="hora_inicio" 
+                               value="{{ agendamento[5] }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Offset Início (dias)</label>
+                        <input type="number" class="form-control" name="dia_offset_inicio" 
+                               value="{{ agendamento[6] }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Hora Fim</label>
+                        <input type="time" class="form-control" name="hora_fim" 
+                               value="{{ agendamento[7] }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Offset Fim (dias)</label>
+                        <input type="number" class="form-control" name="dia_offset_fim" 
+                               value="{{ agendamento[8] }}" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">💾 Salvar Alterações</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('formEditarAgendamento').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    // Pega dias da semana selecionados
+    const diasSemana = Array.from(formData.getAll('dias_semana')).join(',');
+    formData.delete('dias_semana');
+    formData.append('dias_semana', diasSemana);
+    
+    fetch('/sla/atualizar/{{ agendamento[0] }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Agendamento atualizado com sucesso!');
+            window.location.href = '/sla/listar';
+        } else {
+            alert('❌ Erro: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Erro: ' + error);
+    });
+});
+</script>
+{% endblock %}

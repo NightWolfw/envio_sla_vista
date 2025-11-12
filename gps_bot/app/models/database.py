@@ -1,23 +1,36 @@
 import psycopg2
 from flask import current_app
-from config import DB_SITE_CONFIG, DB_CONFIG
+
 
 def get_db_vista():
-    """Retorna conexão com o banco Vista usando config"""
-    return psycopg2.connect(
-        host=DB_CONFIG['host'],
-        port=DB_CONFIG['port'],
-        database=DB_CONFIG['database'],
-        user=DB_CONFIG['user'],
-        password=DB_CONFIG['password']
-    )
+    """Retorna conexão com PostgreSQL (Vista - dw_gps)"""
+    try:
+        config = current_app.config['DB_CONFIG']
+        conn = psycopg2.connect(
+            host=config['host'],
+            port=config['port'],
+            database=config['database'],
+            user=config['user'],
+            password=config['password']
+        )
+        return conn
+    except Exception as e:
+        print(f"Erro ao conectar com Vista: {e}")
+        raise
+
 
 def get_db_site():
-    """Retorna conexão com o banco Site usando config"""
-    return psycopg2.connect(
-        host=DB_SITE_CONFIG['host'],
-        port=DB_SITE_CONFIG['port'],
-        database=DB_SITE_CONFIG['database'],
-        user=DB_SITE_CONFIG['user'],
-        password=DB_SITE_CONFIG['password']
-    )
+    """Retorna conexão com PostgreSQL (Site - dw_sla)"""
+    try:
+        config = current_app.config['DB_SITE_CONFIG']
+        conn = psycopg2.connect(
+            host=config['host'],
+            port=config['port'],
+            database=config['database'],
+            user=config['user'],
+            password=config['password']
+        )
+        return conn
+    except Exception as e:
+        print(f"Erro ao conectar com Site: {e}")
+        raise

@@ -1,162 +1,258 @@
 """
-Serviço de integração com Evolution API (WhatsApp)
-Funções para enviar mensagens de texto e arquivos PDF
+Service para integração com Evolution API WhatsApp
 """
 import requests
-from config import EVOLUTION_CONFIG
-from app.models.sla import buscar_tarefas_para_sla
-from app.services.pdf_generator import gerar_pdf_sla
+import base64
+from flask import current_app
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def get_evolution_config():
+    """Retorna configuração da Evolution API"""
+    return {
+        'base_url': current_app.config['EVOLUTION_CONFIG']['base_url'],
+        'api_key': current_app.config['EVOLUTION_CONFIG']['api_key'],
+        'instance_name': current_app.config['EVOLUTION_CONFIG']['instance_name']
+    }
+
+
+def enviar_mensagem_texto(group_id, mensagem):
+    """
+    Envia mensagem de texto para um grupo WhatsApp
+
+    Args:
+        group_id: ID do grupo WhatsApp (ex: '120363xxxxxx@g.us')
+        mensagem: Texto da mensagem
+
+    Returns:
+        dict com resposta da API
+    """
+    try:
+        config = get_evolution_config()
+
+        url = f"{config['base_url']}/message/sendText/{config['instance_name']}"
+
+        headers = {
+            'Content-Type': 'application/json',
+            'apikey': config['api_key']
+        }
+
+        payload = {
+            'number': group_id,
+            'text': mensagem
+        }
+
+        logger.info(f"Enviando mensagem para grupo {group_id}")
+
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        response.raise_for_status()
+
+        resultado = response.json()
+        logger.info(f"Mensagem enviada com sucesso: {resultado}")
+
+        return resultado
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Erro ao enviar mensagem: {e}")
+        raise Exception(f"Erro ao enviar mensagem: {str(e)}")
 
 
 def enviar_mensagem(group_id, mensagem):
     """
-    Envia mensagem de texto via Evolution API
+    Envia mensagem de texto para um grupo WhatsApp
+    Retorna tupla (sucesso: bool, erro: str ou None) para compatibilidade com código antigo
 
     Args:
         group_id: ID do grupo WhatsApp
         mensagem: Texto da mensagem
 
     Returns:
-        Tuple (sucesso: bool, erro: str ou None)
+        tuple: (True, None) se sucesso ou (False, mensagem_erro) se falhar
     """
-    url = f"{EVOLUTION_CONFIG['url']}/message/sendText/{EVOLUTION_CONFIG['instance']}"
-
-    headers = {
-        'Content-Type': 'application/json',
-        'apikey': EVOLUTION_CONFIG['apikey']
-    }
-
-    payload = {
-        'number': group_id,
-        'text': mensagem
-    }
-
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
-        response.raise_for_status()
-        print(f"✅ Mensagem enviada para {group_id}")
-        return True, None
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Erro ao enviar mensagem para {group_id}: {str(e)}")
-        return False, str(e)
+        resultado = enviar_mensagem_texto(group_id, mensagem)
+        return (True, None)
     except Exception as e:
-        print(f"❌ Erro inesperado ao enviar mensagem: {str(e)}")
-        return False, str(e)
+        error_msg = str(e)
+        logger.error(f"Erro ao enviar mensagem para {group_id}: {error_msg}")
+        return (False, error_msg)
 
 
-def enviar_pdf_mensagem(grupo_id, mensagem, cr_list, data_inicio, data_fim, tipos_tarefa):
+def enviar_pdf_whatsapp(group_id, caminho_pdf, caption=''):
     """
-    Gera PDF do SLA e envia via Evolution API
-
-    Args:
-        grupo_id: ID do grupo WhatsApp
-        mensagem: Mensagem que acompanha o PDF
-        cr_list: Lista de CRs para buscar tarefas
-        data_inicio: Data inicial do período (formato: YYYY-MM-DD)
-        data_fim: Data final do período (formato: YYYY-MM-DD)
-        tipos_tarefa: Lista de tipos (abertas, iniciadas, finalizadas)
-
-    Returns:
-        Tuple (sucesso: bool, erro: str ou None)
-    """
-    for cr in cr_list:
-        try:
-            # Busca tarefas do banco Vista
-            tarefas = buscar_tarefas_para_sla([cr], data_inicio, data_fim, tipos_tarefa)
-
-            if not tarefas:
-                print(f"⚠️ Nenhuma tarefa encontrada para CR {cr}")
-                continue
-
-            # Extrai nome do contrato
-            contrato_nome = tarefas[0][0]
-            periodo_str = f"{data_inicio} até {data_fim}"
-
-            # Gera PDF
-            pdf_bytes = gerar_pdf_sla(tarefas, cr, contrato_nome, periodo_str)
-
-            # Envia PDF via Evolution API
-            url = f"{EVOLUTION_CONFIG['url']}/message/sendMedia/{EVOLUTION_CONFIG['instance']}"
-
-            headers = {
-                'apikey': EVOLUTION_CONFIG['apikey']
-            }
-
-            files = {
-                'number': (None, grupo_id),
-                'caption': (None, mensagem),
-                'media': (f'sla_{cr}.pdf', pdf_bytes, 'application/pdf')
-            }
-
-            response = requests.post(url, headers=headers, files=files, timeout=30)
-            response.raise_for_status()
-
-            print(f"✅ PDF enviado para grupo {grupo_id}, CR {cr}")
-            return True, None
-
-        except Exception as e:
-            erro_msg = f"Erro ao enviar PDF para grupo {grupo_id}, CR {cr}: {str(e)}"
-            print(f"❌ {erro_msg}")
-            return False, erro_msg
-
-    return False, "Nenhum PDF foi gerado"
-
-
-def enviar_arquivo(group_id, arquivo_path, caption=""):
-    """
-    Envia arquivo genérico via Evolution API
+    Envia arquivo PDF para um grupo WhatsApp
 
     Args:
         group_id: ID do grupo WhatsApp
-        arquivo_path: Caminho do arquivo a ser enviado
+        caminho_pdf: Caminho completo do arquivo PDF
         caption: Legenda do arquivo (opcional)
 
     Returns:
-        Tuple (sucesso: bool, erro: str ou None)
+        dict com resposta da API
     """
-    url = f"{EVOLUTION_CONFIG['url']}/message/sendMedia/{EVOLUTION_CONFIG['instance']}"
-
-    headers = {
-        'apikey': EVOLUTION_CONFIG['apikey']
-    }
-
     try:
-        with open(arquivo_path, 'rb') as f:
-            files = {
-                'number': (None, group_id),
-                'caption': (None, caption),
-                'media': (arquivo_path.split('/')[-1], f, 'application/octet-stream')
-            }
+        config = get_evolution_config()
 
-            response = requests.post(url, headers=headers, files=files, timeout=30)
-            response.raise_for_status()
+        # Lê o arquivo PDF e converte para base64
+        with open(caminho_pdf, 'rb') as pdf_file:
+            pdf_base64 = base64.b64encode(pdf_file.read()).decode('utf-8')
 
-            print(f"✅ Arquivo enviado para {group_id}")
-            return True, None
+        url = f"{config['base_url']}/message/sendMedia/{config['instance_name']}"
 
-    except Exception as e:
-        print(f"❌ Erro ao enviar arquivo para {group_id}: {str(e)}")
-        return False, str(e)
+        headers = {
+            'Content-Type': 'application/json',
+            'apikey': config['api_key']
+        }
+
+        # Nome do arquivo
+        filename = caminho_pdf.split('/')[-1].split('\\')[-1]
+
+        payload = {
+            'number': group_id,
+            'mediatype': 'document',
+            'mimetype': 'application/pdf',
+            'caption': caption,
+            'fileName': filename,
+            'media': pdf_base64
+        }
+
+        logger.info(f"Enviando PDF {filename} para grupo {group_id}")
+
+        response = requests.post(url, json=payload, headers=headers, timeout=60)
+        response.raise_for_status()
+
+        resultado = response.json()
+        logger.info(f"PDF enviado com sucesso: {resultado}")
+
+        return resultado
+
+    except FileNotFoundError:
+        logger.error(f"Arquivo PDF não encontrado: {caminho_pdf}")
+        raise Exception(f"Arquivo PDF não encontrado: {caminho_pdf}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Erro ao enviar PDF: {e}")
+        raise Exception(f"Erro ao enviar PDF: {str(e)}")
 
 
-def testar_conexao():
+def enviar_pdf_mensagem(grupos_ids, mensagem, pdf_path):
     """
-    Testa conexão com Evolution API
+    Envia mensagem + PDF para múltiplos grupos (compatibilidade com código antigo)
+
+    Args:
+        grupos_ids: Lista de IDs dos grupos
+        mensagem: Mensagem de texto
+        pdf_path: Caminho do PDF
 
     Returns:
-        bool: True se conectado, False caso contrário
+        dict com resultados
     """
-    url = f"{EVOLUTION_CONFIG['url']}/instance/connectionState/{EVOLUTION_CONFIG['instance']}"
+    resultados = []
 
-    headers = {
-        'apikey': EVOLUTION_CONFIG['apikey']
-    }
+    for group_id in grupos_ids:
+        try:
+            # Envia mensagem
+            msg_result = enviar_mensagem_texto(group_id, mensagem)
 
+            # Envia PDF
+            pdf_result = enviar_pdf_whatsapp(group_id, pdf_path, 'Relatório SLA')
+
+            resultados.append({
+                'group_id': group_id,
+                'sucesso': True,
+                'mensagem': msg_result,
+                'pdf': pdf_result
+            })
+
+        except Exception as e:
+            resultados.append({
+                'group_id': group_id,
+                'sucesso': False,
+                'erro': str(e)
+            })
+
+    return resultados
+
+
+def enviar_arquivo(group_id, caminho_arquivo, caption='', mimetype='application/pdf'):
+    """
+    Envia arquivo genérico para um grupo WhatsApp
+
+    Args:
+        group_id: ID do grupo WhatsApp
+        caminho_arquivo: Caminho completo do arquivo
+        caption: Legenda do arquivo (opcional)
+        mimetype: Tipo MIME do arquivo
+
+    Returns:
+        dict com resposta da API
+    """
     try:
+        config = get_evolution_config()
+
+        # Lê o arquivo e converte para base64
+        with open(caminho_arquivo, 'rb') as file:
+            file_base64 = base64.b64encode(file.read()).decode('utf-8')
+
+        url = f"{config['base_url']}/message/sendMedia/{config['instance_name']}"
+
+        headers = {
+            'Content-Type': 'application/json',
+            'apikey': config['api_key']
+        }
+
+        # Nome do arquivo
+        filename = caminho_arquivo.split('/')[-1].split('\\')[-1]
+
+        payload = {
+            'number': group_id,
+            'mediatype': 'document',
+            'mimetype': mimetype,
+            'caption': caption,
+            'fileName': filename,
+            'media': file_base64
+        }
+
+        logger.info(f"Enviando arquivo {filename} para grupo {group_id}")
+
+        response = requests.post(url, json=payload, headers=headers, timeout=60)
+        response.raise_for_status()
+
+        resultado = response.json()
+        logger.info(f"Arquivo enviado com sucesso: {resultado}")
+
+        return resultado
+
+    except FileNotFoundError:
+        logger.error(f"Arquivo não encontrado: {caminho_arquivo}")
+        raise Exception(f"Arquivo não encontrado: {caminho_arquivo}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Erro ao enviar arquivo: {e}")
+        raise Exception(f"Erro ao enviar arquivo: {str(e)}")
+
+
+def verificar_conexao_instance():
+    """
+    Verifica se a instância da Evolution API está conectada
+
+    Returns:
+        dict com status da conexão
+    """
+    try:
+        config = get_evolution_config()
+
+        url = f"{config['base_url']}/instance/connectionState/{config['instance_name']}"
+
+        headers = {
+            'apikey': config['api_key']
+        }
+
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        print(f"✅ Conexão com Evolution API OK")
-        return True
+
+        return response.json()
+
     except Exception as e:
-        print(f"❌ Falha na conexão com Evolution API: {str(e)}")
-        return False
+        logger.error(f"Erro ao verificar conexão: {e}")
+        return {'state': 'disconnected', 'error': str(e)}
