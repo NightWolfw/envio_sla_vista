@@ -207,3 +207,30 @@ def deletar_grupos_massa(grupo_ids):
     conn.close()
 
     return deletados
+
+
+def buscar_crs_por_grupos(grupos_ids):
+    """
+    Busca os CRs associados aos grupos do WhatsApp
+    """
+    from app.models.database import get_db_site
+
+    conn = get_db_site()
+    cur = conn.cursor()
+
+    placeholders = ','.join(['%s'] * len(grupos_ids))
+    query = f"""
+        SELECT DISTINCT cr 
+        FROM public.grupos_whatsapp 
+        WHERE group_id IN ({placeholders})
+        AND cr IS NOT NULL
+    """
+
+    cur.execute(query, grupos_ids)
+    resultados = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    # Retorna lista de CRs
+    return [str(row[0]) for row in resultados if row[0]]
+

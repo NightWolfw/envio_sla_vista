@@ -62,8 +62,25 @@
                     <input type="time" class="form-control" name="hora_envio" required>
                 </div>
             </div>
-            <!-- Botão -->
+            <!-- Recorrência -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Recorrência</label>
+                <select name="recorrencia" class="form-select" required>
+                    <option value="unica">Envio único</option>
+                    <option value="diaria">Diariamente</option>
+                    <option value="semanal">Semanalmente</option>
+                    <option value="mensal">Mensalmente</option>
+                </select>
+                <small class="text-muted">Defina a recorrência da mensagem</small>
+            </div>
+            <!-- Botões -->
             <div class="d-grid gap-2">
+                <button type="button" class="btn btn-primary btn-lg" onclick="visualizarPDF()">
+                    <i class="bi bi-file-earmark-pdf"></i> Visualizar PDF
+                </button>
+                <button type="button" class="btn btn-warning btn-lg" onclick="enviarAgora()">
+                    <i class="bi bi-send"></i> Enviar Agora
+                </button>
                 <button type="submit" class="btn btn-success btn-lg">
                     <i class="bi bi-calendar-plus"></i> Agendar Envio
                 </button>
@@ -75,6 +92,21 @@
 
 {% block scripts %}
 <script>
+function visualizarPDF() {
+    const form = document.getElementById('formAgendarSLA');
+    window.open('/sla/visualizar_pdf?' + new URLSearchParams(new FormData(form)), '_blank');
+}
+
+function enviarAgora() {
+    const form = document.getElementById('formAgendarSLA');
+    fetch('/sla/enviar_agora', {
+        method: 'POST',
+        body: new FormData(form)
+    })
+    .then(resp => resp.json())
+    .then(data => alert(data.message || 'Enviado!'))
+    .catch(err => alert('Erro: ' + err));
+}
 document.getElementById('formAgendarSLA').addEventListener('submit', function(e) {
     const checks = this.querySelectorAll('input[name="tipos_tarefa"]:checked');
     if (checks.length === 0) {
