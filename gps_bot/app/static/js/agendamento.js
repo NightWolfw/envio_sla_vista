@@ -1,6 +1,16 @@
 // Variáveis globais
 let linhaCount = 0;
 
+// Mostrar loading
+function showLoading() {
+    document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+// Esconder loading
+function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     // Select all checkbox
@@ -115,6 +125,8 @@ function mostrarPreview(grupoId) {
         return;
     }
 
+    showLoading();
+
     // Faz requisição para preview
     const params = new URLSearchParams({
         tipo_envio: tipoEnvio,
@@ -134,6 +146,9 @@ function mostrarPreview(grupoId) {
         })
         .catch(error => {
             alert('Erro ao carregar preview: ' + error);
+        })
+        .finally(() => {
+            hideLoading();
         });
 }
 
@@ -166,11 +181,11 @@ function salvarAgendamento() {
 
     linhas.forEach((linha, index) => {
         const num = index + 1;
-        const dataEnvio = document.getElementById(`data_envio_${num}`).value;
-        const horaInicio = document.getElementById(`hora_inicio_${num}`).value;
-        const offsetInicio = document.getElementById(`offset_inicio_${num}`).value;
-        const horaFim = document.getElementById(`hora_fim_${num}`).value;
-        const offsetFim = document.getElementById(`offset_fim_${num}`).value;
+        const dataEnvio = document.getElementById(`data_envio_${num}`)?.value;
+        const horaInicio = document.getElementById(`hora_inicio_${num}`)?.value;
+        const offsetInicio = document.getElementById(`offset_inicio_${num}`)?.value;
+        const horaFim = document.getElementById(`hora_fim_${num}`)?.value;
+        const offsetFim = document.getElementById(`offset_fim_${num}`)?.value;
 
         if (dataEnvio && horaInicio && horaFim) {
             agendamentos.push({
@@ -187,6 +202,8 @@ function salvarAgendamento() {
         alert('Preencha pelo menos um agendamento completo!');
         return;
     }
+
+    showLoading();
 
     // Para cada agendamento, salva para todos os grupos
     const promises = agendamentos.map(agendamento => {
@@ -214,55 +231,68 @@ function salvarAgendamento() {
         })
         .catch(error => {
             alert('Erro ao salvar: ' + error);
-        });
-}
-// Mostrar loading
-function showLoading() {
-    document.getElementById('loadingOverlay').style.display = 'flex';
-}
-
-// Esconder loading
-function hideLoading() {
-    document.getElementById('loadingOverlay').style.display = 'none';
-}
-
-// Modifica a função de salvar agendamento
-function salvarAgendamento() {
-    showLoading();
-
-    // ... (resto do código de salvar)
-
-    Promise.all(promises)
-        .then(responses => Promise.all(responses.map(r => r.json())))
-        .then(results => {
-            alert('Agendamentos criados com sucesso!');
-            window.location.reload();
-        })
-        .catch(error => {
-            alert('Erro ao salvar: ' + error);
         })
         .finally(() => {
             hideLoading();
         });
 }
+// Aplicar limite de itens na tabela
+function aplicarLimiteTabela() {
+    const limite = parseInt(document.getElementById('limiteItens').value);
+    const linhas = document.querySelectorAll('#tabelaGrupos tbody tr');
+    let count = 0;
 
-// Modifica a função de preview
-function mostrarPreview(grupoId) {
-    showLoading();
+    linhas.forEach(linha => {
+        if (linha.style.display !== 'none') {
+            count++;
+            if (count > limite) {
+                linha.classList.add('hidden-by-limit');
+                linha.style.display = 'none';
+            } else {
+                linha.classList.remove('hidden-by-limit');
+                if (!linha.classList.contains('filtered-out')) {
+                    linha.style.display = '';
+                }
+            }
+        }
+    });
+}
 
-    // ... (resto do código de preview)
+// Atualizar aplicarFiltros para considerar o limite
+function aplicarFiltros() {
+    const filtros = {
+        diretor_executivo: document.getElementById('filtro_diretor_executivo').value,
+        diretor_regional: document.getElementById('filtro_diretor_regional').value,
+        gerente_regional: document.getElementById('filtro_gerente_regional').value,
+        gerente: document.getElementById('filtro_gerente').value,
+        supervisor: document.getElementById('filtro_supervisor').value,
+        cliente: document.getElementById('filtro_cliente').value,
+        pec_01: document.getElementById('filtro_pec_01').value,
+        pec_02: document.getElementById('filtro_pec_02').value
+    };
 
-    fetch(`/sla/preview/${grupoId}?${params}`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('conteudoPreview').textContent = data.mensagem;
-            const modal = new bootstrap.Modal(document.getElementById('modalPreview'));
-            modal.show();
-        })
-        .catch(error => {
-            alert('Erro ao carregar preview: ' + error);
-        })
-        .finally(() => {
-            hideLoading();
+    const linhas = document.querySelectorAll('#tabelaGrupos tbody tr');
+
+    linhas.forEach(linha => {
+        let mostrar = true;
+
+        Object.keys(filtros).forEach(campo => {
+            if (filtros[campo] !== '') {
+                const valorLinha = linha.getAttribute(`data-${campo.replace('_', '-')}`);
+                if (valorLinha !== filtros[campo]) {
+                    mostrar = false;
+                }
+            }
         });
+
+        if (mostrar) {
+            linha.classList.remove('filtered-out');
+        } else {
+            linha.classList.add('filtered-out');
+        }
+
+        linha.style.display = mostrar ? '' : 'none';
+    });
+
+    aplicarLimiteTabela();
 }

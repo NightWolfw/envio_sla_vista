@@ -1,12 +1,22 @@
-"""
-Service para formatação de mensagens de agendamento SLA
-"""
 from datetime import datetime, timedelta
 
 
-def obter_saudacao(hora_envio):
-    """Retorna saudação baseada no horário de envio"""
-    hora = hora_envio.hour
+def calcular_datas_consulta(data_envio, hora_inicio, dia_offset_inicio, hora_fim, dia_offset_fim):
+    """
+    Calcula data_inicio e data_fim baseado nos offsets
+    """
+    data_inicio = data_envio + timedelta(days=dia_offset_inicio)
+    data_inicio = datetime.combine(data_inicio.date(), hora_inicio)
+
+    data_fim = data_envio + timedelta(days=dia_offset_fim)
+    data_fim = datetime.combine(data_fim.date(), hora_fim)
+
+    return data_inicio, data_fim
+
+
+def obter_saudacao():
+    """Retorna saudação baseada na hora atual"""
+    hora = datetime.now().hour
 
     if 5 <= hora < 12:
         return "Bom Dia"
@@ -16,94 +26,81 @@ def obter_saudacao(hora_envio):
         return "Boa Noite"
 
 
-def calcular_datas_consulta(data_envio, hora_inicio, offset_inicio, hora_fim, offset_fim):
+def calcular_porcentagem_feedback(finalizadas, total):
     """
-    Calcula datetime de início e fim da consulta baseado nos offsets
-
-    Exemplo:
-        data_envio: 2025-11-12 06:00:00 (segunda)
-        hora_inicio: 23:00, offset: -1
-        hora_fim: 05:00, offset: 0
-
-        Retorna:
-        - inicio: 2025-11-11 23:00:00 (domingo)
-        - fim: 2025-11-12 05:00:00 (segunda)
+    Calcula porcentagem e retorna emoji + mensagem de feedback
     """
-    data_base = data_envio.date()
+    if total == 0:
+        return 0, "⚪", ""
 
-    # Calcula data início
-    data_inicio = datetime.combine(
-        data_base + timedelta(days=offset_inicio),
-        hora_inicio
-    )
+    porcentagem = (finalizadas / total) * 100
 
-    # Calcula data fim
-    data_fim = datetime.combine(
-        data_base + timedelta(days=offset_fim),
-        hora_fim
-    )
-
-    return data_inicio, data_fim
-
-
-def calcular_emoji_sla(percentual):
-    """Retorna emoji e texto baseado no percentual"""
-    if percentual < 65:
-        return "🔴", "ATENÇÃO – SLA BAIXO!"
-    elif 65 <= percentual < 90:
-        return "🟡", "SLA bom, mas podemos melhorar!"
+    if porcentagem < 65:
+        emoji = "🔴"
+        feedback = "*ATENÇÃO – SLA BAIXO!*"
+    elif porcentagem < 90:
+        emoji = "🟡"
+        feedback = "*SLA bom, mas podemos melhorar!*"
     else:
-        return "🟢", "EXCELENTE resultado pessoal, bom trabalho!"
+        emoji = "🟢"
+        feedback = "*EXCELENTE resultado pessoal, bom trabalho!*"
+
+    return porcentagem, emoji, feedback
 
 
-def formatar_mensagem_resultados(data_inicio, data_fim, tarefas_stats, hora_envio):
-    """Formata mensagem para Envio de Resultados"""
-    saudacao = obter_saudacao(hora_envio)
+def formatar_mensagem_resultados(data_inicio, data_fim, stats, data_envio):
+    """
+    Formata mensagem de resultados de tarefas
+    """
+    saudacao = obter_saudacao()
+    periodo_inicio = data_inicio.strftime('%H:%M')
+    periodo_fim = data_fim.strftime('%H:%M')
 
-    finalizadas = tarefas_stats['finalizadas']
-    nao_realizadas = tarefas_stats['nao_realizadas']
-    em_aberto = tarefas_stats['em_aberto']
-    iniciadas = tarefas_stats['iniciadas']
+    finalizadas = stats.get('finalizadas', 0)
+    nao_realizadas = stats.get('nao_realizadas', 0)
+    em_aberto = stats.get('em_aberto', 0)
+    iniciadas = stats.get('iniciadas', 0)
 
     total = finalizadas + nao_realizadas + em_aberto + iniciadas
-    percentual = (finalizadas / total * 100) if total > 0 else 0
-
-    emoji, texto_sla = calcular_emoji_sla(percentual)
+    porcentagem, emoji, feedback = calcular_porcentagem_feedback(finalizadas, total)
 
     mensagem = f"""{saudacao} pessoal, tudo bem?
 
-Tarefas Realizadas no período de {data_inicio.strftime('%d/%m/%Y %H:%M')} até {data_fim.strftime('%d/%m/%Y %H:%M')}
+Tarefas Realizadas no período de {periodo_inicio} até {periodo_fim}
 
 ✅ Tarefas finalizadas: {finalizadas}
 ❌ Tarefas não realizadas: {nao_realizadas}
-📋 Tarefas em aberto: {em_aberto}
+📝 Tarefas em aberto: {em_aberto}
 🔄 Tarefas iniciadas mas não finalizadas: {iniciadas}
 
-📊 Porcentagem de tarefas realizadas: *{percentual:.1f}%*
+{emoji} Porcentagem de tarefas realizadas/programadas: *{porcentagem:.1f}%*
 
-{emoji} *{texto_sla}*
+{feedback}
 
 O detalhamento das tarefas será enviado abaixo para análise, grato pela colaboração de todos!"""
 
     return mensagem
 
 
-def formatar_mensagem_programadas(data_inicio, data_fim, tarefas_stats, hora_envio):
-    """Formata mensagem para Envio de Programadas"""
-    saudacao = obter_saudacao(hora_envio)
+def formatar_mensagem_programadas(data_inicio, data_fim, stats, data_envio):
+    """
+    Formata mensagem de tarefas programadas
+    """
+    saudacao = obter_saudacao()
 
-    finalizadas = tarefas_stats['finalizadas']
-    em_aberto = tarefas_stats['em_aberto']
-    iniciadas = tarefas_stats['iniciadas']
+    # Formata período com data e hora
+    periodo_texto = f"{data_inicio.strftime('%d/%m/%Y às %H:%M')} até {data_fim.strftime('%d/%m/%Y às %H:%M')}"
 
-    total_programadas = finalizadas + em_aberto
+    em_aberto = stats.get('em_aberto', 0)
+    iniciadas = stats.get('iniciadas', 0)
+
+    total_programadas = em_aberto + iniciadas
 
     mensagem = f"""{saudacao} pessoal, tudo bem?
 
-Tarefas Programadas para o período de {data_inicio.strftime('%d/%m/%Y %H:%M')} até {data_fim.strftime('%d/%m/%Y %H:%M')}
+Tarefas Programadas para o período de {periodo_texto}
 
-✅ Tarefas finalizadas: {finalizadas}
-📋 Tarefas em aberto: {em_aberto}
+📝 Tarefas em aberto: {em_aberto}
 🔄 Tarefas iniciadas mas não finalizadas: {iniciadas}
 
 📊 Total de tarefas programadas: *{total_programadas}*

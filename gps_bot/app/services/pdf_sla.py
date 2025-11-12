@@ -1,110 +1,167 @@
-"""
-Service para geração de PDF dos relatórios SLA
-"""
-from fpdf import FPDF
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib import colors
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from datetime import datetime
 import os
 
 
-class PDFRelatorioSLA(FPDF):
-    """Classe customizada para PDF de SLA"""
+def quebrar_texto(texto, max_length=40):
+    """Quebra texto em múltiplas linhas"""
+    if not texto or len(str(texto)) <= max_length:
+        return str(texto)
 
-    def __init__(self, titulo, periodo_inicio, periodo_fim):
-        super().__init__()
-        self.titulo = titulo
-        self.periodo_inicio = periodo_inicio
-        self.periodo_fim = periodo_fim
+    palavras = str(texto).split()
+    linhas = []
+    linha_atual = []
 
-    def header(self):
-        """Cabeçalho do PDF"""
-        self.set_font('Arial', 'B', 16)
-        self.cell(0, 10, self.titulo, 0, 1, 'C')
+    for palavra in palavras:
+        teste = ' '.join(linha_atual + [palavra])
+        if len(teste) <= max_length:
+            linha_atual.append(palavra)
+        else:
+            if linha_atual:
+                linhas.append(' '.join(linha_atual))
+            linha_atual = [palavra]
 
-        self.set_font('Arial', '', 10)
-        periodo = f"Período: {self.periodo_inicio.strftime('%d/%m/%Y %H:%M')} até {self.periodo_fim.strftime('%d/%m/%Y %H:%M')}"
-        self.cell(0, 10, periodo, 0, 1, 'C')
-        self.ln(5)
+    if linha_atual:
+        linhas.append(' '.join(linha_atual))
 
-    def footer(self):
-        """Rodapé do PDF"""
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
+    return '\n'.join(linhas)
 
 
-def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipos_status):
+def alinhar_direita_local(local, max_length=30):
     """
-    Gera PDF com relatório detalhado de tarefas
-
-    Args:
-        cr: Centro de Resultado
-        nome_grupo: Nome do grupo WhatsApp
-        tarefas: Lista de tarefas detalhadas
-        data_inicio: datetime início período
-        data_fim: datetime fim período
-        tipos_status: tipos de status incluídos
-
-    Returns:
-        Caminho do arquivo PDF gerado
+    Alinha local da direita pra esquerda
+    Se ultrapassar o tamanho, mostra só a parte final
     """
-    # Cria PDF
-    titulo = f"Relatório SLA - CR {cr} - {nome_grupo}"
-    pdf = PDFRelatorioSLA(titulo, data_inicio, data_fim)
-    pdf.add_page()
+    local_str = str(local) if local else ''
 
-    # Agrupa tarefas por status
-    tarefas_por_status = {
-        'Finalizada': [],
-        'Não Realizada': [],
-        'Em Aberto': [],
-        'Iniciada': []
-    }
+    if len(local_str) <= max_length:
+        return local_str
 
-    for tarefa in tarefas:
-        status = tarefa['Status_Texto']
-        if status in tarefas_por_status:
-            tarefas_por_status[status].append(tarefa)
+    # Pega os últimos caracteres (direita)
+    return '...' + local_str[-(max_length-3):]
 
-    # Renderiza cada grupo de status
-    for status, lista_tarefas in tarefas_por_status.items():
-        if not lista_tarefas:
-            continue
 
-        # Cabeçalho da seção
-        pdf.set_font('Arial', 'B', 14)
-        pdf.cell(0, 10, f"{status} ({len(lista_tarefas)})", 0, 1)
-        pdf.ln(2)
+def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_envio='resultados'):
+    """
+    Gera PDF HORIZONTAL com relatório de tarefas
+    """
+    # Cria diretório
+    temp_dir = 'temp_pdfs'
+    os.makedirs(temp_dir, exist_ok=True)
 
-        # Tabela de tarefas
-        pdf.set_font('Arial', 'B', 9)
-        pdf.cell(20, 7, 'ID', 1)
-        pdf.cell(90, 7, 'Descrição', 1)
-        pdf.cell(40, 7, 'Disponibilização', 1)
-        pdf.cell(40, 7, 'Executor', 1)
-        pdf.ln()
-
-        pdf.set_font('Arial', '', 8)
-        for tarefa in lista_tarefas:
-            pdf.cell(20, 6, str(tarefa['Id_Tarefa']), 1)
-
-            # Trunca descrição longa
-            descricao = tarefa['Descricao'][:40] + '...' if len(tarefa['Descricao']) > 40 else tarefa['Descricao']
-            pdf.cell(90, 6, descricao, 1)
-
-            data_disp = tarefa['Disponibilizacao'].strftime('%d/%m/%Y %H:%M') if tarefa['Disponibilizacao'] else '-'
-            pdf.cell(40, 6, data_disp, 1)
-
-            executor = tarefa['Executor'] if tarefa['Executor'] else '-'
-            pdf.cell(40, 6, executor[:20], 1)
-            pdf.ln()
-
-        pdf.ln(5)
-
-    # Salva PDF
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    nome_arquivo = f"relatorio_sla_{cr}_{timestamp}.pdf"
-    caminho = os.path.join('app/static/uploads', nome_arquivo)
+    filename = f"sla_{cr}_{timestamp}.pdf"
+    filepath = os.path.join(temp_dir, filename)
 
-    pdf.output(caminho)
+    # Documento HORIZONTAL (landscape)
+    doc = SimpleDocTemplate(filepath, pagesize=landscape(A4), topMargin=1 * cm, bottomMargin=1 * cm)
+    elements = []
 
-    return caminho
+    # Estilos
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=14,
+        textColor=colors.HexColor('#0d6efd'),
+        spaceAfter=8,
+        alignment=TA_CENTER
+    )
+
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.gray,
+        spaceAfter=10,
+        alignment=TA_CENTER
+    )
+
+    # Título
+    title = Paragraph(f"<b>Relatório SLA - {nome_grupo}</b>", title_style)
+    elements.append(title)
+
+    # Período
+    periodo_texto = f"Período: {data_inicio.strftime('%d/%m/%Y %H:%M')} até {data_fim.strftime('%d/%m/%Y %H:%M')} | CR: {cr}"
+    subtitle = Paragraph(periodo_texto, subtitle_style)
+    elements.append(subtitle)
+    elements.append(Spacer(1, 0.3 * cm))
+
+    # Tabela de tarefas
+    if tarefas:
+        # Cabeçalho
+        data = [['Nº', 'Descrição', 'Disponib.', 'Prazo', 'Início Real', 'Término Real', 'Status', 'Executor', 'Local']]
+
+        # Dados
+        for tarefa in tarefas:
+            numero = str(tarefa.get('numero', ''))
+            descricao = quebrar_texto(tarefa.get('descricao', ''), 25)
+            disponibilizacao = tarefa.get('disponibilizacao').strftime('%d/%m %H:%M') if tarefa.get(
+                'disponibilizacao') else ''
+            prazo = tarefa.get('prazo').strftime('%d/%m %H:%M') if tarefa.get('prazo') else ''
+            inicioreal = tarefa.get('inicioreal').strftime('%d/%m %H:%M') if tarefa.get('inicioreal') else '-'
+            terminoreal = tarefa.get('terminoreal').strftime('%d/%m %H:%M') if tarefa.get('terminoreal') else '-'
+            status_texto = str(tarefa.get('status_texto', ''))
+            executor = quebrar_texto(tarefa.get('executor', 'N/A') or 'N/A', 15)
+            local = alinhar_direita_local(tarefa.get('local', 'N/A'), 25)
+
+            data.append([
+                numero,
+                descricao,
+                disponibilizacao,
+                prazo,
+                inicioreal,
+                terminoreal,
+                status_texto,
+                executor,
+                local
+            ])
+
+        # Larguras das colunas (ajustado para caber tudo)
+        col_widths = [1.2 * cm, 5 * cm, 2 * cm, 2 * cm, 2 * cm, 2 * cm, 2 * cm, 3 * cm, 5 * cm]
+
+        # Cria tabela
+        table = Table(data, colWidths=col_widths)
+        table.setStyle(TableStyle([
+            # Cabeçalho
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d6efd')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+
+            # Corpo
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('FONTSIZE', (0, 1), (-1, -1), 6),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+
+            # Local alinhado à direita
+            ('ALIGN', (8, 1), (8, -1), 'RIGHT'),
+        ]))
+
+        elements.append(table)
+    else:
+        no_data = Paragraph("<i>Nenhuma tarefa encontrada no período.</i>", styles['Normal'])
+        elements.append(no_data)
+
+    # Rodapé
+    elements.append(Spacer(1, 0.5 * cm))
+    footer = Paragraph(
+        f"<i>Relatório gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M:%S')}</i>",
+        subtitle_style
+    )
+    elements.append(footer)
+
+    # Gera PDF
+    doc.build(elements)
+
+    return filepath
+

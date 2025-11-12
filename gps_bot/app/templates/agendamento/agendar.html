@@ -4,8 +4,12 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <h2 class="mb-4">📅 Agendar Envio de SLA PDF</h2>
-
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📅 Agendar Envio de SLA PDF</h2>
+        <a href="{{ url_for('sla.listar') }}" class="btn btn-primary">
+            📋 Ver Agendamentos
+        </a>
+    </div>
     <!-- Tipo de Envio -->
     <div class="card mb-4">
         <div class="card-header">
@@ -114,6 +118,28 @@
                 <div class="text-end">
                     <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar Filtros</button>
                     <button class="btn btn-secondary" onclick="limparFiltros()">Limpar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros de Tabela -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <label for="limiteItens" class="form-label">Itens por página:</label>
+                    <select class="form-select" id="limiteItens" onchange="aplicarLimiteTabela()">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                        <option value="50">50</option>
+                        <option value="9999">Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-9">
+                    <label class="form-label">Total de grupos: <span id="totalGrupos">{{ grupos|length }}</span></label>
                 </div>
             </div>
         </div>
