@@ -5,7 +5,17 @@
 {% block content %}
 <div class="card shadow-sm">
     <div class="card-header bg-primary text-white">
-    <h4 class="mb-0"><i class="bi bi-people"></i> Gerenciar Grupos WhatsApp</h4>
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0"><i class="bi bi-people"></i> Gerenciar Grupos WhatsApp</h4>
+            <div>
+                <button type="button" class="btn btn-light" onclick="sincronizarGruposAPI()">
+                    <i class="bi bi-cloud-download"></i> Sincronizar com API
+                </button>
+                <button type="button" class="btn btn-info" onclick="sincronizarEstrutura()">
+                    <i class="bi bi-diagram-3"></i> Sincronizar Estrutura
+                </button>
+            </div>
+        </div>
     </div>
     <div class="card-body">
         <!-- Filtros Avançados -->
@@ -208,6 +218,67 @@
 <!-- Modal de envio rápido continua igual... -->
 <!-- (código do modal que já está lá) -->
 
+<!-- Modal Sincronização -->
+<div class="modal fade" id="modalSincronizar" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-cloud-download"></i> Sincronizar Grupos WhatsApp
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="loadingSync" class="text-center py-5" style="display:none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-3">Buscando grupos novos da API...<br>
+                    <small class="text-muted">Isso pode levar até 3 minutos. Por favor, aguarde...</small></p>
+                </div>
+                
+                <div id="semGruposNovos" style="display:none;">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Não há grupos novos para sincronizar! 
+                        Todos os grupos da API já estão cadastrados no banco.
+                    </div>
+                </div>
+                
+                <div id="listaGruposNovos" style="display:none;">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Informação:</strong> Informe o CR (Centro de Resultado) de cada grupo novo.<br>
+                        <small>Grupos sem CR serão salvos com <strong>Envio = Inativo</strong> automaticamente.</small>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 45%">Nome do Grupo</th>
+                                    <th style="width: 35%">Group ID</th>
+                                    <th style="width: 20%">CR (opcional)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaGruposNovos">
+                                <!-- Grupos serão inseridos aqui via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="btnSalvarGrupos" 
+                        onclick="salvarGruposNovos()" style="display:none;">
+                    <i class="bi bi-check-circle"></i> Salvar Grupos
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -301,6 +372,151 @@ function deletarEmMassa() {
     })
     .catch(error => {
         alert('Erro: ' + error);
+    });
+}
+
+// ==================== SINCRONIZAÇÃO COM API ====================
+let gruposNovos = [];
+
+function sincronizarGruposAPI() {
+    const modal = new bootstrap.Modal(document.getElementById('modalSincronizar'));
+    modal.show();
+    
+    // Mostra loading
+    document.getElementById('loadingSync').style.display = 'block';
+    document.getElementById('semGruposNovos').style.display = 'none';
+    document.getElementById('listaGruposNovos').style.display = 'none';
+    document.getElementById('btnSalvarGrupos').style.display = 'none';
+    
+    fetch('/grupos/sincronizar-api')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loadingSync').style.display = 'none';
+            
+            if (data.success) {
+                gruposNovos = data.grupos_novos;
+                
+                if (gruposNovos.length === 0) {
+                    document.getElementById('semGruposNovos').style.display = 'block';
+                } else {
+                    mostrarGruposNovos(gruposNovos);
+                }
+            } else {
+                alert('Erro ao sincronizar: ' + data.error);
+                modal.hide();
+            }
+        })
+        .catch(error => {
+            document.getElementById('loadingSync').style.display = 'none';
+            alert('Erro na requisição: ' + error);
+            modal.hide();
+        });
+}
+
+function mostrarGruposNovos(grupos) {
+    const tbody = document.getElementById('tabelaGruposNovos');
+    tbody.innerHTML = '';
+    
+    grupos.forEach((grupo, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${grupo.nome}</td>
+            <td><small><code>${grupo.group_id}</code></small></td>
+            <td>
+                <input type="text" class="form-control form-control-sm" 
+                       id="cr_${index}" placeholder="Ex: 00000" 
+                       maxlength="10">
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    document.getElementById('listaGruposNovos').style.display = 'block';
+    document.getElementById('btnSalvarGrupos').style.display = 'block';
+}
+
+function salvarGruposNovos() {
+    try {
+        // Coleta CRs informados (opcional)
+        const gruposComCR = gruposNovos.map((grupo, index) => {
+            const cr = document.getElementById(`cr_${index}`).value.trim();
+            return {
+                group_id: grupo.group_id,
+                nome: grupo.nome,
+                cr: cr || null  // Se vazio, envia null
+            };
+        });
+        
+        // Desabilita botão durante o envio
+        const btn = document.getElementById('btnSalvarGrupos');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...';
+        
+        // Envia para o backend
+        fetch('/grupos/adicionar-grupos-novos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ grupos: gruposComCR })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let msg = `✅ ${data.inseridos} grupo(s) adicionado(s) com sucesso!`;
+                if (data.estrutura_atualizada > 0) {
+                    msg += `\n📊 ${data.estrutura_atualizada} grupo(s) com estrutura atualizada.`;
+                }
+                if (data.erros && data.erros.length > 0) {
+                    msg += '\n\nErros:\n' + data.erros.join('\n');
+                }
+                alert(msg);
+                location.reload();
+            } else {
+                alert('Erro ao salvar: ' + data.error);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Grupos';
+            }
+        })
+        .catch(error => {
+            alert('Erro na requisição: ' + error);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Grupos';
+        });
+        
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+// ==================== SINCRONIZAÇÃO DE ESTRUTURA ====================
+function sincronizarEstrutura() {
+    if (!confirm('Deseja sincronizar os dados de Estrutura (Cliente, PEC, Gestores) para todos os grupos com CR? Isso pode demorar alguns minutos.')) {
+        return;
+    }
+    
+    const btn = event.target.closest('button');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sincronizando...';
+    
+    fetch('/grupos/sincronizar-estrutura', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ Sincronização concluída!\n\nTotal: ${data.total}\nAtualizados: ${data.atualizados}\nErros: ${data.erros}`);
+            location.reload();
+        } else {
+            alert('Erro: ' + data.error);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-diagram-3"></i> Sincronizar Estrutura';
+        }
+    })
+    .catch(error => {
+        alert('Erro na requisição: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-diagram-3"></i> Sincronizar Estrutura';
     });
 }
 </script>

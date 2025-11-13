@@ -1,5 +1,7 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from app.models.grupo import listar_grupos, obter_valores_unicos_filtros, obter_grupo, atualizar_grupo
+from app.services.whatsapp_sync import comparar_grupos_novos, inserir_grupos_novos
+from app.services.estrutura import atualizar_dados_estrutura
 
 bp = Blueprint('grupos', __name__, url_prefix='/grupos')
 
@@ -92,3 +94,60 @@ def editar(grupo_id):
         return redirect(url_for('grupos.gerenciar'))
 
     return render_template('grupos/editar.html', grupo=grupo)
+
+
+@bp.route('/sincronizar-api', methods=['GET'])
+def sincronizar_api():
+    """Busca grupos novos da API"""
+    try:
+        grupos_novos = comparar_grupos_novos()
+        return jsonify({
+            'success': True,
+            'grupos_novos': grupos_novos,
+            'total': len(grupos_novos)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@bp.route('/adicionar-grupos-novos', methods=['POST'])
+def adicionar_grupos_novos():
+    """Adiciona grupos novos com CRs informados"""
+    try:
+        dados = request.get_json()
+        grupos_com_cr = dados.get('grupos', [])
+        
+        resultado = inserir_grupos_novos(grupos_com_cr)
+        
+        return jsonify({
+            'success': True,
+            'inseridos': resultado['inseridos'],
+            'estrutura_atualizada': resultado.get('estrutura_atualizada', 0),
+            'erros': resultado['erros']
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@bp.route('/sincronizar-estrutura', methods=['POST'])
+def sincronizar_estrutura():
+    """Sincroniza dados de estrutura (Cliente, PEC, Gestores) para todos os grupos com CR"""
+    try:
+        resultado = atualizar_dados_estrutura()
+        return jsonify({
+            'success': True,
+            'total': resultado['total'],
+            'atualizados': resultado['atualizados'],
+            'erros': resultado['erros']
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

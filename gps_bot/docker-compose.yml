@@ -13,9 +13,9 @@ services:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY}
 
-      # Banco Site (AGORA PODE USAR O NOME DO CONTAINER!)
-      - DB_SITE_HOST=dw_sla
-      - DB_SITE_PORT=5432  # PORTA INTERNA (não 5433!)
+      # Banco Site (container externo rodando na máquina host)
+      - DB_SITE_HOST=host.docker.internal
+      - DB_SITE_PORT=5433
       - DB_SITE_DATABASE=${DB_SITE_DATABASE}
       - DB_SITE_USER=${DB_SITE_USER}
       - DB_SITE_PASSWORD=${DB_SITE_PASSWORD}
@@ -27,8 +27,8 @@ services:
       - DB_VISTA_USER=${DB_VISTA_USER}
       - DB_VISTA_PASSWORD=${DB_VISTA_PASSWORD}
 
-      # Evolution API
-      - EVOLUTION_URL=http://evolution_api:8080
+      # Evolution API (container externo rodando na máquina host)
+      - EVOLUTION_URL=http://host.docker.internal:8080
       - EVOLUTION_APIKEY=${EVOLUTION_APIKEY}
       - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE}
 

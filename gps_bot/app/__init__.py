@@ -14,8 +14,6 @@ def create_app():
 
     # Configurações gerais
     app.config['SECRET_KEY'] = config.SECRET_KEY
-    app.config['UPLOAD_FOLDER'] = config.UPLOAD_FOLDER
-    app.config['MAX_CONTENT_LENGTH'] = config.MAX_CONTENT_LENGTH
 
     # Configurações de banco de dados
     app.config['DB_CONFIG'] = config.DB_CONFIG

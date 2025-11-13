@@ -4,3 +4,19 @@ venv/
 .idea/
 __pycache__/
 teste_rapido.py
+
+# Environment variables
+.env
+
+# Python
+*.pyc
+*.pyo
+*.log
+
+# OS
+.DS_Store
+
+# Temporary files
+temp_pdfs/
+uploads/
+scheduler.lock

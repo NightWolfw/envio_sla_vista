@@ -4,46 +4,27 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
+    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>📅 Agendar Envio de SLA PDF</h2>
+        <h2><i class="bi bi-calendar-plus"></i> Agendar Envio de SLA PDF</h2>
         <a href="{{ url_for('sla.listar') }}" class="btn btn-primary">
-            📋 Ver Agendamentos
+            <i class="bi bi-list-ul"></i> Ver Agendamentos
         </a>
     </div>
-    <!-- Tipo de Envio -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5>Tipo de Envio</h5>
-        </div>
-        <div class="card-body">
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="tipo_envio" id="tipo_resultados" value="resultados" checked>
-                <label class="form-check-label" for="tipo_resultados">
-                    📊 Envio de Resultados
-                </label>
-            </div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="tipo_envio" id="tipo_programadas" value="programadas">
-                <label class="form-check-label" for="tipo_programadas">
-                    📋 Envio de Programadas
-                </label>
-            </div>
-        </div>
-    </div>
 
-    <!-- Filtros Avançados -->
+    <!-- Filtros Avançados (Colapsado por padrão) -->
     <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5>Filtros Avançados</h5>
-            <button class="btn btn-sm btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtrosAvancados">
-                🔍 Mostrar/Ocultar Filtros
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros Avançados</h5>
+            <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#filtrosAvancados">
+                <i class="bi bi-chevron-down"></i> Mostrar/Ocultar
             </button>
         </div>
         <div class="collapse" id="filtrosAvancados">
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <label>Diretor Executivo</label>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Diretor Executivo</label>
                         <select class="form-select" id="filtro_diretor_executivo">
                             <option value="">Todos</option>
                             {% for valor in filtros.diretor_executivo %}
@@ -51,8 +32,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label>Diretor Regional</label>
+                    <div class="col-md-3">
+                        <label class="form-label">Diretor Regional</label>
                         <select class="form-select" id="filtro_diretor_regional">
                             <option value="">Todos</option>
                             {% for valor in filtros.diretor_regional %}
@@ -60,8 +41,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label>Gerente Regional</label>
+                    <div class="col-md-3">
+                        <label class="form-label">Gerente Regional</label>
                         <select class="form-select" id="filtro_gerente_regional">
                             <option value="">Todos</option>
                             {% for valor in filtros.gerente_regional %}
@@ -69,8 +50,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label>Gerente</label>
+                    <div class="col-md-3">
+                        <label class="form-label">Gerente</label>
                         <select class="form-select" id="filtro_gerente">
                             <option value="">Todos</option>
                             {% for valor in filtros.gerente %}
@@ -78,8 +59,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label>Supervisor</label>
+                    <div class="col-md-3">
+                        <label class="form-label">Supervisor</label>
                         <select class="form-select" id="filtro_supervisor">
                             <option value="">Todos</option>
                             {% for valor in filtros.supervisor %}
@@ -87,8 +68,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label>Cliente</label>
+                    <div class="col-md-3">
+                        <label class="form-label">Cliente</label>
                         <select class="form-select" id="filtro_cliente">
                             <option value="">Todos</option>
                             {% for valor in filtros.cliente %}
@@ -96,8 +77,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label>PEC 01</label>
+                    <div class="col-md-3">
+                        <label class="form-label">PEC 01</label>
                         <select class="form-select" id="filtro_pec_01">
                             <option value="">Todos</option>
                             {% for valor in filtros.pec_01 %}
@@ -105,8 +86,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label>PEC 02</label>
+                    <div class="col-md-3">
+                        <label class="form-label">PEC 02</label>
                         <select class="form-select" id="filtro_pec_02">
                             <option value="">Todos</option>
                             {% for valor in filtros.pec_02 %}
@@ -115,21 +96,25 @@
                         </select>
                     </div>
                 </div>
-                <div class="text-end">
-                    <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar Filtros</button>
-                    <button class="btn btn-secondary" onclick="limparFiltros()">Limpar</button>
+                <div class="text-end mt-3">
+                    <button class="btn btn-primary" onclick="aplicarFiltros()">
+                        <i class="bi bi-check-circle"></i> Aplicar Filtros
+                    </button>
+                    <button class="btn btn-secondary" onclick="limparFiltros()">
+                        <i class="bi bi-x-circle"></i> Limpar
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Filtros de Tabela -->
-    <div class="card mb-4">
+    <!-- Controles da Tabela -->
+    <div class="card mb-3">
         <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-md-3">
-                    <label for="limiteItens" class="form-label">Itens por página:</label>
-                    <select class="form-select" id="limiteItens" onchange="aplicarLimiteTabela()">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label for="limiteItens" class="form-label">Itens por página</label>
+                    <select class="form-select" id="limiteItens" onchange="mudarLimite()">
                         <option value="5">5</option>
                         <option value="10" selected>10</option>
                         <option value="20">20</option>
@@ -138,8 +123,23 @@
                         <option value="9999">Todos</option>
                     </select>
                 </div>
-                <div class="col-md-9">
-                    <label class="form-label">Total de grupos: <span id="totalGrupos">{{ grupos|length }}</span></label>
+                <div class="col-md-2">
+                    <label class="form-label">Total de grupos</label>
+                    <div>
+                        <span class="badge bg-info fs-6">
+                            <span id="totalGrupos">{{ grupos|length }}</span> grupos
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="filtro_nome" class="form-label">Filtrar por Nome</label>
+                    <input type="text" class="form-control" id="filtro_nome" 
+                           placeholder="Digite o nome do grupo" onkeyup="aplicarFiltrosTexto()">
+                </div>
+                <div class="col-md-4">
+                    <label for="filtro_cr" class="form-label">Filtrar por CR</label>
+                    <input type="text" class="form-control" id="filtro_cr" 
+                           placeholder="Digite o CR" onkeyup="aplicarFiltrosTexto()">
                 </div>
             </div>
         </div>
@@ -147,8 +147,8 @@
 
     <!-- Tabela de Grupos -->
     <div class="card mb-4">
-        <div class="card-header">
-            <h5>Selecionar Grupos</h5>
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-people"></i> Selecionar Grupos</h5>
         </div>
         <div class="loading-overlay" id="loadingOverlay">
             <div class="loading-spinner"></div>
@@ -156,17 +156,21 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover table-striped" id="tabelaGrupos">
-                    <thead>
+                    <thead class="table-dark">
                         <tr>
-                            <th><input type="checkbox" id="selectAll"></th>
+                            <th style="width: 50px;">
+                                <input type="checkbox" id="selectAll" class="form-check-input">
+                            </th>
                             <th>Nome do Grupo</th>
-                            <th>CR</th>
-                            <th>Preview</th>
+                            <th style="width: 120px;">CR</th>
+                            <th style="width: 120px;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for grupo in grupos %}
                         <tr data-grupo-id="{{ grupo[0] }}"
+                            data-nome="{{ grupo[2] }}"
+                            data-cr="{{ grupo[4] }}"
                             data-diretor-executivo="{{ grupo[8] }}"
                             data-diretor-regional="{{ grupo[9] }}"
                             data-gerente-regional="{{ grupo[10] }}"
@@ -175,12 +179,14 @@
                             data-cliente="{{ grupo[5] }}"
                             data-pec-01="{{ grupo[6] }}"
                             data-pec-02="{{ grupo[7] }}">
-                            <td><input type="checkbox" class="grupo-checkbox" value="{{ grupo[0] }}"></td>
+                            <td>
+                                <input type="checkbox" class="grupo-checkbox form-check-input" value="{{ grupo[0] }}">
+                            </td>
                             <td>{{ grupo[2] }}</td>
-                            <td>{{ grupo[4] }}</td>
+                            <td><span class="badge bg-secondary">{{ grupo[4] }}</span></td>
                             <td>
                                 <button class="btn btn-sm btn-info" onclick="mostrarPreview({{ grupo[0] }})">
-                                    👁️ Ver Preview
+                                    <i class="bi bi-eye"></i> Preview
                                 </button>
                             </td>
                         </tr>
@@ -188,19 +194,55 @@
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Paginação -->
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                    <span class="text-muted" id="infoPaginacao">Mostrando 0 de 0 grupos</span>
+                </div>
+                <nav aria-label="Navegação de página">
+                    <ul class="pagination mb-0" id="paginacao">
+                        <!-- Botões de paginação serão inseridos aqui via JavaScript -->
+                    </ul>
+                </nav>
+            </div>
         </div>
     </div>
 
     <!-- Configuração de Agendamento -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5>Configuração do Agendamento</h5>
+    <div class="card mb-4 border-success">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-gear"></i> Configuração do Agendamento</h5>
         </div>
         <div class="card-body">
+            
+            <!-- Tipo de Envio -->
+            <div class="mb-4 p-3 bg-light border rounded">
+                <label class="form-label fw-bold mb-3">
+                    <i class="bi bi-send"></i> Tipo de Envio
+                </label>
+                <div class="d-flex gap-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="tipo_envio" id="tipo_resultados" value="resultados" checked>
+                        <label class="form-check-label" for="tipo_resultados">
+                            <i class="bi bi-graph-up"></i> Envio de Resultados
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="tipo_envio" id="tipo_programadas" value="programadas">
+                        <label class="form-check-label" for="tipo_programadas">
+                            <i class="bi bi-clipboard-check"></i> Envio de Programadas
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             <!-- Dias da Semana -->
-            <div class="mb-3">
-                <label class="form-label fw-bold">Dias da Semana</label>
-                <div class="d-flex gap-3">
+            <div class="mb-4 p-3 bg-light border rounded">
+                <label class="form-label fw-bold mb-3">
+                    <i class="bi bi-calendar-week"></i> Dias da Semana
+                </label>
+                <div class="d-flex gap-3 flex-wrap">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" value="seg" id="dia_seg">
                         <label class="form-check-label" for="dia_seg">Segunda</label>
@@ -233,20 +275,26 @@
             </div>
 
             <!-- Tabela de Agendamentos -->
-            <div class="mb-3">
-                <label class="form-label fw-bold">Datas e Horários de Envio</label>
-                <button class="btn btn-sm btn-success mb-2" onclick="adicionarLinha()">+ Adicionar Horário</button>
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <label class="form-label fw-bold mb-0">
+                        <i class="bi bi-clock"></i> Datas e Horários de Envio
+                    </label>
+                    <button class="btn btn-sm btn-success" onclick="adicionarLinha()">
+                        <i class="bi bi-plus-circle"></i> Adicionar Horário
+                    </button>
+                </div>
                 
                 <div class="table-responsive">
-                    <table class="table table-bordered" id="tabelaAgendamentos">
-                        <thead>
+                    <table class="table table-bordered table-hover" id="tabelaAgendamentos">
+                        <thead class="table-dark">
                             <tr>
-                                <th>Data/Hora Envio</th>
-                                <th>Hora Início</th>
-                                <th>Dia Offset Início</th>
-                                <th>Hora Fim</th>
-                                <th>Dia Offset Fim</th>
-                                <th>Ações</th>
+                                <th style="width: 200px;">Data/Hora Envio</th>
+                                <th style="width: 150px;">Hora Início</th>
+                                <th style="width: 180px;">Dia Offset Início</th>
+                                <th style="width: 150px;">Hora Fim</th>
+                                <th style="width: 180px;">Dia Offset Fim</th>
+                                <th style="width: 100px;">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="linhasAgendamento">
@@ -256,10 +304,10 @@
                 </div>
             </div>
 
-            <!-- Botões -->
-            <div class="text-end">
+            <!-- Botão Salvar -->
+            <div class="text-end pt-3 border-top">
                 <button class="btn btn-success btn-lg" onclick="salvarAgendamento()">
-                    💾 Salvar Agendamento
+                    <i class="bi bi-check-circle"></i> Salvar Agendamento
                 </button>
             </div>
         </div>
@@ -270,17 +318,19 @@
 <div class="modal fade" id="modalPreview" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Preview da Mensagem</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-eye"></i> Preview da Mensagem</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="conteudoPreview" style="white-space: pre-wrap; font-family: monospace;">
+                <div id="conteudoPreview" style="white-space: pre-wrap; font-family: monospace; background: #f8f9fa; padding: 15px; border-radius: 5px;">
                     <!-- Mensagem preview aqui -->
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Fechar
+                </button>
             </div>
         </div>
     </div>

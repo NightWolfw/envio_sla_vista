@@ -58,48 +58,7 @@
         </div>
     </div>
 
-    <!-- Seção de Importação/Exportação -->
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-upload"></i> Importar Planilha de Grupos</h5>
-                </div>
-                <div class="card-body">
-                    <form action="/upload" method="POST" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="fileInput" class="form-label">Selecione o arquivo Excel (.xlsx)</label>
-                            <input type="file" class="form-control" id="fileInput" name="file" accept=".xlsx" required>
-                            <small class="text-muted">
-                                A planilha deve conter as colunas: ID Grupo, Nome do Grupo, Envio Ativo, CR, Cliente, etc.
-                            </small>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-upload"></i> Importar Grupos
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="bi bi-download"></i> Exportar Planilha de Grupos</h5>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">
-                        Baixe uma planilha Excel com todos os grupos cadastrados no sistema.
-                    </p>
-                    <a href="/export" class="btn btn-success w-100">
-                        <i class="bi bi-download"></i> Exportar Grupos
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Estatísticas (opcional) -->
+    <!-- Estatísticas -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card shadow-sm">
