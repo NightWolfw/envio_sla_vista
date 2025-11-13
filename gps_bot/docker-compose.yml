@@ -28,15 +28,11 @@ services:
       - DB_VISTA_PASSWORD=${DB_VISTA_PASSWORD}
 
       # Evolution API (container externo rodando na máquina host)
-      - EVOLUTION_URL=http://host.docker.internal:8080
-      - EVOLUTION_APIKEY=${EVOLUTION_APIKEY}
-      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE}
-
-      - UPLOAD_FOLDER=/app/app/static/uploads
-      - EXCEL_PATH=/app/grupos_whatsapp.xlsx
+      - EVOLUTION_BASE_URL=http://host.docker.internal:8080
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME}
 
     volumes:
-      - ./app/static/uploads:/app/app/static/uploads
       - ./logs:/app/logs
 
     networks:
