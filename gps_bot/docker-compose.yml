@@ -8,9 +8,6 @@ services:
 
     ports:
       - "5000:5000"
-    
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
     environment:
       - FLASK_ENV=production
@@ -30,8 +27,8 @@ services:
       - DB_VISTA_USER=${DB_VISTA_USER}
       - DB_VISTA_PASSWORD=${DB_VISTA_PASSWORD}
 
-      # Evolution API (container externo rodando na máquina host)
-      - EVOLUTION_BASE_URL=http://host.docker.internal:8080
+      # Evolution API
+      - EVOLUTION_BASE_URL=http://localhost:8080
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
       - EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME}
 
