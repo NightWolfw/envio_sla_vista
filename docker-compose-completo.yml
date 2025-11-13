@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # ==================== EVOLUTION API ====================
+  evolution_api:
+    container_name: evolution_api
+    image: evoapicloud/evolution-api:latest
+    restart: always
+    depends_on:
+      - redis
+      - postgres
+    ports:
+      - 8080:8080
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - evolution-net
+    env_file:
+      - evolution-api.env
+    expose:
+      - 8080
+
+  redis:
+    image: redis:latest
+    restart: always
+    networks:
+      - evolution-net
+    container_name: redis
+    command: redis-server --port 6379 --appendonly yes
+    volumes:
+      - evolution_redis:/data
+    ports:
+      - 6379:6379
+
+  # Banco da Evolution API
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    networks:
+      - evolution-net
+    command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=evodm
+      - POSTGRES_PASSWORD=Jl2@24Jl
+      - POSTGRES_DB=evolution
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - 5432
+
+  # ==================== BANCO GPS BOT ====================
+  postgres_dw_sla:
+    container_name: postgres_dw_sla
+    image: postgres:15
+    networks:
+      - evolution-net
+    command: ["postgres", "-c", "max_connections=1000"]
+    restart: always
+    ports:
+      - 5433:5432
+    environment:
+      - POSTGRES_USER=jonatan_lopes
+      - POSTGRES_PASSWORD=Jl2@24Jl
+      - POSTGRES_DB=dw_sla
+    volumes:
+      - postgres_dw_sla_data:/var/lib/postgresql/data
+      - ./gps_bot/init-dw_sla.sql:/docker-entrypoint-initdb.d/init.sql
+    expose:
+      - 5432
+
+  # ==================== GPS BOT ====================
+  envio_sla_app:
+    build: ./gps_bot
+    container_name: envio_sla_app
+    restart: unless-stopped
+    depends_on:
+      - postgres_dw_sla
+      - evolution_api
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      
+      # Banco Site - USA NOME DO CONTAINER!
+      - DB_SITE_HOST=postgres_dw_sla
+      - DB_SITE_PORT=5432
+      - DB_SITE_DATABASE=dw_sla
+      - DB_SITE_USER=jonatan_lopes
+      - DB_SITE_PASSWORD=Jl2@24Jl
+      
+      # Banco Vista (servidor externo)
+      - DB_VISTA_HOST=${DB_VISTA_HOST}
+      - DB_VISTA_PORT=${DB_VISTA_PORT}
+      - DB_VISTA_DATABASE=${DB_VISTA_DATABASE}
+      - DB_VISTA_USER=${DB_VISTA_USER}
+      - DB_VISTA_PASSWORD=${DB_VISTA_PASSWORD}
+      
+      # Evolution API - USA NOME DO CONTAINER!
+      - EVOLUTION_BASE_URL=http://evolution_api:8080
+      - EVOLUTION_API_KEY=309754692928797528226121395208
+      - EVOLUTION_INSTANCE_NAME=envio_gps
+    volumes:
+      - ./gps_bot/logs:/app/logs
+    networks:
+      - evolution-net
+
+volumes:
+  evolution_instances:
+  evolution_redis:
+  postgres_data:
+  postgres_dw_sla_data:
+
+networks:
+  evolution-net:
+    driver: bridge
+
