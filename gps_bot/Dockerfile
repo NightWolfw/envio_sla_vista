@@ -26,10 +26,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copia código da aplicação
 COPY . .
 
-# Cria diretório para uploads
-RUN mkdir -p app/static/uploads && \
-    chmod -R 755 app/static/uploads
-
 # Expõe porta do Flask
 EXPOSE 5000
 
