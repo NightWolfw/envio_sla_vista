@@ -13,12 +13,12 @@ services:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY}
 
-      # Banco Site (container externo rodando na máquina host)
-      - DB_SITE_HOST=host.docker.internal
-      - DB_SITE_PORT=5433
-      - DB_SITE_DATABASE=${DB_SITE_DATABASE}
-      - DB_SITE_USER=${DB_SITE_USER}
-      - DB_SITE_PASSWORD=${DB_SITE_PASSWORD}
+      # Banco Site - USA NOME DO CONTAINER!
+      - DB_SITE_HOST=postgres_dw_sla
+      - DB_SITE_PORT=5432
+      - DB_SITE_DATABASE=dw_sla
+      - DB_SITE_USER=jonatan_lopes
+      - DB_SITE_PASSWORD=Jl2@24Jl
 
       # Banco Vista (servidor externo)
       - DB_VISTA_HOST=${DB_VISTA_HOST}
@@ -27,17 +27,17 @@ services:
       - DB_VISTA_USER=${DB_VISTA_USER}
       - DB_VISTA_PASSWORD=${DB_VISTA_PASSWORD}
 
-      # Evolution API
-      - EVOLUTION_BASE_URL=http://localhost:8080
-      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
-      - EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME}
+      # Evolution API - USA NOME DO CONTAINER!
+      - EVOLUTION_BASE_URL=http://evolution_api:8080
+      - EVOLUTION_API_KEY=309754692928797528226121395208
+      - EVOLUTION_INSTANCE_NAME=envio_gps
 
     volumes:
       - ./logs:/app/logs
 
     networks:
-      - envio_sla_network
+      - evolution-net
 
 networks:
-  envio_sla_network:
+  evolution-net:
     external: true
