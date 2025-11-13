@@ -84,7 +84,7 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=production
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - SECRET_KEY=1234
       
       # Banco Site - USA NOME DO CONTAINER!
       - DB_SITE_HOST=postgres_dw_sla
@@ -94,11 +94,11 @@ services:
       - DB_SITE_PASSWORD=Jl2@24Jl
       
       # Banco Vista (servidor externo)
-      - DB_VISTA_HOST=${DB_VISTA_HOST}
-      - DB_VISTA_PORT=${DB_VISTA_PORT}
-      - DB_VISTA_DATABASE=${DB_VISTA_DATABASE}
-      - DB_VISTA_USER=${DB_VISTA_USER}
-      - DB_VISTA_PASSWORD=${DB_VISTA_PASSWORD}
+      - DB_VISTA_HOST=10.84.224.231
+      - DB_VISTA_PORT=5432
+      - DB_VISTA_DATABASE=dw_gps
+      - DB_VISTA_USER=gpssa_pg_jonatan_lopes
+      - DB_VISTA_PASSWORD=rrxD&!C2qU1V
       
       # Evolution API - USA NOME DO CONTAINER!
       - EVOLUTION_BASE_URL=http://evolution_api:8080
