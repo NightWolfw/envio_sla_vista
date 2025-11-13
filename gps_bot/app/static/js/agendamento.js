@@ -1,5 +1,6 @@
 // Variáveis globais
 let linhaCount = 0;
+let paginaAtual = 1;
 
 // Mostrar loading
 function showLoading() {
@@ -15,12 +16,25 @@ function hideLoading() {
 document.addEventListener('DOMContentLoaded', function() {
     // Select all checkbox
     document.getElementById('selectAll').addEventListener('change', function() {
+        // Seleciona apenas checkboxes visíveis (não filtrados/não ocultos)
         const checkboxes = document.querySelectorAll('.grupo-checkbox');
-        checkboxes.forEach(cb => cb.checked = this.checked);
+        checkboxes.forEach(cb => {
+            const tr = cb.closest('tr');
+            // Só marca se a linha estiver visível
+            if (tr.style.display !== 'none') {
+                cb.checked = this.checked;
+            }
+        });
     });
 
     // Adiciona primeira linha automaticamente
     adicionarLinha();
+    
+    // Aplica limite padrão ao carregar
+    setTimeout(() => {
+        aplicarLimiteTabela();
+        atualizarTotalVisivel();
+    }, 100);
 });
 
 // Adicionar linha de agendamento
@@ -32,24 +46,26 @@ function adicionarLinha() {
     row.id = `linha-${linhaCount}`;
     row.innerHTML = `
         <td>
-            <input type="datetime-local" class="form-control" id="data_envio_${linhaCount}" required>
+            <input type="datetime-local" class="form-control form-control-sm" id="data_envio_${linhaCount}" required>
         </td>
         <td>
-            <input type="time" class="form-control" id="hora_inicio_${linhaCount}" required>
+            <input type="time" class="form-control form-control-sm" id="hora_inicio_${linhaCount}" required>
         </td>
         <td>
-            <input type="number" class="form-control" id="offset_inicio_${linhaCount}" value="0" min="-7" max="7">
-            <small class="text-muted">-1=ontem, 0=hoje, 1=amanhã</small>
+            <input type="number" class="form-control form-control-sm" id="offset_inicio_${linhaCount}" value="0" min="-7" max="7" style="width: 80px; display: inline-block;">
+            <small class="text-muted d-block">-1=ontem, 0=hoje, 1=amanhã</small>
         </td>
         <td>
-            <input type="time" class="form-control" id="hora_fim_${linhaCount}" required>
+            <input type="time" class="form-control form-control-sm" id="hora_fim_${linhaCount}" required>
         </td>
         <td>
-            <input type="number" class="form-control" id="offset_fim_${linhaCount}" value="0" min="-7" max="7">
-            <small class="text-muted">-1=ontem, 0=hoje, 1=amanhã</small>
+            <input type="number" class="form-control form-control-sm" id="offset_fim_${linhaCount}" value="0" min="-7" max="7" style="width: 80px; display: inline-block;">
+            <small class="text-muted d-block">-1=ontem, 0=hoje, 1=amanhã</small>
         </td>
-        <td>
-            <button class="btn btn-sm btn-danger" onclick="removerLinha(${linhaCount})">🗑️</button>
+        <td class="text-center">
+            <button class="btn btn-sm btn-danger" onclick="removerLinha(${linhaCount})">
+                <i class="bi bi-trash"></i>
+            </button>
         </td>
     `;
 
@@ -236,63 +252,209 @@ function salvarAgendamento() {
             hideLoading();
         });
 }
-// Aplicar limite de itens na tabela
+// Aplicar limite de itens na tabela com paginação
 function aplicarLimiteTabela() {
     const limite = parseInt(document.getElementById('limiteItens').value);
     const linhas = document.querySelectorAll('#tabelaGrupos tbody tr');
-    let count = 0;
-
+    
+    // Filtra apenas linhas visíveis (não filtradas)
+    const linhasVisiveis = Array.from(linhas).filter(linha => 
+        !linha.classList.contains('filtered-out')
+    );
+    
+    const totalItens = linhasVisiveis.length;
+    const totalPaginas = Math.ceil(totalItens / limite);
+    
+    // Ajusta página atual se necessário
+    if (paginaAtual > totalPaginas) {
+        paginaAtual = Math.max(1, totalPaginas);
+    }
+    
+    const inicio = (paginaAtual - 1) * limite;
+    const fim = inicio + limite;
+    
+    // Oculta todas as linhas primeiro
     linhas.forEach(linha => {
-        if (linha.style.display !== 'none') {
-            count++;
-            if (count > limite) {
-                linha.classList.add('hidden-by-limit');
-                linha.style.display = 'none';
-            } else {
-                linha.classList.remove('hidden-by-limit');
-                if (!linha.classList.contains('filtered-out')) {
-                    linha.style.display = '';
-                }
-            }
+        linha.classList.remove('hidden-by-limit');
+        if (linha.classList.contains('filtered-out')) {
+            linha.style.display = 'none';
         }
     });
+    
+    // Mostra apenas as linhas da página atual
+    linhasVisiveis.forEach((linha, index) => {
+        if (index >= inicio && index < fim) {
+            linha.style.display = '';
+        } else {
+            linha.classList.add('hidden-by-limit');
+            linha.style.display = 'none';
+        }
+    });
+    
+    // Atualiza controles de paginação
+    atualizarPaginacao(totalItens, totalPaginas, inicio, fim);
 }
 
-// Atualizar aplicarFiltros para considerar o limite
-function aplicarFiltros() {
+// Atualizar controles de paginação
+function atualizarPaginacao(totalItens, totalPaginas, inicio, fim) {
+    const paginacaoEl = document.getElementById('paginacao');
+    const infoEl = document.getElementById('infoPaginacao');
+    
+    // Atualiza informação
+    const mostrandoInicio = totalItens > 0 ? inicio + 1 : 0;
+    const mostrandoFim = Math.min(fim, totalItens);
+    infoEl.textContent = `Mostrando ${mostrandoInicio}-${mostrandoFim} de ${totalItens} grupos`;
+    
+    // Limpa paginação existente
+    paginacaoEl.innerHTML = '';
+    
+    if (totalPaginas <= 1) {
+        return; // Não precisa de paginação
+    }
+    
+    // Botão "Anterior"
+    const btnAnterior = document.createElement('li');
+    btnAnterior.className = `page-item ${paginaAtual === 1 ? 'disabled' : ''}`;
+    btnAnterior.innerHTML = `<a class="page-link" href="#" onclick="irParaPagina(${paginaAtual - 1}); return false;">Anterior</a>`;
+    paginacaoEl.appendChild(btnAnterior);
+    
+    // Botões de página
+    const maxBotoes = 5;
+    let inicioPaginas = Math.max(1, paginaAtual - Math.floor(maxBotoes / 2));
+    let fimPaginas = Math.min(totalPaginas, inicioPaginas + maxBotoes - 1);
+    
+    // Ajusta se estiver no final
+    if (fimPaginas - inicioPaginas < maxBotoes - 1) {
+        inicioPaginas = Math.max(1, fimPaginas - maxBotoes + 1);
+    }
+    
+    // Primeira página
+    if (inicioPaginas > 1) {
+        const btn = document.createElement('li');
+        btn.className = 'page-item';
+        btn.innerHTML = `<a class="page-link" href="#" onclick="irParaPagina(1); return false;">1</a>`;
+        paginacaoEl.appendChild(btn);
+        
+        if (inicioPaginas > 2) {
+            const ellipsis = document.createElement('li');
+            ellipsis.className = 'page-item disabled';
+            ellipsis.innerHTML = `<span class="page-link">...</span>`;
+            paginacaoEl.appendChild(ellipsis);
+        }
+    }
+    
+    // Páginas do meio
+    for (let i = inicioPaginas; i <= fimPaginas; i++) {
+        const btn = document.createElement('li');
+        btn.className = `page-item ${i === paginaAtual ? 'active' : ''}`;
+        btn.innerHTML = `<a class="page-link" href="#" onclick="irParaPagina(${i}); return false;">${i}</a>`;
+        paginacaoEl.appendChild(btn);
+    }
+    
+    // Última página
+    if (fimPaginas < totalPaginas) {
+        if (fimPaginas < totalPaginas - 1) {
+            const ellipsis = document.createElement('li');
+            ellipsis.className = 'page-item disabled';
+            ellipsis.innerHTML = `<span class="page-link">...</span>`;
+            paginacaoEl.appendChild(ellipsis);
+        }
+        
+        const btn = document.createElement('li');
+        btn.className = 'page-item';
+        btn.innerHTML = `<a class="page-link" href="#" onclick="irParaPagina(${totalPaginas}); return false;">${totalPaginas}</a>`;
+        paginacaoEl.appendChild(btn);
+    }
+    
+    // Botão "Próximo"
+    const btnProximo = document.createElement('li');
+    btnProximo.className = `page-item ${paginaAtual === totalPaginas ? 'disabled' : ''}`;
+    btnProximo.innerHTML = `<a class="page-link" href="#" onclick="irParaPagina(${paginaAtual + 1}); return false;">Próximo</a>`;
+    paginacaoEl.appendChild(btnProximo);
+}
+
+// Ir para uma página específica
+function irParaPagina(pagina) {
+    paginaAtual = pagina;
+    aplicarLimiteTabela();
+}
+
+// Mudar limite de itens por página
+function mudarLimite() {
+    paginaAtual = 1; // Volta para primeira página ao mudar limite
+    aplicarLimiteTabela();
+}
+
+// Verificar filtros avançados para uma linha
+function verificarFiltrosAvancados(linha) {
     const filtros = {
-        diretor_executivo: document.getElementById('filtro_diretor_executivo').value,
-        diretor_regional: document.getElementById('filtro_diretor_regional').value,
-        gerente_regional: document.getElementById('filtro_gerente_regional').value,
-        gerente: document.getElementById('filtro_gerente').value,
-        supervisor: document.getElementById('filtro_supervisor').value,
-        cliente: document.getElementById('filtro_cliente').value,
-        pec_01: document.getElementById('filtro_pec_01').value,
-        pec_02: document.getElementById('filtro_pec_02').value
+        diretor_executivo: document.getElementById('filtro_diretor_executivo')?.value || '',
+        diretor_regional: document.getElementById('filtro_diretor_regional')?.value || '',
+        gerente_regional: document.getElementById('filtro_gerente_regional')?.value || '',
+        gerente: document.getElementById('filtro_gerente')?.value || '',
+        supervisor: document.getElementById('filtro_supervisor')?.value || '',
+        cliente: document.getElementById('filtro_cliente')?.value || '',
+        pec_01: document.getElementById('filtro_pec_01')?.value || '',
+        pec_02: document.getElementById('filtro_pec_02')?.value || ''
     };
 
-    const linhas = document.querySelectorAll('#tabelaGrupos tbody tr');
-
-    linhas.forEach(linha => {
-        let mostrar = true;
-
-        Object.keys(filtros).forEach(campo => {
-            if (filtros[campo] !== '') {
-                const valorLinha = linha.getAttribute(`data-${campo.replace('_', '-')}`);
-                if (valorLinha !== filtros[campo]) {
-                    mostrar = false;
-                }
+    let passa = true;
+    Object.keys(filtros).forEach(campo => {
+        if (filtros[campo] !== '') {
+            const valorLinha = linha.getAttribute(`data-${campo.replace('_', '-')}`);
+            if (valorLinha !== filtros[campo]) {
+                passa = false;
             }
-        });
-
-        if (mostrar) {
-            linha.classList.remove('filtered-out');
-        } else {
-            linha.classList.add('filtered-out');
         }
-
-        linha.style.display = mostrar ? '' : 'none';
     });
 
+    return passa;
+}
+
+// Filtro por texto (Nome, CR)
+function aplicarFiltrosTexto() {
+    const filtroNome = document.getElementById('filtro_nome')?.value.toLowerCase() || '';
+    const filtroCr = document.getElementById('filtro_cr')?.value.toLowerCase() || '';
+    
+    const linhas = document.querySelectorAll('#tabelaGrupos tbody tr');
+    
+    linhas.forEach(linha => {
+        const nome = (linha.getAttribute('data-nome') || '').toLowerCase();
+        const cr = (linha.getAttribute('data-cr') || '').toLowerCase();
+        
+        const matchNome = !filtroNome || nome.includes(filtroNome);
+        const matchCr = !filtroCr || cr.includes(filtroCr);
+        
+        // Verifica também os filtros avançados existentes
+        const filtrosAvancados = verificarFiltrosAvancados(linha);
+        
+        if (matchNome && matchCr && filtrosAvancados) {
+            linha.classList.remove('filtered-out');
+            linha.style.display = '';
+        } else {
+            linha.classList.add('filtered-out');
+            linha.style.display = 'none';
+        }
+    });
+    
+    // Reset para primeira página ao filtrar
+    paginaAtual = 1;
     aplicarLimiteTabela();
+    atualizarTotalVisivel();
+}
+
+// Atualizar total de grupos visíveis
+function atualizarTotalVisivel() {
+    const linhasVisiveis = document.querySelectorAll('#tabelaGrupos tbody tr:not(.filtered-out)');
+    const total = linhasVisiveis.length;
+    const totalElement = document.getElementById('totalGrupos');
+    if (totalElement) {
+        totalElement.textContent = total;
+    }
+}
+
+// Atualizar aplicarFiltros para considerar o limite e filtros de texto
+function aplicarFiltros() {
+    // Usa a mesma lógica do filtro de texto
+    aplicarFiltrosTexto();
 }

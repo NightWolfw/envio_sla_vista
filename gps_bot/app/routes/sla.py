@@ -11,7 +11,6 @@ from app.services.mensagem_agendamento import (
 from app.services.sla_consulta import buscar_tarefas_por_periodo, buscar_tarefas_detalhadas
 from app.services.pdf_sla import gerar_pdf_relatorio
 from app.models.sla import buscar_tarefas_para_sla, buscar_nome_contrato_por_cr
-from app.services.pdf_generator import gerar_pdf_sla
 from app.services.whatsapp import enviar_pdf_mensagem
 from datetime import datetime, time
 
@@ -200,54 +199,20 @@ def deletar(agendamento_id):
         return jsonify({'success': False, 'message': str(e)}), 400
 
 
-@bp.route('/visualizar_pdf')
-def visualizar_pdf():
-    """Rota antiga de visualizar PDF (mantida pra compatibilidade)"""
-    grupos_ids = request.args.getlist('grupos[]')
-    mensagem = request.args.get('mensagem')
-    data_inicio = request.args.get('data_inicio')
-    data_fim = request.args.get('data_fim')
-    tipos_tarefa = request.args.getlist('tipos_tarefa')
-
-    cr_list = buscar_crs_por_grupos(grupos_ids)
-
-    if not cr_list:
-        return Response("Nenhum CR encontrado para os grupos selecionados", status=400)
-
-    tarefas, incluir_finalizadas = buscar_tarefas_para_sla(cr_list, data_inicio, data_fim, tipos_tarefa)
-
-    contrato_nome = buscar_nome_contrato_por_cr(cr_list[0]) if len(cr_list) == 1 else "Multiplos Contratos"
-    periodo_str = f"{data_inicio} a {data_fim}"
-
-    pdf = gerar_pdf_sla(tarefas, cr_list[0], contrato_nome, periodo_str, incluir_finalizadas)
-
-    return Response(pdf, mimetype='application/pdf')
+# @bp.route('/visualizar_pdf')
+# def visualizar_pdf():
+#     """Rota antiga de visualizar PDF (DESABILITADA - usar a nova rota de agendamento)"""
+#     # Esta rota foi desabilitada após migração para ReportLab
+#     # Use as rotas /sla/agendar e /sla/download_pdf_agendamento
+#     return jsonify({'error': 'Rota obsoleta. Use /sla/agendar'}), 410
 
 
-@bp.route('/enviar_agora', methods=['POST'])
-def enviar_agora():
-    """Rota antiga de enviar PDF (mantida pra compatibilidade)"""
-    grupos_ids = request.form.getlist('grupos[]')
-    mensagem = request.form['mensagem']
-    data_inicio = request.form['data_inicio']
-    data_fim = request.form['data_fim']
-    tipos_tarefa = request.form.getlist('tipos_tarefa')
-
-    cr_list = buscar_crs_por_grupos(grupos_ids)
-
-    if not cr_list:
-        return jsonify({'error': 'Nenhum CR encontrado para os grupos selecionados'}), 400
-
-    tarefas, incluir_finalizadas = buscar_tarefas_para_sla(cr_list, data_inicio, data_fim, tipos_tarefa)
-
-    contrato_nome = buscar_nome_contrato_por_cr(cr_list[0]) if len(cr_list) == 1 else "Multiplos Contratos"
-    periodo_str = f"{data_inicio} a {data_fim}"
-
-    pdf = gerar_pdf_sla(tarefas, cr_list[0], contrato_nome, periodo_str, incluir_finalizadas)
-
-    resultado = enviar_pdf_mensagem(grupos_ids, mensagem, pdf)
-
-    return jsonify({'message': 'PDF enviado para os grupos!', 'resultado': resultado})
+# @bp.route('/enviar_agora', methods=['POST'])
+# def enviar_agora():
+#     """Rota antiga de enviar PDF (DESABILITADA - usar a nova rota de agendamento)"""
+#     # Esta rota foi desabilitada após migração para ReportLab
+#     # Use as rotas /sla/agendar para criar agendamentos
+#     return jsonify({'error': 'Rota obsoleta. Use /sla/agendar'}), 410
 
 @bp.route('/toggle/<int:agendamento_id>', methods=['POST'])
 def toggle(agendamento_id):

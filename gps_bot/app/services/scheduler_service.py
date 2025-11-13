@@ -24,7 +24,7 @@ def cleanup_lockfile():
     try:
         if os.path.exists(LOCKFILE):
             os.remove(LOCKFILE)
-            print(f"🔓 [PID {os.getpid()}] Lockfile removido automaticamente")
+            print(f"[UNLOCK] [PID {os.getpid()}] Lockfile removido automaticamente")
     except Exception as e:
         print(f"[PID {os.getpid()}] Erro ao remover lockfile no cleanup: {e}")
 
@@ -117,7 +117,7 @@ def atualizar_proximo_envio(agendamento_id, nova_data):
 def enviar_sla_agendado(agendamento):
     """Executa o envio de SLA"""
     print(f"\n{'#' * 60}")
-    print(f"📤 [PID {os.getpid()}] INICIANDO ENVIO - Agendamento {agendamento['id']}")
+    print(f"[ENVIO] [PID {os.getpid()}] INICIANDO ENVIO - Agendamento {agendamento['id']}")
     print(f"{'#' * 60}\n")
 
     try:
@@ -219,16 +219,16 @@ def verificar_agendamentos():
             chave_minuto = agora.strftime('%Y-%m-%d %H:%M')
 
             print(f"\n{'=' * 60}")
-            print(f"🔍 [PID {os.getpid()}] VERIFICANDO AGENDAMENTOS EM {chave_minuto} (Brasília)")
+            print(f"[CHECK] [PID {os.getpid()}] VERIFICANDO AGENDAMENTOS EM {chave_minuto} (Brasília)")
             print(f"{'=' * 60}")
 
             agendamentos = listar_agendamentos()
-            print(f"📊 [PID {os.getpid()}] Total de agendamentos: {len(agendamentos)}")
-            print(f"🔒 [PID {os.getpid()}] Cache atual: {list(ultimos_envios.keys())}")
+            print(f"[INFO] [PID {os.getpid()}] Total de agendamentos: {len(agendamentos)}")
+            print(f"[CACHE] [PID {os.getpid()}] Cache atual: {list(ultimos_envios.keys())}")
 
             dia_semana_map = {0: 'seg', 1: 'ter', 2: 'qua', 3: 'qui', 4: 'sex', 5: 'sab', 6: 'dom'}
             dia_atual = dia_semana_map[agora.weekday()]
-            print(f"📅 [PID {os.getpid()}] Dia atual: {dia_atual}")
+            print(f"[DIA] [PID {os.getpid()}] Dia atual: {dia_atual}")
 
             for agendamento in agendamentos:
                 print(f"\n[PID {os.getpid()}] --- Analisando agendamento {agendamento['id']} ---")
@@ -238,12 +238,12 @@ def verificar_agendamentos():
                 print(f"[PID {os.getpid()}] Hora atual: {agora.strftime('%H:%M')}")
 
                 if not agendamento['ativo']:
-                    print(f"[PID {os.getpid()}] ❌ INATIVO - pulando")
+                    print(f"[PID {os.getpid()}] [SKIP] INATIVO - pulando")
                     continue
 
                 dias_envio = agendamento['dias_semana'].split(',')
                 if dia_atual not in dias_envio:
-                    print(f"[PID {os.getpid()}] ❌ Hoje ({dia_atual}) não está nos dias {dias_envio} - pulando")
+                    print(f"[PID {os.getpid()}] [SKIP] Hoje ({dia_atual}) não está nos dias {dias_envio} - pulando")
                     continue
 
                 # Lê data_envio COMO SE FOSSE Brasília
@@ -251,20 +251,20 @@ def verificar_agendamentos():
 
                 # PROTEÇÃO: Verifica se já enviou neste minuto
                 chave_agendamento = f"{agendamento['id']}_{chave_minuto}"
-                print(f"[PID {os.getpid()}] 🔑 Chave: {chave_agendamento}")
+                print(f"[PID {os.getpid()}] [KEY] Chave: {chave_agendamento}")
 
                 if chave_agendamento in ultimos_envios:
-                    print(f"[PID {os.getpid()}] ⚠️ JÁ ENVIADO NESTE_MINUTO - IGNORANDO")
+                    print(f"[PID {os.getpid()}] [WARN] JÁ ENVIADO NESTE_MINUTO - IGNORANDO")
                     continue
 
                 # Verifica hora
                 if agora.hour == data_envio.hour and agora.minute == data_envio.minute:
-                    print(f"[PID {os.getpid()}] ✅ HORÁRIO BATEU! Executando envio...")
-                    print(f"[PID {os.getpid()}] 🚀 EXECUTANDO AGENDAMENTO {agendamento['id']}")
+                    print(f"[PID {os.getpid()}] [OK] HORÁRIO BATEU! Executando envio...")
+                    print(f"[PID {os.getpid()}] [RUN] EXECUTANDO AGENDAMENTO {agendamento['id']}")
 
                     # Marca como enviado ANTES de executar
                     ultimos_envios[chave_agendamento] = True
-                    print(f"[PID {os.getpid()}] 🔒 Marcado no cache: {chave_agendamento}")
+                    print(f"[PID {os.getpid()}] [LOCK] Marcado no cache: {chave_agendamento}")
 
                     # Limpa cache antigo
                     limite = (agora - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M')
@@ -274,13 +274,13 @@ def verificar_agendamentos():
 
                     enviar_sla_agendado(agendamento)
                 else:
-                    print(f"[PID {os.getpid()}] ⏰ Horário não bateu: {agora.hour}:{agora.minute} != {data_envio.hour}:{data_envio.minute}")
+                    print(f"[PID {os.getpid()}] [WAIT] Horário não bateu: {agora.hour}:{agora.minute} != {data_envio.hour}:{data_envio.minute}")
 
             print(f"\n{'=' * 60}\n")
 
     except Exception as e:
         import traceback
-        print(f"[PID {os.getpid()}] ❌ ERRO NA VERIFICAÇÃO:")
+        print(f"[PID {os.getpid()}] [ERROR] ERRO NA VERIFICAÇÃO:")
         print(traceback.format_exc())
         logger.error(f"[PID {os.getpid()}] Erro: {traceback.format_exc()}")
 
@@ -290,9 +290,9 @@ def iniciar_scheduler(app):
     global flask_app
     flask_app = app
 
-    print(f"\n{'🔧' * 30}")
+    print(f"\n{'=' * 60}")
     print(f"[PID {os.getpid()}] TENTANDO INICIAR SCHEDULER")
-    print(f"{'🔧' * 30}\n")
+    print(f"{'=' * 60}\n")
 
     LOCKFILE = os.path.join(os.getcwd(), 'scheduler.lock')
 
@@ -321,9 +321,9 @@ def iniciar_scheduler(app):
     try:
         with open(LOCKFILE, 'w') as f:
             f.write(str(os.getpid()))
-        print(f"[PID {os.getpid()}] 🔒 Lockfile criado: {LOCKFILE}")
+        print(f"[PID {os.getpid()}] [LOCK] Lockfile criado: {LOCKFILE}")
     except Exception as e:
-        print(f"[PID {os.getpid()}] ❌ Erro ao criar lockfile: {e}")
+        print(f"[PID {os.getpid()}] [ERROR] Erro ao criar lockfile: {e}")
         logger.error(f"Erro ao criar lockfile: {e}")
         return
 
@@ -335,10 +335,10 @@ def iniciar_scheduler(app):
             replace_existing=True
         )
         scheduler.start()
-        print(f"[PID {os.getpid()}] ✅ Scheduler iniciado com sucesso!")
+        print(f"[PID {os.getpid()}] [SUCCESS] Scheduler iniciado com sucesso!")
         logger.info(f"[PID {os.getpid()}] Scheduler iniciado com sucesso!")
     else:
-        print(f"[PID {os.getpid()}] ⚠️ Scheduler já estava rodando!")
+        print(f"[PID {os.getpid()}] [WARN] Scheduler já estava rodando!")
 
 
 def parar_scheduler():
