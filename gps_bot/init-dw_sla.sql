@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS logs_envio (
     enviado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela de Logs de Agendamento SLA
+-- Tabela de Logs de Agendamento SLA (antiga - mantida por compatibilidade)
 CREATE TABLE IF NOT EXISTS logs_agendamento (
     id SERIAL PRIMARY KEY,
     agendamento_id INTEGER REFERENCES agendamentos(id) ON DELETE SET NULL,
@@ -88,6 +88,19 @@ CREATE TABLE IF NOT EXISTS logs_agendamento (
     executado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabela de Logs de Agendamento (estrutura correta)
+CREATE TABLE IF NOT EXISTS agendamento_logs (
+    id SERIAL PRIMARY KEY,
+    agendamento_id INTEGER REFERENCES agendamentos(id) ON DELETE CASCADE,
+    grupo_id INTEGER REFERENCES grupos_whatsapp(id) ON DELETE SET NULL,
+    data_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NOT NULL,
+    mensagem_enviada TEXT,
+    resposta_api TEXT,
+    erro TEXT,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Índices para Performance
 CREATE INDEX IF NOT EXISTS idx_grupos_cr ON grupos_whatsapp(cr);
 CREATE INDEX IF NOT EXISTS idx_grupos_envio ON grupos_whatsapp(envio);
@@ -97,4 +110,6 @@ CREATE INDEX IF NOT EXISTS idx_agendamentos_ativo ON agendamentos(ativo);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_proximo_envio ON agendamentos(proximo_envio);
 CREATE INDEX IF NOT EXISTS idx_logs_status ON logs_envio(status);
 CREATE INDEX IF NOT EXISTS idx_logs_agendamento_status ON logs_agendamento(status);
+CREATE INDEX IF NOT EXISTS idx_agendamento_logs_agendamento_id ON agendamento_logs(agendamento_id);
+CREATE INDEX IF NOT EXISTS idx_agendamento_logs_status ON agendamento_logs(status);
 
