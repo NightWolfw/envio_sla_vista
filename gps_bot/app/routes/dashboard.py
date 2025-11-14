@@ -2,14 +2,17 @@
 Rotas do Dashboard SLA
 """
 from flask import Blueprint, render_template, request, jsonify
+from app import cache
 from app.models.dashboard import (
     buscar_resumo_tarefas, buscar_tarefas_por_dia_mes,
-    buscar_heatmap_realizacao, buscar_top_executores,
+    buscar_heatmap_realizacao, buscar_heatmap_por_dia, buscar_top_executores,
     buscar_top_locais, buscar_distribuicao_status,
     buscar_opcoes_filtros
 )
 from datetime import datetime, timedelta
 import calendar
+import hashlib
+import json
 
 bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
@@ -58,6 +61,30 @@ def obter_periodo_mes_atual():
     return primeiro_dia, ultimo_dia
 
 
+def get_cache_timeout():
+    """
+    Retorna timeout do cache baseado no mês:
+    - Mês atual: 300s (5 minutos)
+    - Meses passados: 86400s (24 horas)
+    """
+    mes = int(request.args.get('mes', datetime.now().month))
+    ano = int(request.args.get('ano', datetime.now().year))
+    
+    hoje = datetime.now()
+    eh_mes_atual = (mes == hoje.month and ano == hoje.year)
+    
+    return 300 if eh_mes_atual else 86400
+
+
+def make_cache_key():
+    """
+    Cria chave de cache única baseada na URL completa e query string
+    """
+    query_string = request.query_string.decode('utf-8')
+    cache_key = f"{request.path}?{query_string}"
+    return hashlib.md5(cache_key.encode('utf-8')).hexdigest()
+
+
 @bp.route('/')
 def index():
     """Página principal do dashboard"""
@@ -68,6 +95,7 @@ def index():
 
 
 @bp.route('/api/resumo')
+@cache.cached(timeout=get_cache_timeout, make_cache_key=make_cache_key)
 def api_resumo():
     """
     API: Retorna resumo com totais de tarefas (cards)
@@ -101,6 +129,7 @@ def api_resumo():
 
 
 @bp.route('/api/tarefas-mes')
+@cache.cached(timeout=get_cache_timeout, make_cache_key=make_cache_key)
 def api_tarefas_mes():
     """
     API: Retorna tarefas agrupadas por dia do mês (gráfico de colunas)
@@ -124,6 +153,7 @@ def api_tarefas_mes():
 
 
 @bp.route('/api/heatmap')
+@cache.cached(timeout=get_cache_timeout, make_cache_key=make_cache_key)
 def api_heatmap():
     """
     API: Retorna heatmap de realização por CR
@@ -151,6 +181,7 @@ def api_heatmap():
 
 
 @bp.route('/api/executores')
+@cache.cached(timeout=get_cache_timeout, make_cache_key=make_cache_key)
 def api_executores():
     """
     API: Retorna TOP executores
@@ -179,6 +210,7 @@ def api_executores():
 
 
 @bp.route('/api/locais')
+@cache.cached(timeout=get_cache_timeout, make_cache_key=make_cache_key)
 def api_locais():
     """
     API: Retorna TOP locais
@@ -207,6 +239,7 @@ def api_locais():
 
 
 @bp.route('/api/pizza')
+@cache.cached(timeout=get_cache_timeout, make_cache_key=make_cache_key)
 def api_pizza():
     """
     API: Retorna distribuição por status (gráfico de pizza)
@@ -245,6 +278,32 @@ def api_filtros():
         return jsonify({
             'success': True,
             'data': opcoes
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/api/heatmap-dias')
+@cache.cached(timeout=get_cache_timeout, make_cache_key=make_cache_key)
+def api_heatmap_dias():
+    """
+    API: Retorna heatmap com CR x Dias do Mês
+    GET /dashboard/api/heatmap-dias?mes=11&ano=2024
+    """
+    try:
+        filtros = extrair_filtros_request()
+        
+        mes = int(request.args.get('mes', datetime.now().month))
+        ano = int(request.args.get('ano', datetime.now().year))
+        
+        dados = buscar_heatmap_por_dia(filtros, mes, ano)
+        
+        return jsonify({
+            'success': True,
+            'data': dados,
+            'mes': mes,
+            'ano': ano
         })
     
     except Exception as e:

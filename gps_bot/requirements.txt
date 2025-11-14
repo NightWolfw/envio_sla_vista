@@ -1,12 +1,16 @@
 # Flask e extensões
 Flask==3.0.0
 Werkzeug==3.0.1
+Flask-Caching==2.1.0
 
 # Servidor WSGI para produção
 gunicorn==21.2.0
 
 # Banco de dados
 psycopg2-binary==2.9.11
+
+# Cache
+redis==5.0.1
 
 # HTTP requests
 requests==2.31.0

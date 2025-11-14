@@ -17,6 +17,9 @@ let filtrosAtivos = {
     'diretor_executivo': 'MARCOS NASCIMENTO PEDREIRA'
 };
 
+// Filtro de cross-filtering (drill-down interativo)
+let filtroCross = null;
+
 // Variáveis de auto-refresh
 let autoRefreshInterval = null;
 let autoRefreshEnabled = true;
@@ -28,6 +31,9 @@ let cacheConsolidado = {
     dados: {},
     filtrosCache: null
 };
+
+// Timer para debounce
+let debounceTimer = null;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
@@ -115,12 +121,33 @@ function inicializarEventos() {
     document.getElementById('btnPausar').addEventListener('click', pausarAutoRefresh);
     document.getElementById('btnDespausar').addEventListener('click', retomarAutoRefresh);
     document.getElementById('btnForcarAtualizacao').addEventListener('click', forcarAtualizacao);
+    
+    // Event listeners para filtros com debounce
+    const formFiltros = document.getElementById('formFiltros');
+    if (formFiltros) {
+        // Adiciona debounce em todos inputs e selects
+        const inputs = formFiltros.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', aplicarFiltrosDebounced);
+            input.addEventListener('change', aplicarFiltrosDebounced);
+        });
+    }
 }
 
 /**
- * Aplica filtros
+ * Função debounce para evitar múltiplas chamadas seguidas
  */
-function aplicarFiltros() {
+function debounce(func, delay) {
+    return function(...args) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+
+/**
+ * Aplica filtros (com debounce de 300ms)
+ */
+const aplicarFiltrosDebounced = debounce(function() {
     const form = document.getElementById('formFiltros');
     const formData = new FormData(form);
     
@@ -134,6 +161,32 @@ function aplicarFiltros() {
     // Limpa cache ao mudar filtros
     limparCache();
     carregarDashboard();
+}, 300);
+
+/**
+ * Aplica filtros (versão imediata para botão)
+ */
+function aplicarFiltros() {
+    // Cancela debounce pendente
+    clearTimeout(debounceTimer);
+    
+    const form = document.getElementById('formFiltros');
+    const formData = new FormData(form);
+    
+    filtrosAtivos = {};
+    for (let [key, value] of formData.entries()) {
+        if (value) {
+            filtrosAtivos[key] = value;
+        }
+    }
+    
+    // Limpa filtro cross ao mudar filtros normais
+    filtroCross = null;
+    atualizarBadgeFiltroCross();
+    
+    // Limpa cache ao mudar filtros
+    limparCache();
+    carregarDashboard();
 }
 
 /**
@@ -142,6 +195,10 @@ function aplicarFiltros() {
 function limparFiltros() {
     document.getElementById('formFiltros').reset();
     filtrosAtivos = {};
+    
+    // Limpa filtro cross também
+    filtroCross = null;
+    atualizarBadgeFiltroCross();
     
     // Limpa cache ao limpar filtros
     limparCache();
@@ -165,11 +222,94 @@ function montarQueryString() {
     params.append('mes', mesAtual);
     params.append('ano', anoAtual);
     
+    // Filtros normais
     for (let [key, value] of Object.entries(filtrosAtivos)) {
         params.append(key, value);
     }
     
+    // Filtro cross (drill-down interativo)
+    if (filtroCross) {
+        params.append('cr', filtroCross.cr);
+    }
+    
     return params.toString();
+}
+
+/**
+ * Aplica filtro cross (drill-down) ao clicar em elemento do heatmap
+ */
+function aplicarFiltroCross(cr, contrato) {
+    filtroCross = { cr, contrato };
+    
+    // Atualiza badge visual
+    atualizarBadgeFiltroCross();
+    
+    // Recarrega apenas os gráficos (não o heatmap)
+    Promise.all([
+        carregarCards(),
+        carregarChartColunas(),
+        carregarChartPizza(),
+        carregarChartExecutores(),
+        carregarChartLocais()
+    ]);
+}
+
+/**
+ * Limpa filtro cross
+ */
+function limparFiltroCross() {
+    filtroCross = null;
+    
+    // Remove badge visual
+    atualizarBadgeFiltroCross();
+    
+    // Remove destaque visual das linhas do heatmap
+    const tbody = document.getElementById('heatmapBody');
+    if (tbody) {
+        tbody.querySelectorAll('tr').forEach(row => {
+            row.classList.remove('selected');
+        });
+    }
+    
+    // Recarrega apenas os gráficos
+    Promise.all([
+        carregarCards(),
+        carregarChartColunas(),
+        carregarChartPizza(),
+        carregarChartExecutores(),
+        carregarChartLocais()
+    ]);
+}
+
+/**
+ * Atualiza badge de filtro cross
+ */
+function atualizarBadgeFiltroCross() {
+    let badgeContainer = document.getElementById('badgeFiltroCrossContainer');
+    
+    if (!badgeContainer) {
+        // Cria container se não existir
+        const headerDiv = document.querySelector('.d-flex.justify-content-between.align-items-center.mb-4 > div:first-child');
+        badgeContainer = document.createElement('div');
+        badgeContainer.id = 'badgeFiltroCrossContainer';
+        badgeContainer.className = 'mt-2';
+        headerDiv.appendChild(badgeContainer);
+    }
+    
+    if (filtroCross) {
+        badgeContainer.innerHTML = `
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-warning text-dark" style="font-size: 0.9rem;">
+                    🔍 Filtrado: CR ${filtroCross.cr} - ${filtroCross.contrato}
+                </span>
+                <button class="btn btn-sm btn-outline-danger" onclick="limparFiltroCross()" title="Limpar filtro">
+                    <i class="bi bi-x-circle"></i> Limpar
+                </button>
+            </div>
+        `;
+    } else {
+        badgeContainer.innerHTML = '';
+    }
 }
 
 /**
@@ -346,7 +486,7 @@ async function carregarCards() {
 }
 
 /**
- * Carrega gráfico de colunas
+ * Carrega gráfico de colunas empilhadas (com 4 categorias)
  */
 async function carregarChartColunas() {
     const queryString = montarQueryString();
@@ -357,46 +497,61 @@ async function carregarChartColunas() {
     if (result.success) {
         const data = result.data;
         
-        // Prepara dados
+        // Prepara categorias (dias do mês)
         const categorias = data.map(item => {
             const date = new Date(item.dia);
             return date.getDate();
         });
-        const valores = data.map(item => item.total);
+        
+        // Prepara dados por série
+        const finalizadas = data.map(item => item.finalizadas);
+        const naoRealizadas = data.map(item => item.nao_realizadas);
+        const emAberto = data.map(item => item.em_aberto);
+        const iniciadas = data.map(item => item.iniciadas);
         
         // Destroi gráfico anterior se existir
         if (charts.colunas) {
             charts.colunas.destroy();
         }
         
-        // Opções do gráfico
+        // Opções do gráfico empilhado
         const options = {
-            series: [{
-                name: 'Tarefas',
-                data: valores
-            }],
+            series: [
+                {
+                    name: 'Finalizadas',
+                    data: finalizadas
+                },
+                {
+                    name: 'Não Realizadas',
+                    data: naoRealizadas
+                },
+                {
+                    name: 'Em Aberto',
+                    data: emAberto
+                },
+                {
+                    name: 'Iniciadas',
+                    data: iniciadas
+                }
+            ],
             chart: {
                 type: 'bar',
                 height: 350,
+                stacked: true,
                 toolbar: {
                     show: true
                 }
             },
             plotOptions: {
                 bar: {
-                    borderRadius: 4,
+                    borderRadius: 0,
                     dataLabels: {
-                        position: 'top'
+                        position: 'center'
                     }
                 }
             },
             dataLabels: {
-                enabled: true,
-                offsetY: -20,
-                style: {
-                    fontSize: '12px',
-                    colors: ['#304758']
-                }
+                enabled: false
             },
             xaxis: {
                 categories: categorias,
@@ -409,7 +564,11 @@ async function carregarChartColunas() {
                     text: 'Quantidade de Tarefas'
                 }
             },
-            colors: ['#0d6efd'],
+            colors: ['#28a745', '#dc3545', '#17a2b8', '#ffc107'],
+            legend: {
+                position: 'top',
+                horizontalAlign: 'center'
+            },
             tooltip: {
                 y: {
                     formatter: function(val) {
@@ -479,38 +638,109 @@ async function carregarChartPizza() {
 }
 
 /**
- * Carrega heatmap
+ * Carrega heatmap com CR x Dias do Mês
  */
 async function carregarHeatmap() {
     const queryString = montarQueryString();
     
-    const response = await fetch(`/dashboard/api/heatmap?${queryString}`);
+    const response = await fetch(`/dashboard/api/heatmap-dias?${queryString}`);
     const result = await response.json();
     
     if (result.success) {
         const data = result.data;
+        const mes = result.mes;
+        const ano = result.ano;
+        
+        // Calcula quantos dias tem o mês
+        const ultimoDia = new Date(ano, mes, 0).getDate();
+        
+        // Monta cabeçalho da tabela
+        const thead = document.getElementById('heatmapHead');
+        let headerHtml = '<tr><th>CR</th><th>Contrato</th>';
+        for (let dia = 1; dia <= ultimoDia; dia++) {
+            headerHtml += `<th>${dia}</th>`;
+        }
+        headerHtml += '</tr>';
+        thead.innerHTML = headerHtml;
+        
+        // Monta corpo da tabela
         const tbody = document.getElementById('heatmapBody');
         tbody.innerHTML = '';
         
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum dado encontrado</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="${ultimoDia + 2}" class="text-center">Nenhum dado encontrado</td></tr>`;
             return;
         }
         
         data.forEach(item => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${item.cr}</strong></td>
-                <td>${item.contrato}</td>
-                <td>${item.finalizadas}</td>
-                <td>${item.total}</td>
-                <td><strong>${item.porcentagem.toFixed(2)}%</strong></td>
-                <td>
-                    <span class="badge" style="background-color: ${item.cor_hex}; min-width: 80px;">
-                        ${item.cor === 'verde' ? '✅ Ótimo' : item.cor === 'amarelo' ? '⚠️ Regular' : '❌ Crítico'}
-                    </span>
-                </td>
-            `;
+            let rowHtml = `<td><strong>${item.cr}</strong></td><td>${item.contrato}</td>`;
+            
+            // Para cada dia do mês
+            for (let dia = 1; dia <= ultimoDia; dia++) {
+                const porcentagem = item.dias[dia];
+                
+                if (porcentagem !== undefined) {
+                    // Determina cor baseada na porcentagem
+                    let corFundo = '#e9ecef'; // cinza (sem dados)
+                    let corTexto = '#666';
+                    
+                    if (porcentagem > 90) {
+                        corFundo = '#28a745'; // verde
+                        corTexto = '#fff';
+                    } else if (porcentagem >= 65) {
+                        corFundo = '#ffc107'; // amarelo
+                        corTexto = '#000';
+                    } else {
+                        corFundo = '#dc3545'; // vermelho
+                        corTexto = '#fff';
+                    }
+                    
+                    rowHtml += `<td style="background-color: ${corFundo}; color: ${corTexto}; font-weight: bold; text-align: center;">${porcentagem.toFixed(0)}%</td>`;
+                } else {
+                    // Sem dados
+                    rowHtml += '<td style="background-color: #e9ecef;"></td>';
+                }
+            }
+            
+            tr.innerHTML = rowHtml;
+            
+            // Adiciona estilo de hover e cursor pointer
+            tr.style.cursor = 'pointer';
+            tr.style.transition = 'all 0.2s ease';
+            tr.title = 'Clique para filtrar todos os gráficos por este CR';
+            
+            // Destaca linha se for o CR/Contrato filtrado
+            if (filtroCross && filtroCross.cr === item.cr && filtroCross.contrato === item.contrato) {
+                tr.classList.add('selected');
+            }
+            
+            // Event listener para clique
+            tr.addEventListener('click', function() {
+                aplicarFiltroCross(item.cr, item.contrato);
+                
+                // Remove destaque de todas as linhas
+                tbody.querySelectorAll('tr').forEach(row => {
+                    row.classList.remove('selected');
+                });
+                
+                // Destaca linha clicada
+                this.classList.add('selected');
+            });
+            
+            // Hover effect
+            tr.addEventListener('mouseenter', function() {
+                if (!filtroCross || filtroCross.cr !== item.cr || filtroCross.contrato !== item.contrato) {
+                    this.style.backgroundColor = '#f8f9fa';
+                }
+            });
+            
+            tr.addEventListener('mouseleave', function() {
+                if (!filtroCross || filtroCross.cr !== item.cr || filtroCross.contrato !== item.contrato) {
+                    this.style.backgroundColor = '';
+                }
+            });
+            
             tbody.appendChild(tr);
         });
     }
