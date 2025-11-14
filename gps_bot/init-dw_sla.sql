@@ -31,6 +31,21 @@ CREATE TABLE IF NOT EXISTS mensagens (
     atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabela de Mensagens Agendadas (Sistema de Agendamento)
+CREATE TABLE IF NOT EXISTS mensagens_agendadas (
+    id SERIAL PRIMARY KEY,
+    mensagem TEXT NOT NULL,
+    grupos_selecionados TEXT[] NOT NULL,
+    tipo_recorrencia VARCHAR(50) NOT NULL CHECK (tipo_recorrencia IN ('UNICA', 'RECORRENTE')),
+    dias_semana INTEGER[],
+    horario TIME NOT NULL,
+    data_inicio DATE NOT NULL,
+    data_fim DATE,
+    ativo BOOLEAN DEFAULT TRUE,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Tabela de Agendamentos de SLA
 CREATE TABLE IF NOT EXISTS agendamentos (
     id SERIAL PRIMARY KEY,
@@ -76,6 +91,8 @@ CREATE TABLE IF NOT EXISTS logs_agendamento (
 -- Índices para Performance
 CREATE INDEX IF NOT EXISTS idx_grupos_cr ON grupos_whatsapp(cr);
 CREATE INDEX IF NOT EXISTS idx_grupos_envio ON grupos_whatsapp(envio);
+CREATE INDEX IF NOT EXISTS idx_mensagens_agendadas_ativo ON mensagens_agendadas(ativo);
+CREATE INDEX IF NOT EXISTS idx_mensagens_agendadas_data_inicio ON mensagens_agendadas(data_inicio);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_ativo ON agendamentos(ativo);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_proximo_envio ON agendamentos(proximo_envio);
 CREATE INDEX IF NOT EXISTS idx_logs_status ON logs_envio(status);
