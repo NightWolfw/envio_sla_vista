@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
     inicializarSelectMes();
     inicializarSelect2();
     inicializarEventos();
-    carregarDashboard();
+    verificarECarregarDashboard();  // Verifica timestamp antes de carregar
     iniciarAutoRefresh();
 });
 
@@ -137,9 +137,12 @@ function inicializarSelect2() {
  * Carrega supervisores filtrados por gerente
  */
 async function carregarSupervisoresPorGerente(gerente) {
+    console.log('🔍 Carregando supervisores do gerente:', gerente);
     try {
         const response = await fetchComRetry(`/dashboard/api/supervisores-por-gerente?gerente=${encodeURIComponent(gerente)}`);
         const result = await response.json();
+        
+        console.log('📋 Supervisores recebidos:', result.data);
         
         if (result.success) {
             const selectSupervisor = $('select[name="supervisor"]');
@@ -154,9 +157,11 @@ async function carregarSupervisoresPorGerente(gerente) {
             
             // Atualiza o Select2
             selectSupervisor.trigger('change');
+            
+            console.log(`✅ ${result.data.length} supervisor(es) carregado(s)`);
         }
     } catch (error) {
-        console.error('Erro ao carregar supervisores:', error);
+        console.error('❌ Erro ao carregar supervisores:', error);
     }
 }
 
@@ -335,8 +340,8 @@ function montarQueryString() {
         params.append(key, value);
     }
     
-    // Filtro cross (drill-down interativo)
-    if (filtroCross) {
+    // Filtro cross (drill-down interativo) - só aplica se não houver filtro normal de CR
+    if (filtroCross && !filtrosAtivos.cr) {
         params.append('cr', filtroCross.cr);
     }
     
@@ -523,6 +528,29 @@ async function fetchComRetry(url, tentativa = 1) {
 }
 
 /**
+ * Verifica se precisa atualizar baseado no timestamp e carrega
+ */
+function verificarECarregarDashboard() {
+    const timestampStorage = localStorage.getItem('dashboard_timestamp');
+    const agora = new Date().getTime();
+    
+    if (timestampStorage) {
+        const ultimaAtualizacao = parseInt(timestampStorage);
+        const diferencaMinutos = (agora - ultimaAtualizacao) / 1000 / 60;
+        
+        if (diferencaMinutos < 10) {
+            console.log(`✅ Cache válido. Última atualização há ${diferencaMinutos.toFixed(1)} minutos`);
+            // Não carrega, apenas mostra mensagem
+            esconderLoading();
+            return;
+        }
+    }
+    
+    console.log('⚠️ Cache expirado ou inexistente. Carregando dados...');
+    carregarDashboard();
+}
+
+/**
  * Carrega dashboard completo
  */
 async function carregarDashboard() {
@@ -540,6 +568,9 @@ async function carregarDashboard() {
         
         // Atualiza timestamp após carregar
         atualizarTimestamp();
+        
+        // Salva timestamp no localStorage para controle de cache
+        localStorage.setItem('dashboard_timestamp', new Date().getTime());
         
     } catch (error) {
         console.error('Erro ao carregar dashboard:', error);
@@ -693,16 +724,18 @@ async function carregarChartColunas() {
     if (result.success) {
         const data = result.data;
         
-        // Filtra apenas até hoje se for mês atual
+        // Mostra todos os dias do mês, EXCETO no mês atual que mostra só até hoje
         const hoje = new Date();
         const ehMesAtual = (anoAtual === hoje.getFullYear() && mesAtual === (hoje.getMonth() + 1));
         
-        const dataFiltrada = ehMesAtual 
-            ? data.filter(item => {
+        // Se NÃO for mês atual, mostra todos os dias
+        // Se for mês atual, filtra até hoje
+        const dataFiltrada = !ehMesAtual 
+            ? data  // Meses passados: todos os dias
+            : data.filter(item => {  // Mês atual: só até hoje
                 const dia = parseInt(item.dia.split('-')[2]);
                 return dia <= hoje.getDate();
-              })
-            : data;
+              });
         
         // Prepara categorias (dias do mês)
         // Extrai o dia diretamente da string 'YYYY-MM-DD'

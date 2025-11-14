@@ -73,7 +73,7 @@ def index():
 
 
 @bp.route('/api/resumo')
-@cache.cached(timeout=300)
+@cache.cached(timeout=300, query_string=True)
 def api_resumo():
     """
     API: Retorna resumo com totais de tarefas (cards)
@@ -107,7 +107,7 @@ def api_resumo():
 
 
 @bp.route('/api/tarefas-mes')
-@cache.cached(timeout=300)
+@cache.cached(timeout=300, query_string=True)
 def api_tarefas_mes():
     """
     API: Retorna tarefas agrupadas por dia do mês (gráfico de colunas)
@@ -131,7 +131,7 @@ def api_tarefas_mes():
 
 
 @bp.route('/api/heatmap')
-@cache.cached(timeout=300)
+@cache.cached(timeout=300, query_string=True)
 def api_heatmap():
     """
     API: Retorna heatmap de realização por CR
@@ -159,7 +159,7 @@ def api_heatmap():
 
 
 @bp.route('/api/executores')
-@cache.cached(timeout=300)
+@cache.cached(timeout=300, query_string=True)
 def api_executores():
     """
     API: Retorna TOP executores
@@ -188,7 +188,7 @@ def api_executores():
 
 
 @bp.route('/api/locais')
-@cache.cached(timeout=300)
+@cache.cached(timeout=300, query_string=True)
 def api_locais():
     """
     API: Retorna TOP locais
@@ -217,7 +217,7 @@ def api_locais():
 
 
 @bp.route('/api/pizza')
-@cache.cached(timeout=300)
+@cache.cached(timeout=300, query_string=True)
 def api_pizza():
     """
     API: Retorna distribuição por status (gráfico de pizza)
@@ -263,7 +263,7 @@ def api_filtros():
 
 
 @bp.route('/api/heatmap-dias')
-@cache.cached(timeout=300)
+@cache.cached(timeout=300, query_string=True)
 def api_heatmap_dias():
     """
     API: Retorna heatmap com CR x Dias do Mês
