@@ -138,13 +138,16 @@
 </div>
 
 <script>
-// Carrega dados SLA para a home
+// Carrega dados SLA para a home (filtrado por MARCOS NASCIMENTO PEDREIRA)
 document.addEventListener('DOMContentLoaded', function() {
     const hoje = new Date();
     const mes = hoje.getMonth() + 1;
     const ano = hoje.getFullYear();
     
-    fetch(`/dashboard/api/resumo?mes=${mes}&ano=${ano}`)
+    // Aplica filtro fixo do diretor executivo
+    const filtro = 'diretor_executivo=MARCOS%20NASCIMENTO%20PEDREIRA';
+    
+    fetch(`/dashboard/api/resumo?mes=${mes}&ano=${ano}&${filtro}`)
         .then(response => response.json())
         .then(result => {
             if (result.success) {
