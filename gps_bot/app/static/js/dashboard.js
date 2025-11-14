@@ -35,6 +35,12 @@ let cacheConsolidado = {
 // Timer para debounce
 let debounceTimer = null;
 
+// Controle de reconexão
+let reconexaoEmAndamento = false;
+let reconexaoCancelada = false;
+const MAX_TENTATIVAS_RECONEXAO = 5;
+const DELAY_RECONEXAO_INICIAL = 2000; // 2 segundos
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     inicializarSelectMes();
@@ -132,7 +138,7 @@ function inicializarSelect2() {
  */
 async function carregarSupervisoresPorGerente(gerente) {
     try {
-        const response = await fetch(`/dashboard/api/supervisores-por-gerente?gerente=${encodeURIComponent(gerente)}`);
+        const response = await fetchComRetry(`/dashboard/api/supervisores-por-gerente?gerente=${encodeURIComponent(gerente)}`);
         const result = await response.json();
         
         if (result.success) {
@@ -197,13 +203,13 @@ function inicializarEventos() {
     document.getElementById('btnForcarAtualizacao').addEventListener('click', forcarAtualizacao);
     
     // Event listeners para filtros com debounce
+    // Nota: Selects usam Select2 e têm seus próprios eventos configurados em inicializarSelect2()
     const formFiltros = document.getElementById('formFiltros');
     if (formFiltros) {
-        // Adiciona debounce em todos inputs e selects, EXCETO o campo CR
-        const inputs = formFiltros.querySelectorAll('input:not([name="cr"]), select');
+        // Adiciona debounce apenas em inputs de texto, EXCETO o campo CR
+        const inputs = formFiltros.querySelectorAll('input:not([name="cr"])');
         inputs.forEach(input => {
             input.addEventListener('input', aplicarFiltrosDebounced);
-            input.addEventListener('change', aplicarFiltrosDebounced);
         });
     }
 }
@@ -222,20 +228,27 @@ function debounce(func, delay) {
  * Aplica filtros (com debounce de 300ms)
  */
 const aplicarFiltrosDebounced = debounce(function() {
-    const form = document.getElementById('formFiltros');
-    const formData = new FormData(form);
-    
     // Inicia com o filtro fixo do diretor executivo
     filtrosAtivos = {
         'diretor_executivo': 'MARCOS NASCIMENTO PEDREIRA'
     };
     
-    // Adiciona os demais filtros do formulário
-    for (let [key, value] of formData.entries()) {
-        if (value && key !== 'diretor_executivo') {  // Ignora diretor_executivo do form pois já está fixo
-            filtrosAtivos[key] = value;
-        }
+    // Campo CR (input text) - captura com jQuery
+    const crValue = $('#formFiltros input[name="cr"]').val();
+    if (crValue) {
+        filtrosAtivos.cr = crValue;
     }
+    
+    // Todos os selects (Select2) - captura com jQuery
+    $('#formFiltros select:not([disabled])').each(function() {
+        const name = $(this).attr('name');
+        const value = $(this).val();
+        if (name && value && name !== 'diretor_executivo') {
+            filtrosAtivos[name] = value;
+        }
+    });
+    
+    console.log('Filtros aplicados (debounced):', filtrosAtivos);
     
     // Limpa cache ao mudar filtros
     limparCache();
@@ -249,20 +262,27 @@ function aplicarFiltros() {
     // Cancela debounce pendente
     clearTimeout(debounceTimer);
     
-    const form = document.getElementById('formFiltros');
-    const formData = new FormData(form);
-    
     // Inicia com o filtro fixo do diretor executivo
     filtrosAtivos = {
         'diretor_executivo': 'MARCOS NASCIMENTO PEDREIRA'
     };
     
-    // Adiciona os demais filtros do formulário
-    for (let [key, value] of formData.entries()) {
-        if (value && key !== 'diretor_executivo') {  // Ignora diretor_executivo do form pois já está fixo
-            filtrosAtivos[key] = value;
-        }
+    // Campo CR (input text) - captura com jQuery
+    const crValue = $('#formFiltros input[name="cr"]').val();
+    if (crValue) {
+        filtrosAtivos.cr = crValue;
     }
+    
+    // Todos os selects (Select2) - captura com jQuery
+    $('#formFiltros select:not([disabled])').each(function() {
+        const name = $(this).attr('name');
+        const value = $(this).val();
+        if (name && value && name !== 'diretor_executivo') {
+            filtrosAtivos[name] = value;
+        }
+    });
+    
+    console.log('Filtros aplicados (botão):', filtrosAtivos);
     
     // Limpa filtro cross ao mudar filtros normais
     filtroCross = null;
@@ -415,6 +435,94 @@ function esconderLoading() {
 }
 
 /**
+ * Mostra modal de reconexão
+ */
+function mostrarModalReconexao(tentativa, maxTentativas, mensagem = 'Aguardando resposta do servidor...') {
+    reconexaoEmAndamento = true;
+    const modal = document.getElementById('modalReconexao');
+    document.getElementById('tentativaAtual').textContent = tentativa;
+    document.getElementById('tentativaMaxima').textContent = maxTentativas;
+    document.getElementById('mensagemReconexao').textContent = mensagem;
+    modal.style.display = 'block';
+}
+
+/**
+ * Esconde modal de reconexão
+ */
+function esconderModalReconexao() {
+    reconexaoEmAndamento = false;
+    reconexaoCancelada = false;
+    document.getElementById('modalReconexao').style.display = 'none';
+}
+
+/**
+ * Cancela tentativas de reconexão
+ */
+function cancelarReconexao() {
+    reconexaoCancelada = true;
+    esconderModalReconexao();
+    esconderLoading();
+    alert('Reconexão cancelada. Recarregue a página para tentar novamente.');
+}
+
+/**
+ * Função genérica para fazer requisições com retry automático
+ */
+async function fetchComRetry(url, tentativa = 1) {
+    const maxTentativas = MAX_TENTATIVAS_RECONEXAO;
+    
+    try {
+        // Mostra modal na primeira tentativa se houver erro
+        if (tentativa > 1 && !reconexaoCancelada) {
+            const delay = DELAY_RECONEXAO_INICIAL * Math.pow(1.5, tentativa - 2);
+            mostrarModalReconexao(tentativa, maxTentativas, `Aguardando ${(delay/1000).toFixed(1)}s antes da próxima tentativa...`);
+            await new Promise(resolve => setTimeout(resolve, Math.min(delay, 10000)));
+        }
+        
+        if (reconexaoCancelada) {
+            throw new Error('Reconexão cancelada pelo usuário');
+        }
+        
+        const response = await fetch(url);
+        
+        // Se a resposta for OK, esconde modal e retorna
+        if (response.ok) {
+            esconderModalReconexao();
+            return response;
+        }
+        
+        // Se for erro 500 ou erro de servidor, tenta novamente
+        if (response.status >= 500 && tentativa < maxTentativas) {
+            console.warn(`Erro ${response.status} na tentativa ${tentativa}. Tentando novamente...`);
+            return await fetchComRetry(url, tentativa + 1);
+        }
+        
+        // Se for outro tipo de erro, retorna a resposta
+        esconderModalReconexao();
+        return response;
+        
+    } catch (error) {
+        console.error(`Erro na tentativa ${tentativa}:`, error);
+        
+        // Se foi cancelado, propaga o erro
+        if (reconexaoCancelada) {
+            esconderModalReconexao();
+            throw error;
+        }
+        
+        // Se ainda tem tentativas, tenta novamente
+        if (tentativa < maxTentativas) {
+            return await fetchComRetry(url, tentativa + 1);
+        }
+        
+        // Esgotou todas as tentativas
+        esconderModalReconexao();
+        alert(`Não foi possível conectar ao servidor após ${maxTentativas} tentativas.\n\nPor favor, verifique sua conexão e recarregue a página.`);
+        throw error;
+    }
+}
+
+/**
  * Carrega dashboard completo
  */
 async function carregarDashboard() {
@@ -561,7 +669,7 @@ function atualizarBadgeStatus() {
 async function carregarCards() {
     const queryString = montarQueryString();
     
-    const response = await fetch(`/dashboard/api/resumo?${queryString}`);
+    const response = await fetchComRetry(`/dashboard/api/resumo?${queryString}`);
     const result = await response.json();
     
     if (result.success) {
@@ -579,7 +687,7 @@ async function carregarCards() {
 async function carregarChartColunas() {
     const queryString = montarQueryString();
     
-    const response = await fetch(`/dashboard/api/tarefas-mes?${queryString}`);
+    const response = await fetchComRetry(`/dashboard/api/tarefas-mes?${queryString}`);
     const result = await response.json();
     
     if (result.success) {
@@ -688,7 +796,7 @@ async function carregarChartColunas() {
 async function carregarChartPizza() {
     const queryString = montarQueryString();
     
-    const response = await fetch(`/dashboard/api/pizza?${queryString}`);
+    const response = await fetchComRetry(`/dashboard/api/pizza?${queryString}`);
     const result = await response.json();
     
     if (result.success) {
@@ -745,7 +853,7 @@ async function carregarHeatmap() {
     const thead = document.getElementById('heatmapHead');
     
     try {
-        const response = await fetch(`/dashboard/api/heatmap-dias?${queryString}`);
+        const response = await fetchComRetry(`/dashboard/api/heatmap-dias?${queryString}`);
         const result = await response.json();
         
         if (!result.success) {
@@ -868,7 +976,7 @@ async function carregarChartExecutores() {
     const limit = document.getElementById('selectLimitExecutores').value;
     const queryString = montarQueryString() + `&limit=${limit}`;
     
-    const response = await fetch(`/dashboard/api/executores?${queryString}`);
+    const response = await fetchComRetry(`/dashboard/api/executores?${queryString}`);
     const result = await response.json();
     
     if (result.success) {
@@ -935,7 +1043,7 @@ async function carregarChartLocais() {
     const limit = document.getElementById('selectLimitLocais').value;
     const queryString = montarQueryString() + `&limit=${limit}`;
     
-    const response = await fetch(`/dashboard/api/locais?${queryString}`);
+    const response = await fetchComRetry(`/dashboard/api/locais?${queryString}`);
     const result = await response.json();
     
     if (result.success) {
