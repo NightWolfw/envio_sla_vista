@@ -1,7 +1,11 @@
 from flask import Flask
+from flask_caching import Cache
 import logging
 import os
 import config
+
+# Inicializa cache global
+cache = Cache()
 
 def create_app():
     app = Flask(__name__)
@@ -21,6 +25,15 @@ def create_app():
 
     # Configurações da Evolution API
     app.config['EVOLUTION_CONFIG'] = config.EVOLUTION_CONFIG
+    
+    # Configurações de Cache Redis (database 2, Evolution usa 6)
+    app.config['CACHE_TYPE'] = 'redis'
+    app.config['CACHE_REDIS_URL'] = 'redis://redis:6379/2'
+    app.config['CACHE_KEY_PREFIX'] = 'gps_dashboard:'
+    app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 5 minutos padrão
+    
+    # Inicializa cache com a aplicação
+    cache.init_app(app)
 
     # Importa e registra blueprints
     from app.routes.main import bp as main_bp

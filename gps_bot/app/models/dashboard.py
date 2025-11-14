@@ -116,7 +116,8 @@ def buscar_resumo_tarefas(filtros, data_inicio, data_fim):
 
 def buscar_tarefas_por_dia_mes(filtros, mes, ano):
     """
-    Retorna tarefas agrupadas por dia do mês (para gráfico de colunas)
+    Retorna tarefas agrupadas por dia do mês separadas por status (para gráfico de colunas empilhadas)
+    Retorna 4 séries: finalizadas, não realizadas, em aberto, iniciadas
     """
     conn = get_db_vista()
     cur = conn.cursor()
@@ -178,7 +179,10 @@ def buscar_tarefas_por_dia_mes(filtros, mes, ano):
     query = f"""
         SELECT 
             DATE(t.disponibilizacao) as dia,
-            COUNT(*) as total
+            SUM(CASE WHEN t.status = 85 AND t.expirada = FALSE THEN 1 ELSE 0 END) as finalizadas,
+            SUM(CASE WHEN t.status = 85 AND t.expirada = TRUE THEN 1 ELSE 0 END) as nao_realizadas,
+            SUM(CASE WHEN t.status = 10 THEN 1 ELSE 0 END) as em_aberto,
+            SUM(CASE WHEN t.status = 25 THEN 1 ELSE 0 END) as iniciadas
         FROM dbo.tarefa t
         INNER JOIN dw_vista.dm_estrutura e ON t.estruturaid = e.id_estrutura
         {join_cr}
@@ -190,12 +194,31 @@ def buscar_tarefas_por_dia_mes(filtros, mes, ano):
     cur.execute(query, params)
     resultados = cur.fetchall()
     
-    # Formata resultado
-    dados = []
+    # Cria dicionário com os dados do banco por dia
+    dados_banco = {}
     for row in resultados:
+        dia_numero = row[0].day
+        dados_banco[dia_numero] = {
+            'finalizadas': row[1],
+            'nao_realizadas': row[2],
+            'em_aberto': row[3],
+            'iniciadas': row[4]
+        }
+    
+    # Preenche todos os dias do mês (1 até último dia)
+    ultimo_dia_mes = calendar.monthrange(ano, mes)[1]
+    dados = []
+    
+    for dia in range(1, ultimo_dia_mes + 1):
+        data_completa = datetime(ano, mes, dia)
+        dia_dados = dados_banco.get(dia, {'finalizadas': 0, 'nao_realizadas': 0, 'em_aberto': 0, 'iniciadas': 0})
+        
         dados.append({
-            'dia': row[0].strftime('%Y-%m-%d'),
-            'total': row[1]
+            'dia': data_completa.strftime('%Y-%m-%d'),
+            'finalizadas': dia_dados['finalizadas'],
+            'nao_realizadas': dia_dados['nao_realizadas'],
+            'em_aberto': dia_dados['em_aberto'],
+            'iniciadas': dia_dados['iniciadas']
         })
     
     cur.close()
@@ -520,6 +543,116 @@ def buscar_distribuicao_status(filtros, data_inicio, data_fim):
         {'status': 'Em Aberto', 'total': stats['em_aberto'], 'cor': '#17a2b8'},
         {'status': 'Iniciadas', 'total': stats['iniciadas'], 'cor': '#ffc107'}
     ]
+    
+    return dados
+
+
+def buscar_heatmap_por_dia(filtros, mes, ano):
+    """
+    Retorna heatmap com CR x Dias do Mês
+    Cada célula contém a porcentagem de tarefas finalizadas no dia
+    """
+    conn = get_db_vista()
+    cur = conn.cursor()
+    
+    # Primeiro e último dia do mês
+    primeiro_dia = datetime(ano, mes, 1)
+    ultimo_dia = datetime(ano, mes, calendar.monthrange(ano, mes)[1], 23, 59, 59)
+    
+    where_clauses = ["t.disponibilizacao >= %s", "t.disponibilizacao <= %s", "t.status IN (10, 25, 85)"]
+    params = [primeiro_dia, ultimo_dia]
+    
+    # Aplica filtros
+    filtros_gestores = []
+    
+    if filtros.get('cr'):
+        where_clauses.append("e.crno = %s")
+        params.append(filtros['cr'])
+    
+    if filtros.get('cliente'):
+        where_clauses.append("e.cliente = %s")
+        params.append(filtros['cliente'])
+    
+    if filtros.get('diretor_executivo'):
+        filtros_gestores.append("cr.diretorexecutivo = %s")
+        params.append(filtros['diretor_executivo'])
+    
+    if filtros.get('diretor_regional'):
+        filtros_gestores.append("cr.diretorregional = %s")
+        params.append(filtros['diretor_regional'])
+    
+    if filtros.get('gerente_regional'):
+        filtros_gestores.append("cr.gerenteregional = %s")
+        params.append(filtros['gerente_regional'])
+    
+    if filtros.get('gerente'):
+        filtros_gestores.append("cr.gerente = %s")
+        params.append(filtros['gerente'])
+    
+    if filtros.get('supervisor'):
+        filtros_gestores.append("cr.supervisor = %s")
+        params.append(filtros['supervisor'])
+    
+    if filtros.get('pec_01'):
+        where_clauses.append("e.nivel_01 = %s")
+        params.append(filtros['pec_01'])
+    
+    if filtros.get('pec_02'):
+        where_clauses.append("e.nivel_02 = %s")
+        params.append(filtros['pec_02'])
+    
+    where_sql = " AND ".join(where_clauses)
+    
+    join_cr = ""
+    if filtros_gestores:
+        join_cr = "LEFT JOIN dw_vista.dm_cr cr ON e.id_cr = cr.id_cr"
+        where_sql += " AND (" + " AND ".join(filtros_gestores) + ")"
+    
+    query = f"""
+        SELECT 
+            e.crno as cr,
+            e.nivel_03 as contrato,
+            DAY(t.disponibilizacao) as dia,
+            SUM(CASE WHEN t.status = 85 AND t.expirada = FALSE THEN 1 ELSE 0 END) as finalizadas,
+            COUNT(*) as total
+        FROM dbo.tarefa t
+        INNER JOIN dw_vista.dm_estrutura e ON t.estruturaid = e.id_estrutura
+        {join_cr}
+        WHERE {where_sql}
+        GROUP BY e.crno, e.nivel_03, DAY(t.disponibilizacao)
+        HAVING COUNT(*) > 0
+        ORDER BY e.crno, e.nivel_03
+    """
+    
+    cur.execute(query, params)
+    resultados = cur.fetchall()
+    
+    # Agrupa por CR/Contrato
+    dados_agrupados = {}
+    for row in resultados:
+        cr, contrato, dia, finalizadas, total = row
+        chave = f"{cr}|{contrato}"
+        
+        if chave not in dados_agrupados:
+            dados_agrupados[chave] = {
+                'cr': cr,
+                'contrato': contrato,
+                'dias': {}
+            }
+        
+        # Calcula porcentagem
+        if total > 0:
+            porcentagem = (finalizadas / total) * 100
+        else:
+            porcentagem = 0
+        
+        dados_agrupados[chave]['dias'][dia] = round(porcentagem, 1)
+    
+    # Converte para lista
+    dados = list(dados_agrupados.values())
+    
+    cur.close()
+    conn.close()
     
     return dados
 
