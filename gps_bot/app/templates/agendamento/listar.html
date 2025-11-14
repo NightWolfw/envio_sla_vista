@@ -68,6 +68,9 @@
                                 <button class="btn btn-sm btn-primary" onclick="editarAgendamento({{ agendamento.id }})">
                                     ✏️ Editar
                                 </button>
+                                <button class="btn btn-sm btn-secondary" onclick="copiarAgendamento({{ agendamento.id }})">
+                                    📋 Copiar
+                                </button>
                                 <button class="btn btn-sm btn-info" onclick="verLogs({{ agendamento.id }})">
                                     📜 Logs
                                 </button>
@@ -90,6 +93,89 @@
                 Crie um novo agendamento clicando no botão acima.
             </div>
             {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Copiar Agendamento -->
+<div class="modal fade" id="modalCopiarAgendamento" tabindex="-1" aria-labelledby="modalCopiarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #0d6efd; color: white;">
+                <h5 class="modal-title" id="modalCopiarLabel">📋 Copiar Agendamento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCopiarAgendamento">
+                    <!-- Seleção de Grupo -->
+                    <div class="mb-3">
+                        <label class="form-label">Grupo WhatsApp</label>
+                        <select class="form-select" name="grupo_id" id="modal_grupo_id" required>
+                            <!-- Será populado via JavaScript -->
+                        </select>
+                    </div>
+
+                    <!-- Tipo de Envio -->
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Envio</label>
+                        <div>
+                            <input type="radio" name="tipo_envio" value="resultados" id="modal_tipo_resultados" required>
+                            <label for="modal_tipo_resultados">📊 Resultados</label>
+                            
+                            <input type="radio" name="tipo_envio" value="programadas" id="modal_tipo_programadas" class="ms-3">
+                            <label for="modal_tipo_programadas">📋 Programadas</label>
+                        </div>
+                    </div>
+
+                    <!-- Dias da Semana -->
+                    <div class="mb-3">
+                        <label class="form-label">Dias da Semana</label>
+                        <div>
+                            <input type="checkbox" name="dias_semana" value="seg" id="modal_seg"> Seg
+                            <input type="checkbox" name="dias_semana" value="ter" id="modal_ter"> Ter
+                            <input type="checkbox" name="dias_semana" value="qua" id="modal_qua"> Qua
+                            <input type="checkbox" name="dias_semana" value="qui" id="modal_qui"> Qui
+                            <input type="checkbox" name="dias_semana" value="sex" id="modal_sex"> Sex
+                            <input type="checkbox" name="dias_semana" value="sab" id="modal_sab"> Sáb
+                            <input type="checkbox" name="dias_semana" value="dom" id="modal_dom"> Dom
+                        </div>
+                    </div>
+
+                    <!-- Data e Hora de Envio -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data/Hora de Envio</label>
+                            <input type="datetime-local" class="form-control" name="data_envio" id="modal_data_envio" required>
+                        </div>
+                    </div>
+
+                    <!-- Período de Consulta -->
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Hora Início</label>
+                            <input type="time" class="form-control" name="hora_inicio" id="modal_hora_inicio" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Offset Início (dias)</label>
+                            <input type="number" class="form-control" name="dia_offset_inicio" id="modal_dia_offset_inicio" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Hora Fim</label>
+                            <input type="time" class="form-control" name="hora_fim" id="modal_hora_fim" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Offset Fim (dias)</label>
+                            <input type="number" class="form-control" name="dia_offset_fim" id="modal_dia_offset_fim" required>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="modal_agendamento_id" value="">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="salvarAgendamentoCopia()">💾 Salvar Cópia</button>
+            </div>
         </div>
     </div>
 </div>
@@ -170,8 +256,120 @@ function enviarAgora(agendamentoId) {
         alert('❌ Erro: ' + error);
     });
 }
-    function editarAgendamento(agendamentoId) {
+function editarAgendamento(agendamentoId) {
     window.location.href = `/sla/editar/${agendamentoId}`;
+}
+
+function copiarAgendamento(agendamentoId) {
+    // Busca dados do agendamento
+    fetch(`/sla/obter/${agendamentoId}`)
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                const data = result.data;
+                
+                // Popula o select de grupos
+                const selectGrupo = document.getElementById('modal_grupo_id');
+                selectGrupo.innerHTML = '';
+                data.grupos.forEach(grupo => {
+                    const option = document.createElement('option');
+                    option.value = grupo.id;
+                    option.text = `${grupo.nome} - CR: ${grupo.cr}`;
+                    if (grupo.id === data.grupo_id) {
+                        option.selected = true;
+                    }
+                    selectGrupo.appendChild(option);
+                });
+                
+                // Popula tipo de envio
+                if (data.tipo_envio === 'resultados') {
+                    document.getElementById('modal_tipo_resultados').checked = true;
+                } else {
+                    document.getElementById('modal_tipo_programadas').checked = true;
+                }
+                
+                // Popula dias da semana
+                const diasSelecionados = data.dias_semana.split(',');
+                document.getElementById('modal_seg').checked = diasSelecionados.includes('seg');
+                document.getElementById('modal_ter').checked = diasSelecionados.includes('ter');
+                document.getElementById('modal_qua').checked = diasSelecionados.includes('qua');
+                document.getElementById('modal_qui').checked = diasSelecionados.includes('qui');
+                document.getElementById('modal_sex').checked = diasSelecionados.includes('sex');
+                document.getElementById('modal_sab').checked = diasSelecionados.includes('sab');
+                document.getElementById('modal_dom').checked = diasSelecionados.includes('dom');
+                
+                // Popula data e hora de envio
+                document.getElementById('modal_data_envio').value = data.data_envio;
+                
+                // Popula período de consulta
+                document.getElementById('modal_hora_inicio').value = data.hora_inicio;
+                document.getElementById('modal_dia_offset_inicio').value = data.dia_offset_inicio;
+                document.getElementById('modal_hora_fim').value = data.hora_fim;
+                document.getElementById('modal_dia_offset_fim').value = data.dia_offset_fim;
+                
+                // Guarda o ID do agendamento original
+                document.getElementById('modal_agendamento_id').value = agendamentoId;
+                
+                // Abre o modal
+                const modal = new bootstrap.Modal(document.getElementById('modalCopiarAgendamento'));
+                modal.show();
+            } else {
+                alert('❌ Erro ao buscar dados: ' + result.error);
+            }
+        })
+        .catch(error => {
+            alert('❌ Erro: ' + error);
+        });
+}
+
+function salvarAgendamentoCopia() {
+    const form = document.getElementById('formCopiarAgendamento');
+    const formData = new FormData(form);
+    
+    // Pega dias da semana selecionados
+    const diasSemana = Array.from(formData.getAll('dias_semana')).join(',');
+    
+    if (!diasSemana) {
+        alert('❌ Selecione pelo menos um dia da semana!');
+        return;
+    }
+    
+    formData.delete('dias_semana');
+    formData.append('dias_semana', diasSemana);
+    
+    const agendamentoId = document.getElementById('modal_agendamento_id').value;
+    
+    // Mostra loading no botão
+    const btnSalvar = event.target;
+    const textoOriginal = btnSalvar.innerHTML;
+    btnSalvar.disabled = true;
+    btnSalvar.innerHTML = '⏳ Salvando...';
+    
+    fetch(`/sla/copiar/${agendamentoId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        btnSalvar.disabled = false;
+        btnSalvar.innerHTML = textoOriginal;
+        
+        if (data.success) {
+            alert('✅ ' + data.message);
+            // Fecha o modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalCopiarAgendamento'));
+            modal.hide();
+            // Recarrega a página para mostrar o novo agendamento
+            window.location.reload();
+        } else {
+            alert('❌ Erro: ' + data.error);
+        }
+    })
+    .catch(error => {
+        btnSalvar.disabled = false;
+        btnSalvar.innerHTML = textoOriginal;
+        alert('❌ Erro: ' + error);
+    });
 }
 
 </script>

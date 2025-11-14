@@ -329,3 +329,61 @@ def atualizar(agendamento_id):
         return jsonify({'success': True, 'message': 'Agendamento atualizado com sucesso!'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@bp.route('/obter/<int:agendamento_id>')
+def obter(agendamento_id):
+    """Retorna dados de um agendamento em JSON"""
+    try:
+        from app.models.agendamento import obter_agendamento
+        from app.models.grupo import listar_grupos
+
+        agendamento = obter_agendamento(agendamento_id)
+        
+        if not agendamento:
+            return jsonify({'success': False, 'error': 'Agendamento não encontrado'}), 404
+        
+        # Busca todos os grupos para popular o select
+        grupos = listar_grupos()
+        grupos_ativos = [{'id': g[0], 'nome': g[2], 'cr': g[4]} for g in grupos if g[3]]
+        
+        # Formata dados do agendamento
+        dados = {
+            'id': agendamento[0],
+            'grupo_id': agendamento[1],
+            'tipo_envio': agendamento[2],
+            'dias_semana': agendamento[3],
+            'data_envio': agendamento[4].strftime('%Y-%m-%dT%H:%M'),
+            'hora_inicio': str(agendamento[5]),
+            'dia_offset_inicio': agendamento[6],
+            'hora_fim': str(agendamento[7]),
+            'dia_offset_fim': agendamento[8],
+            'ativo': agendamento[9],
+            'grupos': grupos_ativos
+        }
+        
+        return jsonify({'success': True, 'data': dados})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/copiar/<int:agendamento_id>', methods=['POST'])
+def copiar(agendamento_id):
+    """Cria um novo agendamento baseado em um existente"""
+    try:
+        dados = {
+            'grupo_id': int(request.form['grupo_id']),
+            'tipo_envio': request.form['tipo_envio'],
+            'dias_semana': request.form['dias_semana'],
+            'data_envio': datetime.fromisoformat(request.form['data_envio']),
+            'hora_inicio': time.fromisoformat(request.form['hora_inicio']),
+            'dia_offset_inicio': int(request.form['dia_offset_inicio']),
+            'hora_fim': time.fromisoformat(request.form['hora_fim']),
+            'dia_offset_fim': int(request.form['dia_offset_fim'])
+        }
+        
+        criar_agendamento(dados)
+        
+        return jsonify({'success': True, 'message': 'Agendamento copiado com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
