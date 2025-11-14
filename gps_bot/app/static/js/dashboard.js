@@ -23,6 +23,12 @@ let autoRefreshEnabled = true;
 let ultimaAtualizacao = null;
 const INTERVALO_ATUALIZACAO = 600000; // 10 minutos em ms
 
+// Cache para os 5 meses consolidados (não precisam atualizar a cada 10min)
+let cacheConsolidado = {
+    dados: {},
+    filtrosCache: null
+};
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     inicializarSelectMes();
@@ -32,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Inicializa select de mês
+ * Inicializa select de mês - mostra apenas últimos 6 meses
  */
 function inicializarSelectMes() {
     const select = document.getElementById('selectMes');
@@ -41,22 +47,40 @@ function inicializarSelectMes() {
         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
     ];
     
-    const anoAtualTemp = new Date().getFullYear();
+    const hoje = new Date();
+    const ultimos6Meses = obterUltimos6Meses();
     
-    // Adiciona meses do ano atual e anterior
-    for (let ano = anoAtualTemp; ano >= anoAtualTemp - 1; ano--) {
-        for (let mes = 12; mes >= 1; mes--) {
-            const option = document.createElement('option');
-            option.value = `${mes}-${ano}`;
-            option.text = `${meses[mes - 1]}/${ano}`;
-            
-            if (mes === mesAtual && ano === anoAtual) {
-                option.selected = true;
-            }
-            
-            select.appendChild(option);
+    // Adiciona apenas os últimos 6 meses
+    ultimos6Meses.forEach((mesAno, index) => {
+        const option = document.createElement('option');
+        option.value = `${mesAno.mes}-${mesAno.ano}`;
+        option.text = `${meses[mesAno.mes - 1]}/${mesAno.ano}`;
+        
+        // Mês atual é selecionado por padrão
+        if (index === 0) {
+            option.selected = true;
         }
+        
+        select.appendChild(option);
+    });
+}
+
+/**
+ * Retorna array com os últimos 6 meses (mês atual + 5 anteriores)
+ */
+function obterUltimos6Meses() {
+    const ultimos = [];
+    const hoje = new Date();
+    
+    for (let i = 0; i < 6; i++) {
+        const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        ultimos.push({
+            mes: data.getMonth() + 1,
+            ano: data.getFullYear()
+        });
     }
+    
+    return ultimos;
 }
 
 /**
@@ -75,6 +99,7 @@ function inicializarEventos() {
         mesAtual = parseInt(mesAno[0]);
         anoAtual = parseInt(mesAno[1]);
         carregarDashboard();
+        atualizarBadgeStatus(); // Atualiza badge ao trocar de mês
     });
     
     // Limites de executores e locais
@@ -106,6 +131,8 @@ function aplicarFiltros() {
         }
     }
     
+    // Limpa cache ao mudar filtros
+    limparCache();
     carregarDashboard();
 }
 
@@ -115,7 +142,19 @@ function aplicarFiltros() {
 function limparFiltros() {
     document.getElementById('formFiltros').reset();
     filtrosAtivos = {};
+    
+    // Limpa cache ao limpar filtros
+    limparCache();
     carregarDashboard();
+}
+
+/**
+ * Limpa o cache de dados consolidados
+ */
+function limparCache() {
+    cacheConsolidado.dados = {};
+    cacheConsolidado.filtrosCache = null;
+    console.log('Cache consolidado limpo');
 }
 
 /**
@@ -176,6 +215,7 @@ async function carregarDashboard() {
 
 /**
  * Inicia auto-refresh
+ * Atualiza apenas o mês atual (últimos 5 meses são consolidados)
  */
 function iniciarAutoRefresh() {
     if (autoRefreshInterval) {
@@ -184,8 +224,17 @@ function iniciarAutoRefresh() {
     
     autoRefreshInterval = setInterval(function() {
         if (autoRefreshEnabled) {
-            console.log('Auto-refresh: atualizando dashboard...');
-            carregarDashboard();
+            const hoje = new Date();
+            const mesAtualSistema = hoje.getMonth() + 1;
+            const anoAtualSistema = hoje.getFullYear();
+            
+            // Só atualiza se estiver visualizando o mês atual
+            if (mesAtual === mesAtualSistema && anoAtual === anoAtualSistema) {
+                console.log('Auto-refresh: atualizando apenas mês atual...');
+                carregarDashboard();
+            } else {
+                console.log('Auto-refresh: visualizando mês consolidado, não há necessidade de atualizar');
+            }
         }
     }, INTERVALO_ATUALIZACAO);
     
@@ -257,12 +306,24 @@ function atualizarTimestamp() {
 function atualizarBadgeStatus() {
     const badge = document.getElementById('badgeStatus');
     
-    if (autoRefreshEnabled) {
+    if (!autoRefreshEnabled) {
+        badge.className = 'badge bg-danger';
+        badge.textContent = '🔴 Atualização Pausada';
+        return;
+    }
+    
+    // Verifica se está no mês atual ou em mês consolidado
+    const hoje = new Date();
+    const mesAtualSistema = hoje.getMonth() + 1;
+    const anoAtualSistema = hoje.getFullYear();
+    const ehMesAtual = (mesAtual === mesAtualSistema && anoAtual === anoAtualSistema);
+    
+    if (ehMesAtual) {
         badge.className = 'badge bg-success status-ativo';
         badge.textContent = '🟢 Atualizando a cada 10min';
     } else {
-        badge.className = 'badge bg-danger';
-        badge.textContent = '🔴 Atualização Pausada';
+        badge.className = 'badge bg-info';
+        badge.textContent = '📊 Mês Consolidado (não atualiza)';
     }
 }
 
