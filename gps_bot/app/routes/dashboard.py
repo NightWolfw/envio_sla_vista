@@ -7,7 +7,7 @@ from app.models.dashboard import (
     buscar_resumo_tarefas, buscar_tarefas_por_dia_mes,
     buscar_heatmap_realizacao, buscar_heatmap_por_dia, buscar_top_executores,
     buscar_top_locais, buscar_distribuicao_status,
-    buscar_opcoes_filtros
+    buscar_opcoes_filtros, buscar_supervisores_por_gerente
 )
 from datetime import datetime, timedelta
 import calendar
@@ -282,6 +282,32 @@ def api_heatmap_dias():
             'data': dados,
             'mes': mes,
             'ano': ano
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/api/supervisores-por-gerente')
+def api_supervisores_por_gerente():
+    """
+    API: Retorna supervisores filtrados por gerente
+    GET /dashboard/api/supervisores-por-gerente?gerente=NOME
+    """
+    try:
+        gerente = request.args.get('gerente', '')
+        
+        if not gerente:
+            return jsonify({
+                'success': False,
+                'error': 'Gerente não informado'
+            }), 400
+        
+        supervisores = buscar_supervisores_por_gerente(gerente)
+        
+        return jsonify({
+            'success': True,
+            'data': supervisores
         })
     
     except Exception as e:
