@@ -612,14 +612,14 @@ def buscar_heatmap_por_dia(filtros, mes, ano):
         SELECT 
             e.crno as cr,
             e.nivel_03 as contrato,
-            DAY(t.disponibilizacao) as dia,
+            EXTRACT(DAY FROM t.disponibilizacao) as dia,
             SUM(CASE WHEN t.status = 85 AND t.expirada = FALSE THEN 1 ELSE 0 END) as finalizadas,
             COUNT(*) as total
         FROM dbo.tarefa t
         INNER JOIN dw_vista.dm_estrutura e ON t.estruturaid = e.id_estrutura
         {join_cr}
         WHERE {where_sql}
-        GROUP BY e.crno, e.nivel_03, DAY(t.disponibilizacao)
+        GROUP BY e.crno, e.nivel_03, EXTRACT(DAY FROM t.disponibilizacao)
         HAVING COUNT(*) > 0
         ORDER BY e.crno, e.nivel_03
     """
