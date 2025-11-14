@@ -28,12 +28,14 @@ def create_app():
     from app.routes.mensagens import bp as mensagens_bp
     from app.routes.envio import bp as envio_bp
     from app.routes.sla import bp as sla_bp
+    from app.routes.dashboard import bp as dashboard_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(grupos_bp)
     app.register_blueprint(mensagens_bp)
     app.register_blueprint(envio_bp)
     app.register_blueprint(sla_bp)
+    app.register_blueprint(dashboard_bp)
 
     # ✅ CORREÇÃO: Só inicia scheduler no processo principal (não no reloader)
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
