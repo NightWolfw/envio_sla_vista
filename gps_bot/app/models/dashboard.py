@@ -630,7 +630,8 @@ def buscar_heatmap_por_dia(filtros, mes, ano):
     # Agrupa por CR/Contrato
     dados_agrupados = {}
     for row in resultados:
-        cr, contrato, dia, finalizadas, total = row
+        cr, contrato, dia_raw, finalizadas, total = row
+        dia = int(dia_raw)  # Converte EXTRACT para int
         chave = f"{cr}|{contrato}"
         
         if chave not in dados_agrupados:
