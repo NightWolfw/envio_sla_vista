@@ -58,6 +58,57 @@
         </div>
     </div>
 
+    <!-- Dashboard SLA - Cards Clicáveis -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3"><i class="bi bi-speedometer2"></i> Dashboard SLA - Mês Atual</h4>
+        </div>
+        <div class="col-md-3 mb-3">
+            <a href="/dashboard/" class="text-decoration-none">
+                <div class="card hover-card shadow-sm border-info">
+                    <div class="card-body text-center">
+                        <i class="bi bi-clock-history" style="font-size: 3rem; color: #17a2b8;"></i>
+                        <h3 class="mt-2 mb-0" id="homeEmAberto">--</h3>
+                        <p class="text-muted mb-0">Em Aberto</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 mb-3">
+            <a href="/dashboard/" class="text-decoration-none">
+                <div class="card hover-card shadow-sm border-warning">
+                    <div class="card-body text-center">
+                        <i class="bi bi-hourglass-split" style="font-size: 3rem; color: #ffc107;"></i>
+                        <h3 class="mt-2 mb-0" id="homeIniciadas">--</h3>
+                        <p class="text-muted mb-0">Iniciadas</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 mb-3">
+            <a href="/dashboard/" class="text-decoration-none">
+                <div class="card hover-card shadow-sm border-success">
+                    <div class="card-body text-center">
+                        <i class="bi bi-check-circle" style="font-size: 3rem; color: #28a745;"></i>
+                        <h3 class="mt-2 mb-0" id="homeFinalizadas">--</h3>
+                        <p class="text-muted mb-0">Finalizadas</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 mb-3">
+            <a href="/dashboard/" class="text-decoration-none">
+                <div class="card hover-card shadow-sm border-danger">
+                    <div class="card-body text-center">
+                        <i class="bi bi-x-circle" style="font-size: 3rem; color: #dc3545;"></i>
+                        <h3 class="mt-2 mb-0" id="homeNaoRealizadas">--</h3>
+                        <p class="text-muted mb-0">Não Realizadas</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
     <!-- Estatísticas -->
     <div class="row mt-4">
         <div class="col-12">
@@ -85,4 +136,28 @@
         </div>
     </div>
 </div>
+
+<script>
+// Carrega dados SLA para a home
+document.addEventListener('DOMContentLoaded', function() {
+    const hoje = new Date();
+    const mes = hoje.getMonth() + 1;
+    const ano = hoje.getFullYear();
+    
+    fetch(`/dashboard/api/resumo?mes=${mes}&ano=${ano}`)
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                const data = result.data;
+                document.getElementById('homeEmAberto').textContent = data.em_aberto.toLocaleString('pt-BR');
+                document.getElementById('homeIniciadas').textContent = data.iniciadas.toLocaleString('pt-BR');
+                document.getElementById('homeFinalizadas').textContent = data.finalizadas.toLocaleString('pt-BR');
+                document.getElementById('homeNaoRealizadas').textContent = data.nao_realizadas.toLocaleString('pt-BR');
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar dados SLA:', error);
+        });
+});
+</script>
 {% endblock %}

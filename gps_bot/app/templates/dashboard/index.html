@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard SLA{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-speedometer2"></i> DASHBOARD SLA EM TEMPO REAL</h2>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-success status-ativo" id="badgeStatus">
+                    🟢 Atualizando a cada 2min
+                </span>
+                <small class="text-muted" id="timestampUltima">
+                    Última atualização: --
+                </small>
+            </div>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <!-- Dropdown de Controles -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="btnControles" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-gear"></i> Controles
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <button class="dropdown-item" id="btnPausar">
+                            <i class="bi bi-pause-circle"></i> ⏸️ Pausar Atualização
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" id="btnDespausar" style="display: none;">
+                            <i class="bi bi-play-circle"></i> ▶️ Retomar Atualização
+                        </button>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <button class="dropdown-item" id="btnForcarAtualizacao">
+                            <i class="bi bi-arrow-clockwise"></i> 🔄 Forçar Atualização
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            
+            <button class="btn btn-outline-primary btn-sm" id="btnFiltros">
+                <i class="bi bi-funnel"></i> Filtros
+            </button>
+            <select class="form-select form-select-sm" id="selectMes" style="width: auto;">
+                <!-- Preenchido via JS -->
+            </select>
+        </div>
+    </div>
+
+    <!-- Painel de Filtros (Colapsável) -->
+    <div class="card mb-4" id="panelFiltros" style="display: none;">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="bi bi-funnel"></i> Filtros Avançados</h6>
+        </div>
+        <div class="card-body">
+            <form id="formFiltros">
+                <div class="row g-2">
+                    <div class="col-md-2">
+                        <label class="form-label-sm">CR</label>
+                        <input type="text" class="form-control form-control-sm" name="cr" placeholder="Ex: 12345">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label-sm">Cliente</label>
+                        <select class="form-select form-select-sm" name="cliente">
+                            <option value="">Todos</option>
+                            {% for cliente in filtros_valores.clientes %}
+                            <option value="{{ cliente }}">{{ cliente }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label-sm">Diretor Executivo</label>
+                        <select class="form-select form-select-sm" name="diretor_executivo">
+                            <option value="">Todos</option>
+                            {% for dir in filtros_valores.diretores_executivos %}
+                            <option value="{{ dir }}">{{ dir }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label-sm">Diretor Regional</label>
+                        <select class="form-select form-select-sm" name="diretor_regional">
+                            <option value="">Todos</option>
+                            {% for dir in filtros_valores.diretores_regionais %}
+                            <option value="{{ dir }}">{{ dir }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label-sm">Gerente Regional</label>
+                        <select class="form-select form-select-sm" name="gerente_regional">
+                            <option value="">Todos</option>
+                            {% for ger in filtros_valores.gerentes_regionais %}
+                            <option value="{{ ger }}">{{ ger }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label-sm">Gerente</label>
+                        <select class="form-select form-select-sm" name="gerente">
+                            <option value="">Todos</option>
+                            {% for ger in filtros_valores.gerentes %}
+                            <option value="{{ ger }}">{{ ger }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label-sm">Supervisor</label>
+                        <select class="form-select form-select-sm" name="supervisor">
+                            <option value="">Todos</option>
+                            {% for sup in filtros_valores.supervisores %}
+                            <option value="{{ sup }}">{{ sup }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label-sm">PEC 01</label>
+                        <select class="form-select form-select-sm" name="pec_01">
+                            <option value="">Todos</option>
+                            {% for pec in filtros_valores.pec_01 %}
+                            <option value="{{ pec }}">{{ pec }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label-sm">PEC 02</label>
+                        <select class="form-select form-select-sm" name="pec_02">
+                            <option value="">Todos</option>
+                            {% for pec in filtros_valores.pec_02 %}
+                            <option value="{{ pec }}">{{ pec }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-primary btn-sm w-100" onclick="aplicarFiltros()">
+                            <i class="bi bi-check"></i> Aplicar
+                        </button>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-secondary btn-sm w-100" onclick="limparFiltros()">
+                            <i class="bi bi-x"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-info shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-clock-history" style="font-size: 2rem; color: #17a2b8;"></i>
+                    <h3 class="mt-2 mb-0" id="cardEmAberto">--</h3>
+                    <p class="text-muted mb-0">Em Aberto</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-hourglass-split" style="font-size: 2rem; color: #ffc107;"></i>
+                    <h3 class="mt-2 mb-0" id="cardIniciadas">--</h3>
+                    <p class="text-muted mb-0">Iniciadas</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-check-circle" style="font-size: 2rem; color: #28a745;"></i>
+                    <h3 class="mt-2 mb-0" id="cardFinalizadas">--</h3>
+                    <p class="text-muted mb-0">Finalizadas</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-x-circle" style="font-size: 2rem; color: #dc3545;"></i>
+                    <h3 class="mt-2 mb-0" id="cardNaoRealizadas">--</h3>
+                    <p class="text-muted mb-0">Não Realizadas</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos Linha 1 -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="bi bi-bar-chart"></i> Tarefas por Dia do Mês</h6>
+                </div>
+                <div class="card-body">
+                    <div id="chartColunas"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="bi bi-pie-chart"></i> Distribuição por Status</h6>
+                </div>
+                <div class="card-body">
+                    <div id="chartPizza"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Heatmap -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="bi bi-grid-3x3-gap"></i> Heatmap de Realização por CR</h6>
+                </div>
+                <div class="card-body">
+                    <div id="heatmapContainer" class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>CR</th>
+                                    <th>Contrato</th>
+                                    <th>Finalizadas</th>
+                                    <th>Total</th>
+                                    <th>% Realização</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="heatmapBody">
+                                <tr>
+                                    <td colspan="6" class="text-center">Carregando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP Executores e Locais -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-person-check"></i> TOP Executores</h6>
+                    <select class="form-select form-select-sm" id="selectLimitExecutores" style="width: auto;">
+                        <option value="5">TOP 5</option>
+                        <option value="10" selected>TOP 10</option>
+                        <option value="20">TOP 20</option>
+                        <option value="0">Todos</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <div id="chartExecutores"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-geo-alt"></i> TOP Locais</h6>
+                    <select class="form-select form-select-sm" id="selectLimitLocais" style="width: auto;">
+                        <option value="5">TOP 5</option>
+                        <option value="10" selected>TOP 10</option>
+                        <option value="20">TOP 20</option>
+                        <option value="0">Todos</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <div id="chartLocais"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+        <div class="spinner-border text-light" style="width: 3rem; height: 3rem;"></div>
+        <p class="text-light mt-2">Carregando...</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- ApexCharts CDN -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<!-- Dashboard JS -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
+
