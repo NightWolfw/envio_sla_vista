@@ -11,7 +11,10 @@
         text-align: center;
         vertical-align: middle;
         min-width: 40px;
-        background-color: #f8f9fa !important;
+        background-color: #495057 !important;
+        color: #fff !important;
+        font-weight: bold;
+        border: 2px solid #dee2e6 !important;
         position: sticky;
         top: 0;
         z-index: 10;
@@ -20,7 +23,8 @@
     .heatmap-table thead th:nth-child(2) {
         min-width: 80px;
         position: sticky;
-        background-color: #f8f9fa !important;
+        background-color: #495057 !important;
+        color: #fff !important;
     }
     .heatmap-table thead th:first-child {
         left: 0;
@@ -38,15 +42,21 @@
     .heatmap-table tbody td:first-child {
         position: sticky;
         left: 0;
-        background-color: #fff;
+        background-color: #fff !important;
         z-index: 5;
         font-weight: bold;
+        border-right: 2px solid #dee2e6;
     }
     .heatmap-table tbody td:nth-child(2) {
         position: sticky;
         left: 80px;
-        background-color: #fff;
+        background-color: #fff !important;
         z-index: 5;
+        border-right: 2px solid #dee2e6;
+    }
+    .heatmap-table tbody tr:hover td:first-child,
+    .heatmap-table tbody tr:hover td:nth-child(2) {
+        background-color: #f8f9fa !important;
     }
     .heatmap-table tbody tr:hover {
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -54,6 +64,29 @@
     .heatmap-table tbody tr.selected {
         background-color: #fff3cd !important;
         outline: 2px solid #ffc107;
+    }
+    .heatmap-table tbody tr.selected td:first-child,
+    .heatmap-table tbody tr.selected td:nth-child(2) {
+        background-color: #fff3cd !important;
+    }
+    
+    /* Select2 customizado para combinar com Bootstrap */
+    .select2-container--default .select2-selection--single {
+        height: 31px !important;
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.875rem !important;
+        border: 1px solid #ced4da !important;
+        border-radius: 0.25rem !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 31px !important;
+        padding-left: 0 !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 29px !important;
+    }
+    .select2-container {
+        width: 100% !important;
     }
 </style>
 {% endblock %}
@@ -349,6 +382,11 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- jQuery (necessário para Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Select2 CDN -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <!-- ApexCharts CDN -->
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <!-- Dashboard JS -->

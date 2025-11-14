@@ -709,3 +709,24 @@ def buscar_opcoes_filtros():
     
     return filtros
 
+
+def buscar_supervisores_por_gerente(gerente):
+    """
+    Retorna lista de supervisores filtrados por gerente
+    """
+    conn = get_db_vista()
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT DISTINCT supervisor 
+        FROM dw_vista.dm_cr 
+        WHERE gerente = %s AND supervisor IS NOT NULL 
+        ORDER BY supervisor
+    """, [gerente])
+    
+    supervisores = [row[0] for row in cur.fetchall()]
+    
+    cur.close()
+    conn.close()
+    
+    return supervisores

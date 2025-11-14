@@ -38,6 +38,7 @@ let debounceTimer = null;
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     inicializarSelectMes();
+    inicializarSelect2();
     inicializarEventos();
     carregarDashboard();
     iniciarAutoRefresh();
@@ -90,6 +91,79 @@ function obterUltimos6Meses() {
 }
 
 /**
+ * Inicializa Select2 nos filtros (com pesquisa)
+ */
+function inicializarSelect2() {
+    // Aplica Select2 em todos os selects do formulário de filtros, exceto o diretor executivo (desabilitado)
+    $('#formFiltros select:not([disabled])').select2({
+        placeholder: 'Selecione...',
+        allowClear: true,
+        language: {
+            noResults: function() {
+                return "Nenhum resultado encontrado";
+            },
+            searching: function() {
+                return "Buscando...";
+            }
+        }
+    });
+    
+    // Reaplica filtros quando select2 mudar
+    $('#formFiltros select:not([disabled])').on('select2:select select2:clear', function() {
+        aplicarFiltrosDebounced();
+    });
+    
+    // Filtro em cascata: Gerente → Supervisores
+    $('select[name="gerente"]').on('select2:select', function() {
+        const gerente = $(this).val();
+        if (gerente) {
+            carregarSupervisoresPorGerente(gerente);
+        }
+    });
+    
+    $('select[name="gerente"]').on('select2:clear', function() {
+        // Reseta o select de supervisores para todos
+        resetarSelectSupervisor();
+    });
+}
+
+/**
+ * Carrega supervisores filtrados por gerente
+ */
+async function carregarSupervisoresPorGerente(gerente) {
+    try {
+        const response = await fetch(`/dashboard/api/supervisores-por-gerente?gerente=${encodeURIComponent(gerente)}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const selectSupervisor = $('select[name="supervisor"]');
+            
+            // Limpa opções atuais (mantém a primeira opção vazia)
+            selectSupervisor.empty().append('<option value="">Todos</option>');
+            
+            // Adiciona supervisores filtrados
+            result.data.forEach(supervisor => {
+                selectSupervisor.append(new Option(supervisor, supervisor, false, false));
+            });
+            
+            // Atualiza o Select2
+            selectSupervisor.trigger('change');
+        }
+    } catch (error) {
+        console.error('Erro ao carregar supervisores:', error);
+    }
+}
+
+/**
+ * Reseta o select de supervisores para todos os valores originais
+ */
+function resetarSelectSupervisor() {
+    // Recarrega a página para restaurar todos os valores originais
+    // Alternativa: manter os valores originais em cache e restaurá-los
+    location.reload();
+}
+
+/**
  * Inicializa eventos
  */
 function inicializarEventos() {
@@ -125,8 +199,8 @@ function inicializarEventos() {
     // Event listeners para filtros com debounce
     const formFiltros = document.getElementById('formFiltros');
     if (formFiltros) {
-        // Adiciona debounce em todos inputs e selects
-        const inputs = formFiltros.querySelectorAll('input, select');
+        // Adiciona debounce em todos inputs e selects, EXCETO o campo CR
+        const inputs = formFiltros.querySelectorAll('input:not([name="cr"]), select');
         inputs.forEach(input => {
             input.addEventListener('input', aplicarFiltrosDebounced);
             input.addEventListener('change', aplicarFiltrosDebounced);
@@ -151,9 +225,14 @@ const aplicarFiltrosDebounced = debounce(function() {
     const form = document.getElementById('formFiltros');
     const formData = new FormData(form);
     
-    filtrosAtivos = {};
+    // Inicia com o filtro fixo do diretor executivo
+    filtrosAtivos = {
+        'diretor_executivo': 'MARCOS NASCIMENTO PEDREIRA'
+    };
+    
+    // Adiciona os demais filtros do formulário
     for (let [key, value] of formData.entries()) {
-        if (value) {
+        if (value && key !== 'diretor_executivo') {  // Ignora diretor_executivo do form pois já está fixo
             filtrosAtivos[key] = value;
         }
     }
@@ -173,9 +252,14 @@ function aplicarFiltros() {
     const form = document.getElementById('formFiltros');
     const formData = new FormData(form);
     
-    filtrosAtivos = {};
+    // Inicia com o filtro fixo do diretor executivo
+    filtrosAtivos = {
+        'diretor_executivo': 'MARCOS NASCIMENTO PEDREIRA'
+    };
+    
+    // Adiciona os demais filtros do formulário
     for (let [key, value] of formData.entries()) {
-        if (value) {
+        if (value && key !== 'diretor_executivo') {  // Ignora diretor_executivo do form pois já está fixo
             filtrosAtivos[key] = value;
         }
     }
@@ -194,7 +278,11 @@ function aplicarFiltros() {
  */
 function limparFiltros() {
     document.getElementById('formFiltros').reset();
-    filtrosAtivos = {};
+    
+    // Mantém apenas o filtro fixo do diretor executivo
+    filtrosAtivos = {
+        'diretor_executivo': 'MARCOS NASCIMENTO PEDREIRA'
+    };
     
     // Limpa filtro cross também
     filtroCross = null;
@@ -497,17 +585,28 @@ async function carregarChartColunas() {
     if (result.success) {
         const data = result.data;
         
+        // Filtra apenas até hoje se for mês atual
+        const hoje = new Date();
+        const ehMesAtual = (anoAtual === hoje.getFullYear() && mesAtual === (hoje.getMonth() + 1));
+        
+        const dataFiltrada = ehMesAtual 
+            ? data.filter(item => {
+                const dia = parseInt(item.dia.split('-')[2]);
+                return dia <= hoje.getDate();
+              })
+            : data;
+        
         // Prepara categorias (dias do mês)
         // Extrai o dia diretamente da string 'YYYY-MM-DD'
-        const categorias = data.map(item => {
+        const categorias = dataFiltrada.map(item => {
             return parseInt(item.dia.split('-')[2]);
         });
         
         // Prepara dados por série
-        const finalizadas = data.map(item => item.finalizadas);
-        const naoRealizadas = data.map(item => item.nao_realizadas);
-        const emAberto = data.map(item => item.em_aberto);
-        const iniciadas = data.map(item => item.iniciadas);
+        const finalizadas = dataFiltrada.map(item => item.finalizadas);
+        const naoRealizadas = dataFiltrada.map(item => item.nao_realizadas);
+        const emAberto = dataFiltrada.map(item => item.em_aberto);
+        const iniciadas = dataFiltrada.map(item => item.iniciadas);
         
         // Destroi gráfico anterior se existir
         if (charts.colunas) {
@@ -659,8 +758,15 @@ async function carregarHeatmap() {
         const mes = result.mes;
         const ano = result.ano;
         
-        // Calcula quantos dias tem o mês
-        const ultimoDia = new Date(ano, mes, 0).getDate();
+        // Calcula quantos dias mostrar (até hoje se for mês atual)
+        const hoje = new Date();
+        const ultimoDiaMes = new Date(ano, mes, 0).getDate();
+        let ultimoDia = ultimoDiaMes;
+        
+        // Se é o mês atual, mostrar só até hoje
+        if (ano === hoje.getFullYear() && mes === (hoje.getMonth() + 1)) {
+            ultimoDia = Math.min(hoje.getDate(), ultimoDiaMes);
+        }
         
         // Monta cabeçalho da tabela
         let headerHtml = '<tr><th>CR</th><th>Contrato</th>';
