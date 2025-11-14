@@ -12,13 +12,16 @@ let charts = {
 
 let mesAtual = new Date().getMonth() + 1;
 let anoAtual = new Date().getFullYear();
-let filtrosAtivos = {};
+// Filtro fixo: apenas dados do diretor executivo MARCOS NASCIMENTO PEDREIRA
+let filtrosAtivos = {
+    'diretor_executivo': 'MARCOS NASCIMENTO PEDREIRA'
+};
 
 // Variáveis de auto-refresh
 let autoRefreshInterval = null;
 let autoRefreshEnabled = true;
 let ultimaAtualizacao = null;
-const INTERVALO_ATUALIZACAO = 120000; // 2 minutos em ms
+const INTERVALO_ATUALIZACAO = 600000; // 10 minutos em ms
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
@@ -256,7 +259,7 @@ function atualizarBadgeStatus() {
     
     if (autoRefreshEnabled) {
         badge.className = 'badge bg-success status-ativo';
-        badge.textContent = '🟢 Atualizando a cada 2min';
+        badge.textContent = '🟢 Atualizando a cada 10min';
     } else {
         badge.className = 'badge bg-danger';
         badge.textContent = '🔴 Atualização Pausada';

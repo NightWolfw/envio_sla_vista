@@ -10,7 +10,7 @@
             <h2><i class="bi bi-speedometer2"></i> DASHBOARD SLA EM TEMPO REAL</h2>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-success status-ativo" id="badgeStatus">
-                    🟢 Atualizando a cada 2min
+                    🟢 Atualizando a cada 10min
                 </span>
                 <small class="text-muted" id="timestampUltima">
                     Última atualização: --
@@ -74,13 +74,11 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label-sm">Diretor Executivo</label>
-                        <select class="form-select form-select-sm" name="diretor_executivo">
-                            <option value="">Todos</option>
-                            {% for dir in filtros_valores.diretores_executivos %}
-                            <option value="{{ dir }}">{{ dir }}</option>
-                            {% endfor %}
+                        <label class="form-label-sm">Diretor Executivo <span class="badge bg-info" title="Filtro fixo">🔒</span></label>
+                        <select class="form-select form-select-sm" name="diretor_executivo" disabled>
+                            <option value="MARCOS NASCIMENTO PEDREIRA" selected>MARCOS NASCIMENTO PEDREIRA</option>
                         </select>
+                        <small class="text-muted">Filtro fixo aplicado</small>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label-sm">Diretor Regional</label>
