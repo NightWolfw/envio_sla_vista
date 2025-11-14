@@ -498,9 +498,9 @@ async function carregarChartColunas() {
         const data = result.data;
         
         // Prepara categorias (dias do mês)
+        // Extrai o dia diretamente da string 'YYYY-MM-DD'
         const categorias = data.map(item => {
-            const date = new Date(item.dia);
-            return date.getDate();
+            return parseInt(item.dia.split('-')[2]);
         });
         
         // Prepara dados por série
@@ -642,11 +642,19 @@ async function carregarChartPizza() {
  */
 async function carregarHeatmap() {
     const queryString = montarQueryString();
+    const tbody = document.getElementById('heatmapBody');
+    const thead = document.getElementById('heatmapHead');
     
-    const response = await fetch(`/dashboard/api/heatmap-dias?${queryString}`);
-    const result = await response.json();
-    
-    if (result.success) {
+    try {
+        const response = await fetch(`/dashboard/api/heatmap-dias?${queryString}`);
+        const result = await response.json();
+        
+        if (!result.success) {
+            console.error('Erro ao carregar heatmap:', result.error);
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Erro ao carregar dados: ' + (result.error || 'Erro desconhecido') + '</td></tr>';
+            return;
+        }
+        
         const data = result.data;
         const mes = result.mes;
         const ano = result.ano;
@@ -655,7 +663,6 @@ async function carregarHeatmap() {
         const ultimoDia = new Date(ano, mes, 0).getDate();
         
         // Monta cabeçalho da tabela
-        const thead = document.getElementById('heatmapHead');
         let headerHtml = '<tr><th>CR</th><th>Contrato</th>';
         for (let dia = 1; dia <= ultimoDia; dia++) {
             headerHtml += `<th>${dia}</th>`;
@@ -664,7 +671,6 @@ async function carregarHeatmap() {
         thead.innerHTML = headerHtml;
         
         // Monta corpo da tabela
-        const tbody = document.getElementById('heatmapBody');
         tbody.innerHTML = '';
         
         if (data.length === 0) {
@@ -743,6 +749,9 @@ async function carregarHeatmap() {
             
             tbody.appendChild(tr);
         });
+    } catch (error) {
+        console.error('Erro ao carregar heatmap:', error);
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Erro ao carregar heatmap. Verifique o console para mais detalhes.</td></tr>';
     }
 }
 
