@@ -1,21 +1,20 @@
 """
 Service para integração com Evolution API WhatsApp
 """
-import requests
 import base64
-from flask import current_app
 import logging
+from typing import Any, Dict
+
+import requests
+
+from gps_bot import config as project_config
 
 logger = logging.getLogger(__name__)
 
 
-def get_evolution_config():
+def get_evolution_config() -> Dict[str, Any]:
     """Retorna configuração da Evolution API"""
-    return {
-        'base_url': current_app.config['EVOLUTION_CONFIG']['base_url'],
-        'api_key': current_app.config['EVOLUTION_CONFIG']['api_key'],
-        'instance_name': current_app.config['EVOLUTION_CONFIG']['instance_name']
-    }
+    return project_config.EVOLUTION_CONFIG.copy()
 
 
 def enviar_mensagem_texto(group_id, mensagem):

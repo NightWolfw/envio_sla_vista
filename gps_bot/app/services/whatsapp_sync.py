@@ -1,14 +1,18 @@
-import requests
 import time
-from app.models.database import get_db_site
-from config import EVOLUTION_CONFIG
-from app.services.estrutura import atualizar_grupo_especifico
+from typing import Any, Dict, List
 
-def buscar_grupos_api():
+import requests
+
+from app.models.database import get_db_site
+from app.services.estrutura import atualizar_grupo_especifico
+from gps_bot import config as project_config
+
+def buscar_grupos_api() -> list[Dict[str, Any]]:
     """Busca todos os grupos da Evolution API com retry"""
-    instance = EVOLUTION_CONFIG['instance_name']
-    base_url = EVOLUTION_CONFIG['base_url']
-    api_key = EVOLUTION_CONFIG['api_key']
+    evolution_config = project_config.EVOLUTION_CONFIG
+    instance = evolution_config['instance_name']
+    base_url = evolution_config['base_url']
+    api_key = evolution_config['api_key']
     
     url = f"{base_url}/group/fetchAllGroups/{instance}"
     headers = {"apikey": api_key}
@@ -39,7 +43,7 @@ def buscar_grupos_api():
             else:
                 raise
 
-def comparar_grupos_novos():
+def comparar_grupos_novos() -> List[Dict[str, Any]]:
     """Compara grupos da API com banco e retorna grupos novos"""
     grupos_api = buscar_grupos_api()
     
@@ -63,7 +67,7 @@ def comparar_grupos_novos():
     
     return grupos_novos
 
-def inserir_grupos_novos(grupos_com_cr):
+def inserir_grupos_novos(grupos_com_cr: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Insere novos grupos no banco com os CRs informados (ou vazio)"""
     conn = get_db_site()
     cur = conn.cursor()
