@@ -1,9 +1,20 @@
-import psycopg2
+from __future__ import annotations
+
 import time
-from flask import current_app
+from typing import Any, Mapping
+
+import psycopg2
+from psycopg2.extensions import connection
+
+from gps_bot import config as project_config
 
 
-def conectar_com_retry(config, max_tentativas=5, delay_inicial=2, db_nome="Vista"):
+def conectar_com_retry(
+    config: Mapping[str, Any],
+    max_tentativas: int = 5,
+    delay_inicial: int = 2,
+    db_nome: str = "Vista",
+) -> connection:
     """
     Tenta conectar ao banco com retry automático
     
@@ -54,13 +65,23 @@ def conectar_com_retry(config, max_tentativas=5, delay_inicial=2, db_nome="Vista
     raise Exception(f"Não foi possível conectar ao banco {db_nome} após {max_tentativas} tentativas. Último erro: {str(ultima_exception)}")
 
 
-def get_db_vista():
+def get_db_vista() -> connection:
     """Retorna conexão com PostgreSQL (Vista - dw_gps) com retry automático"""
-    config = current_app.config['DB_CONFIG']
-    return conectar_com_retry(config, max_tentativas=5, delay_inicial=2, db_nome="Vista")
+    config: Mapping[str, Any] = project_config.DB_CONFIG
+    return conectar_com_retry(
+        config,
+        max_tentativas=5,
+        delay_inicial=2,
+        db_nome="Vista",
+    )
 
 
-def get_db_site():
+def get_db_site() -> connection:
     """Retorna conexão com PostgreSQL (Site - dw_sla) com retry automático"""
-    config = current_app.config['DB_SITE_CONFIG']
-    return conectar_com_retry(config, max_tentativas=5, delay_inicial=2, db_nome="Site")
+    config: Mapping[str, Any] = project_config.DB_SITE_CONFIG
+    return conectar_com_retry(
+        config,
+        max_tentativas=5,
+        delay_inicial=2,
+        db_nome="Site",
+    )

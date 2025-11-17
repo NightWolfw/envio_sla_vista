@@ -1,0 +1,24 @@
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_ignores = true
+show_error_codes = true
+pretty = true
+cache_dir = ".mypy_cache"
+sqlite_cache = true
+namespace_packages = true
+explicit_package_bases = true
+ignore_missing_imports = true
+exclude = [
+    "gps_bot/venv",
+    "gps_bot/__pycache__",
+    "gps_bot/app/static",
+    "gps_bot/app/templates",
+    "gps_bot/logs",
+    "gps_bot/migrations",
+    "gps_bot/scheduler",
+]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false

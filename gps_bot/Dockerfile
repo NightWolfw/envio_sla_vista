@@ -38,5 +38,5 @@ COPY . .
 # Expõe porta do Flask
 EXPOSE 5000
 
-# Comando para rodar a aplicação
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "run:app"]
+# Comando para rodar a aplicação FastAPI
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "5000"]

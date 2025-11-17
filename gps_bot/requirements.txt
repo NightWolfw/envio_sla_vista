@@ -2,6 +2,8 @@
 Flask==3.0.0
 Werkzeug==3.0.1
 Flask-Caching==2.1.0
+fastapi==0.115.2
+uvicorn[standard]==0.30.1
 
 # Servidor WSGI para produção
 gunicorn==21.2.0
@@ -26,3 +28,6 @@ pytz==2023.3
 
 # Geração de PDF
 reportlab==4.0.7
+
+# Static typing
+mypy==1.11.2
