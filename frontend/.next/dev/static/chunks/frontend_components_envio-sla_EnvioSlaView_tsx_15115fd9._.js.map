@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Bots/Git/envio_sla_vista/frontend/components/envio-sla/EnvioSlaView.tsx"],"sourcesContent":["\"use client\";\n\nexport default function EnvioSlaView() {\n  return (\n    <div className=\"rounded-2xl border border-border bg-surface/70 p-6 text-sm text-textMuted\">\n      Carregando módulo de Envios SLA...\n    </div>\n  );\n}\n"],"names":[],"mappings":";;;;;AAAA;;AAEe,SAAS;IACtB,qBACE,yMAAC;QAAI,WAAU;kBAA4E;;;;;;AAI/F;KANwB"}}]
+}

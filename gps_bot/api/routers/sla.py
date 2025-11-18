@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from api.schemas.sla import SLAPreview, SLAPreviewRequest
+from api.schemas.sla import SLAPreview, SLAPreviewRequest, SLATemplate
 from app.models.grupo import obter_grupo
+from app.models.sla_template import get_sla_templates, update_sla_templates
 from app.services.mensagem_agendamento import (
     calcular_datas_consulta,
     formatar_mensagem_programadas,
@@ -59,4 +60,22 @@ def preview_mensagem(grupo_id: int, payload: SLAPreviewRequest) -> SLAPreview:
         tipo_envio=payload.tipo_envio,
         stats=stats,
         mensagem=mensagem,
+    )
+
+
+@router.get("/template", response_model=SLATemplate)
+def obter_template_sla() -> SLATemplate:
+    templates = get_sla_templates()
+    return SLATemplate(
+        resultados=templates.get("resultados", ""),
+        programadas=templates.get("programadas", ""),
+    )
+
+
+@router.put("/template", response_model=SLATemplate)
+def atualizar_template_sla(payload: SLATemplate) -> SLATemplate:
+    templates = update_sla_templates(payload.resultados, payload.programadas)
+    return SLATemplate(
+        resultados=templates.get("resultados", ""),
+        programadas=templates.get("programadas", ""),
     )

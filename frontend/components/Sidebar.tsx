@@ -7,10 +7,8 @@ const navItems = [
   { href: "/", label: "Visão Geral" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/grupos", label: "Grupos" },
-  { href: "/agendamentos", label: "Agendamentos" },
-  { href: "/mensagens", label: "Mensagens" },
-  { href: "/sla", label: "SLA / Preview" },
-  { href: "/envio", label: "Envio Manual" }
+  { href: "/envio-sla", label: "Envio SLA" },
+  { href: "/envio-whats", label: "Envio Whats" }
 ];
 
 export default function Sidebar() {

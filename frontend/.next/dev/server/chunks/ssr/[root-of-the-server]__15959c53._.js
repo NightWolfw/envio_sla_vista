@@ -49,10 +49,22 @@ __turbopack_context__.n(__TURBOPACK__imported__module__$5b$project$5d2f$frontend
 "use strict";
 
 __turbopack_context__.s([
+    "cloneAgendamento",
+    ()=>cloneAgendamento,
+    "createAgendamento",
+    ()=>createAgendamento,
+    "deleteAgendamento",
+    ()=>deleteAgendamento,
     "deleteGroups",
     ()=>deleteGroups,
+    "fetchSlaTemplate",
+    ()=>fetchSlaTemplate,
+    "getAgendamentoLogs",
+    ()=>getAgendamentoLogs,
     "getAgendamentos",
     ()=>getAgendamentos,
+    "getAgendamentosPaged",
+    ()=>getAgendamentosPaged,
     "getAllEvolutionGroups",
     ()=>getAllEvolutionGroups,
     "getDashboardPizza",
@@ -79,8 +91,16 @@ __turbopack_context__.s([
     ()=>getStats,
     "importEvolutionGroups",
     ()=>importEvolutionGroups,
+    "pauseAgendamento",
+    ()=>pauseAgendamento,
+    "resumeAgendamento",
+    ()=>resumeAgendamento,
     "syncGroupStructure",
-    ()=>syncGroupStructure
+    ()=>syncGroupStructure,
+    "updateAgendamento",
+    ()=>updateAgendamento,
+    "updateSlaTemplate",
+    ()=>updateSlaTemplate
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/lib/client.ts [app-rsc] (ecmascript)");
 ;
@@ -132,8 +152,47 @@ async function getGrupos() {
 async function getGrupoFiltros() {
     return apiFetch("/grupos/filtros/meta");
 }
-async function getAgendamentos() {
-    return apiFetch("/agendamentos");
+function buildQuery(params) {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value])=>{
+        if (value === undefined || value === null || value === "") return;
+        query.set(key, String(value));
+    });
+    const text = query.toString();
+    return text ? `?${text}` : "";
+}
+async function getAgendamentos(filters) {
+    const response = await getAgendamentosPaged(filters);
+    return response.items;
+}
+async function getAgendamentosPaged(filters) {
+    const query = buildQuery(filters ?? {});
+    return apiFetch(`/agendamentos${query}`);
+}
+async function createAgendamento(payload) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].post("/agendamentos", payload);
+}
+async function updateAgendamento(id, payload) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].put(`/agendamentos/${id}`, payload);
+}
+async function deleteAgendamento(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].delete(`/agendamentos/${id}`);
+}
+async function cloneAgendamento(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/clone`);
+}
+async function pauseAgendamento(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/pause`);
+}
+async function resumeAgendamento(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/resume`);
+}
+async function getAgendamentoLogs(agendamentoId, page = 1, pageSize = 10) {
+    const query = buildQuery({
+        page,
+        page_size: pageSize
+    });
+    return apiFetch(`/agendamentos/${agendamentoId}/logs${query}`);
 }
 async function getMensagens(params) {
     const suffix = params ? `?${params}` : "";
@@ -144,6 +203,12 @@ async function getSlaPreview(grupoId, payload) {
         method: "POST",
         body: JSON.stringify(payload)
     });
+}
+async function fetchSlaTemplate() {
+    return apiFetch("/sla/template");
+}
+async function updateSlaTemplate(payload) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].put("/sla/template", payload);
 }
 async function getEnvioGrupos() {
     return apiFetch("/envio/grupos");

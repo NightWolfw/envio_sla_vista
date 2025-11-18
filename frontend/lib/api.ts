@@ -93,13 +93,114 @@ export type Agendamento = {
   tipo_envio: string;
   dias_semana: string | null;
   data_envio: string;
+  proximo_envio?: string | null;
   hora_inicio: string;
+  dia_offset_inicio: number;
   hora_fim: string;
+  dia_offset_fim: number;
   ativo: boolean;
+  criado_em?: string;
+  atualizado_em?: string | null;
+  ultimo_status?: string | null;
+  ultimo_envio?: string | null;
+  ultimo_erro?: string | null;
 };
 
-export async function getAgendamentos(): Promise<Agendamento[]> {
-  return apiFetch<Agendamento[]>("/agendamentos");
+export type AgendamentoListResponse = {
+  items: Agendamento[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export type AgendamentoFilters = {
+  page?: number;
+  page_size?: number;
+  tipo_envio?: string;
+  ativo?: boolean | string;
+  grupo?: string;
+  cr?: string;
+  dia?: string;
+  data_inicio?: string;
+  data_fim?: string;
+};
+
+function buildQuery(params: Record<string, any>): string {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    query.set(key, String(value));
+  });
+  const text = query.toString();
+  return text ? `?${text}` : "";
+}
+
+export async function getAgendamentos(filters?: AgendamentoFilters): Promise<Agendamento[]> {
+  const response = await getAgendamentosPaged(filters);
+  return response.items;
+}
+
+export async function getAgendamentosPaged(filters?: AgendamentoFilters): Promise<AgendamentoListResponse> {
+  const query = buildQuery(filters ?? {});
+  return apiFetch<AgendamentoListResponse>(`/agendamentos${query}`);
+}
+
+export type AgendamentoPayload = {
+  grupo_id: number;
+  tipo_envio: "resultados" | "programadas";
+  dias_semana: string[];
+  data_envio: string;
+  hora_inicio: string;
+  dia_offset_inicio: number;
+  hora_fim: string;
+  dia_offset_fim: number;
+};
+
+export async function createAgendamento(payload: AgendamentoPayload) {
+  return clientApi.post("/agendamentos", payload);
+}
+
+export async function updateAgendamento(id: number, payload: AgendamentoPayload & { ativo?: boolean }) {
+  return clientApi.put(`/agendamentos/${id}`, payload);
+}
+
+export async function deleteAgendamento(id: number) {
+  return clientApi.delete(`/agendamentos/${id}`);
+}
+
+export async function cloneAgendamento(id: number) {
+  return clientApi.post<{ id: number }>(`/agendamentos/${id}/clone`);
+}
+
+export async function pauseAgendamento(id: number) {
+  return clientApi.post<{ id: number; ativo: boolean }>(`/agendamentos/${id}/pause`);
+}
+
+export async function resumeAgendamento(id: number) {
+  return clientApi.post<{ id: number; ativo: boolean }>(`/agendamentos/${id}/resume`);
+}
+
+export type AgendamentoLog = {
+  id: number;
+  data_envio: string;
+  status: string;
+  mensagem_enviada: string | null;
+  resposta_api: string | null;
+  erro: string | null;
+  criado_em: string;
+  nome_grupo?: string | null;
+};
+
+export type AgendamentoLogResponse = {
+  items: AgendamentoLog[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export async function getAgendamentoLogs(agendamentoId: number, page = 1, pageSize = 10) {
+  const query = buildQuery({ page, page_size: pageSize });
+  return apiFetch<AgendamentoLogResponse>(`/agendamentos/${agendamentoId}/logs${query}`);
 }
 
 export type Mensagem = {
@@ -124,6 +225,19 @@ export async function getSlaPreview(grupoId: number, payload: any) {
     method: "POST",
     body: JSON.stringify(payload)
   });
+}
+
+export type SlaTemplate = {
+  resultados: string;
+  programadas: string;
+};
+
+export async function fetchSlaTemplate(): Promise<SlaTemplate> {
+  return apiFetch<SlaTemplate>("/sla/template");
+}
+
+export async function updateSlaTemplate(payload: SlaTemplate): Promise<SlaTemplate> {
+  return clientApi.put<SlaTemplate>("/sla/template", payload);
 }
 
 export type EnvioGrupo = {

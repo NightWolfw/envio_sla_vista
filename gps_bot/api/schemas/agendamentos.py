@@ -21,6 +21,10 @@ class Agendamento(BaseModel):
     dia_offset_fim: int
     ativo: bool
     criado_em: datetime
+    atualizado_em: Optional[datetime] = None
+    ultimo_status: Optional[str] = None
+    ultimo_envio: Optional[str] = None
+    ultimo_erro: Optional[str] = None
 
 
 class AgendamentoCreate(BaseModel):
@@ -76,3 +80,17 @@ class AgendamentoLog(BaseModel):
 class ToggleResponse(BaseModel):
     id: int
     ativo: bool
+
+
+class AgendamentoListResponse(BaseModel):
+    items: list[Agendamento]
+    total: int
+    page: int
+    page_size: int
+
+
+class AgendamentoLogList(BaseModel):
+    items: list[AgendamentoLog]
+    total: int
+    page: int
+    page_size: int

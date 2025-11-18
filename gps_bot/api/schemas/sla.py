@@ -25,3 +25,8 @@ class SLAPreview(BaseModel):
     tipo_envio: str
     stats: dict[str, int]
     mensagem: Optional[str] = None
+
+
+class SLATemplate(BaseModel):
+    resultados: str
+    programadas: str

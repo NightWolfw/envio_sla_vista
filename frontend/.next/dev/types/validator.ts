@@ -54,6 +54,24 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../../app/envio-sla/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/envio-sla">> = Specific
+  const handler = {} as typeof import("../../../app/envio-sla/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/envio-whats/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/envio-whats">> = Specific
+  const handler = {} as typeof import("../../../app/envio-whats/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/envio/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/envio">> = Specific

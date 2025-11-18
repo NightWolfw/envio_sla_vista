@@ -1,4 +1,12 @@
 from datetime import datetime, timedelta
+import re
+from typing import Any, Dict
+
+from app.models.sla_template import (
+    DEFAULT_PROGRAMADAS_TEMPLATE,
+    DEFAULT_RESULTADOS_TEMPLATE,
+    get_sla_templates,
+)
 
 
 def calcular_datas_consulta(data_envio, hora_inicio, dia_offset_inicio, hora_fim, dia_offset_fim):
@@ -48,6 +56,17 @@ def calcular_porcentagem_feedback(finalizadas, total):
     return porcentagem, emoji, feedback
 
 
+def _render_template(template: str, contexto: Dict[str, Any]) -> str:
+    pattern = re.compile(r"{{\s*([a-zA-Z0-9_]+)\s*}}")
+
+    def replace(match: re.Match[str]) -> str:
+        chave = match.group(1)
+        valor = contexto.get(chave, "")
+        return str(valor) if valor is not None else ""
+
+    return pattern.sub(replace, template)
+
+
 def formatar_mensagem_resultados(data_inicio, data_fim, stats, data_envio):
     """
     Formata mensagem de resultados de tarefas
@@ -64,21 +83,27 @@ def formatar_mensagem_resultados(data_inicio, data_fim, stats, data_envio):
     total = finalizadas + nao_realizadas + em_aberto + iniciadas
     porcentagem, emoji, feedback = calcular_porcentagem_feedback(finalizadas, total)
 
-    mensagem = f"""{saudacao} pessoal, tudo bem?
+    contexto = {
+        "saudacao": saudacao,
+        "periodo_inicio": periodo_inicio,
+        "periodo_fim": periodo_fim,
+        "periodo_completo": f"{periodo_inicio} até {periodo_fim}",
+        "finalizadas": finalizadas,
+        "nao_realizadas": nao_realizadas,
+        "em_aberto": em_aberto,
+        "iniciadas": iniciadas,
+        "total": total,
+        "porcentagem": f"{porcentagem:.1f}",
+        "emoji": emoji,
+        "feedback": feedback,
+        "data_envio": data_envio.strftime('%d/%m/%Y %H:%M'),
+    }
 
-Tarefas Realizadas no período de {periodo_inicio} até {periodo_fim}
-
-✅ Tarefas finalizadas: {finalizadas}
-❌ Tarefas não realizadas: {nao_realizadas}
-📝 Tarefas em aberto: {em_aberto}
-🔄 Tarefas iniciadas mas não finalizadas: {iniciadas}
-
-{emoji} Porcentagem de tarefas realizadas/programadas: *{porcentagem:.1f}%*
-
-{feedback}
-
-O detalhamento das tarefas será enviado abaixo para análise, grato pela colaboração de todos!"""
-
+    templates = get_sla_templates()
+    template_texto = templates.get("resultados") or DEFAULT_RESULTADOS_TEMPLATE
+    mensagem = _render_template(template_texto, contexto).strip()
+    if not mensagem:
+        mensagem = _render_template(DEFAULT_RESULTADOS_TEMPLATE, contexto)
     return mensagem
 
 
@@ -96,15 +121,25 @@ def formatar_mensagem_programadas(data_inicio, data_fim, stats, data_envio):
 
     total_programadas = em_aberto + iniciadas
 
-    mensagem = f"""{saudacao} pessoal, tudo bem?
+    contexto = {
+        "saudacao": saudacao,
+        "periodo_inicio": data_inicio.strftime('%H:%M'),
+        "periodo_fim": data_fim.strftime('%H:%M'),
+        "periodo_completo": periodo_texto,
+        "finalizadas": stats.get('finalizadas', 0),
+        "nao_realizadas": stats.get('nao_realizadas', 0),
+        "em_aberto": em_aberto,
+        "iniciadas": iniciadas,
+        "total_programadas": total_programadas,
+        "emoji": "",
+        "feedback": "",
+        "porcentagem": "0.0",
+        "data_envio": data_envio.strftime('%d/%m/%Y %H:%M'),
+    }
 
-Tarefas Programadas para o período de {periodo_texto}
-
-📝 Tarefas em aberto: {em_aberto}
-🔄 Tarefas iniciadas mas não finalizadas: {iniciadas}
-
-📊 Total de tarefas programadas: *{total_programadas}*
-
-O detalhamento das tarefas será enviado abaixo para análise, grato pela colaboração de todos!"""
-
+    templates = get_sla_templates()
+    template_texto = templates.get("programadas") or DEFAULT_PROGRAMADAS_TEMPLATE
+    mensagem = _render_template(template_texto, contexto).strip()
+    if not mensagem:
+        mensagem = _render_template(DEFAULT_PROGRAMADAS_TEMPLATE, contexto)
     return mensagem
