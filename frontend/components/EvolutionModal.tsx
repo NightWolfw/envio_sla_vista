@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getEvolutionGroups, type EvolutionGroup, importEvolutionGroups } from "../lib/api";
+import { getAllEvolutionGroups, type EvolutionGroup, importEvolutionGroups } from "../lib/api";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -19,8 +19,7 @@ export default function EvolutionModal({ onClose }: Props) {
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(25);
-  const [total, setTotal] = useState(0);
-  const [items, setItems] = useState<EvolutionGroup[]>([]);
+  const [allItems, setAllItems] = useState<EvolutionGroup[]>([]);
   const [state, setState] = useState<SelectState>({});
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -35,16 +34,24 @@ export default function EvolutionModal({ onClose }: Props) {
     async function load() {
       setLoadProgress(5);
       setLoading(true);
+      setStatus(null);
       try {
         const interval = setInterval(() => {
           setLoadProgress((prev) => Math.min(prev + 10, 90));
         }, 150);
-        const data = await getEvolutionGroups(page, pageSize);
+        const data = await getAllEvolutionGroups();
         clearInterval(interval);
         if (!cancelled) {
-          setItems(data.grupos);
-          setTotal(data.total);
-          setState({});
+          setAllItems(data.grupos);
+          setState((prev) => {
+            const next: SelectState = {};
+            data.grupos.forEach((grupo) => {
+              if (prev[grupo.group_id]) {
+                next[grupo.group_id] = prev[grupo.group_id];
+              }
+            });
+            return next;
+          });
           setLoadProgress(100);
         }
       } catch (error: any) {
@@ -57,13 +64,30 @@ export default function EvolutionModal({ onClose }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [page, pageSize]);
+  }, []);
 
   const filtered = useMemo(() => {
     const text = search.toLowerCase().trim();
-    if (!text) return items;
-    return items.filter((grupo) => grupo.nome.toLowerCase().includes(text));
-  }, [items, search]);
+    if (!text) return allItems;
+    return allItems.filter((grupo) => grupo.nome.toLowerCase().includes(text));
+  }, [allItems, search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const maxPage = Math.max(Math.ceil(filtered.length / pageSize), 1);
+
+  useEffect(() => {
+    if (page > maxPage) {
+      setPage(maxPage);
+    }
+  }, [maxPage, page]);
+
+  const paginatedItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
   function toggleSelect(group: EvolutionGroup) {
     setState((prev) => ({
@@ -85,12 +109,14 @@ export default function EvolutionModal({ onClose }: Props) {
     }));
   }
 
+  const hasSelection = useMemo(() => Object.values(state).some((item) => item.selected), [state]);
+
   async function handleImport() {
     const selecionados = Object.entries(state)
       .filter(([, info]) => info.selected)
       .map(([group_id, info]) => ({
         group_id,
-        nome: items.find((i) => i.group_id === group_id)?.nome ?? "",
+        nome: allItems.find((i) => i.group_id === group_id)?.nome ?? "",
         cr: info.cr || null
       }));
 
@@ -117,8 +143,6 @@ export default function EvolutionModal({ onClose }: Props) {
       setImporting(false);
     }
   }
-
-  const maxPage = Math.ceil(total / pageSize) || 1;
 
   return (
     <div className="modal-backdrop">
@@ -187,7 +211,7 @@ export default function EvolutionModal({ onClose }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((grupo) => (
+                {paginatedItems.map((grupo) => (
                   <tr key={grupo.group_id}>
                     <td>
                       <input
@@ -207,7 +231,7 @@ export default function EvolutionModal({ onClose }: Props) {
                     </td>
                   </tr>
                 ))}
-                {!filtered.length && (
+                {!paginatedItems.length && (
                   <tr>
                     <td colSpan={4} style={{ textAlign: "center", padding: "1rem" }}>
                       Nenhum grupo encontrado.
@@ -238,7 +262,7 @@ export default function EvolutionModal({ onClose }: Props) {
           <button
             type="button"
             onClick={handleImport}
-            disabled={importing || loading || importTotal > 0 || !Object.values(state).some((item) => item.selected)}
+            disabled={importing || loading || importTotal > 0 || !hasSelection}
           >
             {importing ? "Importando..." : "Importar selecionados"}
           </button>

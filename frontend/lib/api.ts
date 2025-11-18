@@ -155,6 +155,10 @@ export async function getEvolutionGroups(page = 1, pageSize = 25): Promise<Evolu
   return apiFetch(`/evolution/groups?page=${page}&page_size=${pageSize}`);
 }
 
+export async function getAllEvolutionGroups(): Promise<EvolutionGroupsResponse> {
+  return apiFetch("/evolution/groups/all");
+}
+
 export async function importEvolutionGroups(grupos: EvolutionGroup[]) {
   return clientApi.post("/evolution/import", { grupos });
 }

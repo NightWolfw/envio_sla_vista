@@ -1,9 +1,7 @@
 {
-  "/agendamentos/page": "app/agendamentos/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/envio/page": "app/envio/page.js",
   "/grupos/page": "app/grupos/page.js",
-  "/mensagens/page": "app/mensagens/page.js",
   "/page": "app/page.js",
   "/sla/page": "app/sla/page.js"
 }

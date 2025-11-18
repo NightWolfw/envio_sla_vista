@@ -43,6 +43,8 @@ __turbopack_context__.s([
     ()=>deleteGroups,
     "getAgendamentos",
     ()=>getAgendamentos,
+    "getAllEvolutionGroups",
+    ()=>getAllEvolutionGroups,
     "getDashboardPizza",
     ()=>getDashboardPizza,
     "getDashboardResumo",
@@ -139,6 +141,9 @@ async function getEnvioGrupos() {
 }
 async function getEvolutionGroups(page = 1, pageSize = 25) {
     return apiFetch(`/evolution/groups?page=${page}&page_size=${pageSize}`);
+}
+async function getAllEvolutionGroups() {
+    return apiFetch("/evolution/groups/all");
 }
 async function importEvolutionGroups(grupos) {
     return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].post("/evolution/import", {

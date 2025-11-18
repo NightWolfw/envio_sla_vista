@@ -14,9 +14,13 @@ router = APIRouter()
 
 
 @router.get("/groups", response_model=EvolutionGroupsResponse)
-def listar_grupos_evolution(page: int = Query(1, ge=1), page_size: int = Query(25, ge=1, le=200)):
+def listar_grupos_evolution(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    force_refresh: bool = Query(False)
+):
     try:
-        grupos = whatsapp_sync.comparar_grupos_novos()
+        grupos = whatsapp_sync.comparar_grupos_novos(force_refresh=force_refresh)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Erro ao consultar Evolution API: {exc}") from exc
 
@@ -27,6 +31,19 @@ def listar_grupos_evolution(page: int = Query(1, ge=1), page_size: int = Query(2
     items = [EvolutionGroup(group_id=g["group_id"], nome=g["nome"]) for g in slice_items]
 
     return EvolutionGroupsResponse(total=total, page=page, page_size=page_size, grupos=items)
+
+
+@router.get("/groups/all", response_model=EvolutionGroupsResponse)
+def listar_todos_grupos_evolution(force_refresh: bool = Query(False)):
+    try:
+        grupos = whatsapp_sync.comparar_grupos_novos(force_refresh=force_refresh)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Erro ao consultar Evolution API: {exc}") from exc
+
+    total = len(grupos)
+    items = [EvolutionGroup(group_id=g["group_id"], nome=g["nome"]) for g in grupos]
+
+    return EvolutionGroupsResponse(total=total, page=1, page_size=max(total, 1), grupos=items)
 
 
 @router.post("/import", response_model=EvolutionImportResponse)
