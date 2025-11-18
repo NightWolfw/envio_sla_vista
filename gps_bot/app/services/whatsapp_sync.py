@@ -5,7 +5,7 @@ import requests
 
 from app.models.database import get_db_site
 from app.services.estrutura import atualizar_grupo_especifico
-from gps_bot import config as project_config
+import config as project_config
 
 def buscar_grupos_api() -> list[Dict[str, Any]]:
     """Busca todos os grupos da Evolution API com retry"""

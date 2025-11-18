@@ -7,7 +7,7 @@ from typing import Any, Dict
 
 import requests
 
-from gps_bot import config as project_config
+import config as project_config
 
 logger = logging.getLogger(__name__)
 

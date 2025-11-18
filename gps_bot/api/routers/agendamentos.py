@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
-from gps_bot.api.schemas.agendamentos import (
+from api.schemas.agendamentos import (
     Agendamento,
     AgendamentoCreate,
     AgendamentoCreatedResponse,
@@ -14,7 +14,7 @@ from gps_bot.api.schemas.agendamentos import (
     AgendamentoUpdate,
     ToggleResponse,
 )
-from gps_bot.app.models.agendamento import (
+from app.models.agendamento import (
     atualizar_agendamento,
     criar_agendamento,
     deletar_agendamento,
@@ -94,9 +94,10 @@ def atualizar_agendamento_endpoint(agendamento_id: int, payload: AgendamentoUpda
     return _serialize_agendamento_detail(registro)
 
 
-@router.delete("/{agendamento_id}", status_code=204)
-def deletar_agendamento_endpoint(agendamento_id: int) -> None:
+@router.delete("/{agendamento_id}", status_code=204, response_class=Response)
+def deletar_agendamento_endpoint(agendamento_id: int) -> Response:
     deletar_agendamento(agendamento_id)
+    return Response(status_code=204)
 
 
 @router.post("/{agendamento_id}/toggle", response_model=ToggleResponse)

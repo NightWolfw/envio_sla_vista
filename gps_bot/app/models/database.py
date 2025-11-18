@@ -6,12 +6,12 @@ from typing import Any, Mapping
 import psycopg2
 from psycopg2.extensions import connection
 
-from gps_bot import config as project_config
+import config as project_config
 
 
 def conectar_com_retry(
     config: Mapping[str, Any],
-    max_tentativas: int = 5,
+    max_tentativas: int = 0,
     delay_inicial: int = 2,
     db_nome: str = "Vista",
 ) -> connection:
@@ -33,7 +33,8 @@ def conectar_com_retry(
     ultima_exception = None
     delay = delay_inicial
     
-    for tentativa in range(1, max_tentativas + 1):
+    tentativa = 1
+    while True:
         try:
             print(f"[{db_nome}] Tentativa {tentativa}/{max_tentativas} de conexão...")
             
@@ -53,16 +54,16 @@ def conectar_com_retry(
             ultima_exception = e
             print(f"[{db_nome}] ❌ Tentativa {tentativa} falhou: {str(e)}")
             
-            if tentativa < max_tentativas:
-                print(f"[{db_nome}] ⏳ Aguardando {delay}s antes da próxima tentativa...")
-                time.sleep(delay)
-                # Aumenta o delay progressivamente (backoff exponencial limitado)
-                delay = min(delay * 1.5, 10)  # Máximo de 10s entre tentativas
-            else:
+            if max_tentativas and tentativa >= max_tentativas:
                 print(f"[{db_nome}] 🚫 Todas as {max_tentativas} tentativas falharam!")
-    
-    # Se chegou aqui, todas as tentativas falharam
-    raise Exception(f"Não foi possível conectar ao banco {db_nome} após {max_tentativas} tentativas. Último erro: {str(ultima_exception)}")
+                raise Exception(
+                    f"Não foi possível conectar ao banco {db_nome} após {max_tentativas} tentativas. Último erro: {str(ultima_exception)}"
+                )
+
+            print(f"[{db_nome}] ⏳ Aguardando {delay}s antes da próxima tentativa...")
+            time.sleep(delay)
+            delay = min(delay * 1.5, 30)
+            tentativa += 1
 
 
 def get_db_vista() -> connection:
@@ -70,7 +71,7 @@ def get_db_vista() -> connection:
     config: Mapping[str, Any] = project_config.DB_CONFIG
     return conectar_com_retry(
         config,
-        max_tentativas=5,
+        max_tentativas=0,
         delay_inicial=2,
         db_nome="Vista",
     )

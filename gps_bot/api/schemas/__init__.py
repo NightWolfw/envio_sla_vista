@@ -11,6 +11,12 @@ from .agendamentos import (
 )
 from .grupos import Grupo, GrupoFiltersResponse, GrupoUpdate
 from .sla import SLAPreview, SLAPreviewRequest
+from .evolution import (
+    EvolutionGroup,
+    EvolutionGroupsResponse,
+    EvolutionImportRequest,
+    EvolutionImportResponse,
+)
 
 __all__ = [
     "Agendamento",
@@ -25,4 +31,8 @@ __all__ = [
     "SLAPreview",
     "SLAPreviewRequest",
     "ToggleResponse",
+    "EvolutionGroup",
+    "EvolutionGroupsResponse",
+    "EvolutionImportRequest",
+    "EvolutionImportResponse",
 ]

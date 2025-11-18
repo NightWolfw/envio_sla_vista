@@ -16,7 +16,7 @@ services:
     networks:
       - evolution-net
     env_file:
-      - evolution-api.env
+      - .env
     expose:
       - 8080
 
@@ -43,9 +43,9 @@ services:
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_USER=evodm
-      - POSTGRES_PASSWORD=Jl2@24Jl
-      - POSTGRES_DB=evolution
+      - POSTGRES_USER=${EVOLUTION_DB_USER}
+      - POSTGRES_PASSWORD=${EVOLUTION_DB_PASSWORD}
+      - POSTGRES_DB=${EVOLUTION_DB_NAME}
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -63,9 +63,9 @@ services:
     ports:
       - 5433:5432
     environment:
-      - POSTGRES_USER=jonatan_lopes
-      - POSTGRES_PASSWORD=Jl2@24Jl
-      - POSTGRES_DB=dw_sla
+      - POSTGRES_USER=${DW_SLA_DB_USER}
+      - POSTGRES_PASSWORD=${DW_SLA_DB_PASSWORD}
+      - POSTGRES_DB=${DW_SLA_DB_NAME}
     volumes:
       - postgres_dw_sla_data:/var/lib/postgresql/data
       - ./gps_bot/init-dw_sla.sql:/docker-entrypoint-initdb.d/init.sql
@@ -83,27 +83,28 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - FLASK_ENV=production
-      - SECRET_KEY=1234
+      - FASTAPI_ENV=${FASTAPI_ENV}
+      - SECRET_KEY=${SECRET_KEY}
+      - API_CORS_ORIGINS=http://localhost:3000
       
       # Banco Site - USA NOME DO CONTAINER!
-      - DB_SITE_HOST=postgres_dw_sla
-      - DB_SITE_PORT=5432
-      - DB_SITE_DATABASE=dw_sla
-      - DB_SITE_USER=jonatan_lopes
-      - DB_SITE_PASSWORD=Jl2@24Jl
+      - DB_SITE_HOST=${DB_SITE_HOST}
+      - DB_SITE_PORT=${DB_SITE_PORT}
+      - DB_SITE_DATABASE=${DB_SITE_DATABASE}
+      - DB_SITE_USER=${DB_SITE_USER}
+      - DB_SITE_PASSWORD=${DB_SITE_PASSWORD}
       
       # Banco Vista (servidor externo)
-      - DB_VISTA_HOST=10.84.224.231
-      - DB_VISTA_PORT=5432
-      - DB_VISTA_DATABASE=dw_gps
-      - DB_VISTA_USER=gpssa_pg_jonatan_lopes
-      - DB_VISTA_PASSWORD=rrxD&!C2qU1V
+      - DB_VISTA_HOST=${DB_VISTA_HOST}
+      - DB_VISTA_PORT=${DB_VISTA_PORT}
+      - DB_VISTA_DATABASE=${DB_VISTA_DATABASE}
+      - DB_VISTA_USER=${DB_VISTA_USER}
+      - DB_VISTA_PASSWORD=${DB_VISTA_PASSWORD}
       
       # Evolution API - USA NOME DO CONTAINER!
-      - EVOLUTION_BASE_URL=http://evolution_api:8080
-      - EVOLUTION_API_KEY=309754692928797528226121395208
-      - EVOLUTION_INSTANCE_NAME=envio_gps
+      - EVOLUTION_BASE_URL=${EVOLUTION_BASE_URL}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME}
     volumes:
       - ./gps_bot/logs:/app/logs
     networks:

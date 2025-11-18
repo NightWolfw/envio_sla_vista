@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from gps_bot.api.schemas.sla import SLAPreview, SLAPreviewRequest
-from gps_bot.app.models.grupo import obter_grupo
-from gps_bot.app.services.mensagem_agendamento import (
+from api.schemas.sla import SLAPreview, SLAPreviewRequest
+from app.models.grupo import obter_grupo
+from app.services.mensagem_agendamento import (
     calcular_datas_consulta,
     formatar_mensagem_programadas,
     formatar_mensagem_resultados,
 )
-from gps_bot.app.services.sla_consulta import buscar_tarefas_por_periodo
+from app.services.sla_consulta import buscar_tarefas_por_periodo
 
 router = APIRouter()
 

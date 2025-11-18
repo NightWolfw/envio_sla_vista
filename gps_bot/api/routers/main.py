@@ -5,7 +5,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 
 from app.models.database import get_db_site
-from gps_bot.api.schemas.main import OverviewStats
+from api.schemas.main import OverviewStats
 
 router = APIRouter()
 

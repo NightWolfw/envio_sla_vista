@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import calendar
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -26,6 +26,13 @@ def _collect_filtros(**params: Optional[str]) -> Dict[str, str]:
     return {k: v for k, v in params.items() if v}
 
 
+def _ensure_default_diretor(filtros: Dict[str, str]) -> Dict[str, str]:
+    """Garante que sempre temos um diretor executivo padrão."""
+    if "diretor_executivo" not in filtros:
+        filtros["diretor_executivo"] = "MARCOS NASCIMENTO PEDREIRA"
+    return filtros
+
+
 def _mes_ano_defaults(mes: Optional[int], ano: Optional[int]) -> tuple[int, int]:
     hoje = datetime.now()
     return (mes or hoje.month, ano or hoje.year)
@@ -45,37 +52,33 @@ def dashboard_resumo(
     pec_01: Optional[str] = None,
     pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
-    filtros = _collect_filtros(
-        cr=cr,
-        cliente=cliente,
-        diretor_executivo=diretor_executivo,
-        diretor_regional=diretor_regional,
-        gerente_regional=gerente_regional,
-        gerente=gerente,
-        supervisor=supervisor,
-        pec_01=pec_01,
-        pec_02=pec_02,
+    filtros = _ensure_default_diretor(
+        _collect_filtros(
+            cr=cr,
+            cliente=cliente,
+            diretor_executivo=diretor_executivo,
+            diretor_regional=diretor_regional,
+            gerente_regional=gerente_regional,
+            gerente=gerente,
+            supervisor=supervisor,
+            pec_01=pec_01,
+            pec_02=pec_02,
+        )
     )
 
-    target_mes, target_ano = _mes_ano_defaults(mes, ano)
-    primeiro_dia = datetime(target_ano, target_mes, 1)
-    ultimo_dia = datetime(
-        target_ano,
-        target_mes,
-        calendar.monthrange(target_ano, target_mes)[1],
-        23,
-        59,
-        59,
-    )
+    hoje = datetime.now()
+    primeiro_dia = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
+    ultimo_dia = primeiro_dia + timedelta(days=1) - timedelta(microseconds=1)
 
     stats = buscar_resumo_tarefas(filtros, primeiro_dia, ultimo_dia)
     return {
         "success": True,
         "data": stats,
         "periodo": {
-            "mes": target_mes,
-            "ano": target_ano,
-            "mes_nome": calendar.month_name[target_mes],
+            "inicio": primeiro_dia.isoformat(),
+            "fim": ultimo_dia.isoformat(),
+            "descricao": primeiro_dia.strftime("%d/%m/%Y"),
+            "label": f"Resultados do dia {primeiro_dia.strftime('%d/%m/%Y')}"
         },
     }
 
@@ -84,10 +87,31 @@ def dashboard_resumo(
 def dashboard_tarefas_mes(
     mes: Optional[int] = Query(None, ge=1, le=12),
     ano: Optional[int] = Query(None, ge=2000),
-    **filtros: str,
+    cr: Optional[str] = None,
+    cliente: Optional[str] = None,
+    diretor_executivo: Optional[str] = None,
+    diretor_regional: Optional[str] = None,
+    gerente_regional: Optional[str] = None,
+    gerente: Optional[str] = None,
+    supervisor: Optional[str] = None,
+    pec_01: Optional[str] = None,
+    pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     target_mes, target_ano = _mes_ano_defaults(mes, ano)
-    dados = buscar_tarefas_por_dia_mes(_collect_filtros(**filtros), target_mes, target_ano)
+    filtros = _ensure_default_diretor(
+        _collect_filtros(
+            cr=cr,
+            cliente=cliente,
+            diretor_executivo=diretor_executivo,
+            diretor_regional=diretor_regional,
+            gerente_regional=gerente_regional,
+            gerente=gerente,
+            supervisor=supervisor,
+            pec_01=pec_01,
+            pec_02=pec_02,
+        )
+    )
+    dados = buscar_tarefas_por_dia_mes(filtros, target_mes, target_ano)
     return {"success": True, "data": dados}
 
 
@@ -95,7 +119,15 @@ def dashboard_tarefas_mes(
 def dashboard_heatmap(
     mes: Optional[int] = Query(None, ge=1, le=12),
     ano: Optional[int] = Query(None, ge=2000),
-    **filtros: str,
+    cr: Optional[str] = None,
+    cliente: Optional[str] = None,
+    diretor_executivo: Optional[str] = None,
+    diretor_regional: Optional[str] = None,
+    gerente_regional: Optional[str] = None,
+    gerente: Optional[str] = None,
+    supervisor: Optional[str] = None,
+    pec_01: Optional[str] = None,
+    pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     target_mes, target_ano = _mes_ano_defaults(mes, ano)
     primeiro_dia = datetime(target_ano, target_mes, 1)
@@ -107,7 +139,20 @@ def dashboard_heatmap(
         59,
         59,
     )
-    dados = buscar_heatmap_realizacao(_collect_filtros(**filtros), primeiro_dia, ultimo_dia)
+    filtros = _ensure_default_diretor(
+        _collect_filtros(
+            cr=cr,
+            cliente=cliente,
+            diretor_executivo=diretor_executivo,
+            diretor_regional=diretor_regional,
+            gerente_regional=gerente_regional,
+            gerente=gerente,
+            supervisor=supervisor,
+            pec_01=pec_01,
+            pec_02=pec_02,
+        )
+    )
+    dados = buscar_heatmap_realizacao(filtros, primeiro_dia, ultimo_dia)
     return {"success": True, "data": dados}
 
 
@@ -116,7 +161,15 @@ def dashboard_executores(
     limit: int = Query(10, ge=1, le=100),
     mes: Optional[int] = Query(None, ge=1, le=12),
     ano: Optional[int] = Query(None, ge=2000),
-    **filtros: str,
+    cr: Optional[str] = None,
+    cliente: Optional[str] = None,
+    diretor_executivo: Optional[str] = None,
+    diretor_regional: Optional[str] = None,
+    gerente_regional: Optional[str] = None,
+    gerente: Optional[str] = None,
+    supervisor: Optional[str] = None,
+    pec_01: Optional[str] = None,
+    pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     target_mes, target_ano = _mes_ano_defaults(mes, ano)
     primeiro_dia = datetime(target_ano, target_mes, 1)
@@ -128,7 +181,20 @@ def dashboard_executores(
         59,
         59,
     )
-    dados = buscar_top_executores(_collect_filtros(**filtros), primeiro_dia, ultimo_dia, limit)
+    filtros = _ensure_default_diretor(
+        _collect_filtros(
+            cr=cr,
+            cliente=cliente,
+            diretor_executivo=diretor_executivo,
+            diretor_regional=diretor_regional,
+            gerente_regional=gerente_regional,
+            gerente=gerente,
+            supervisor=supervisor,
+            pec_01=pec_01,
+            pec_02=pec_02,
+        )
+    )
+    dados = buscar_top_executores(filtros, primeiro_dia, ultimo_dia, limit)
     return {"success": True, "data": dados}
 
 
@@ -137,7 +203,15 @@ def dashboard_locais(
     limit: int = Query(10, ge=1, le=100),
     mes: Optional[int] = Query(None, ge=1, le=12),
     ano: Optional[int] = Query(None, ge=2000),
-    **filtros: str,
+    cr: Optional[str] = None,
+    cliente: Optional[str] = None,
+    diretor_executivo: Optional[str] = None,
+    diretor_regional: Optional[str] = None,
+    gerente_regional: Optional[str] = None,
+    gerente: Optional[str] = None,
+    supervisor: Optional[str] = None,
+    pec_01: Optional[str] = None,
+    pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     target_mes, target_ano = _mes_ano_defaults(mes, ano)
     primeiro_dia = datetime(target_ano, target_mes, 1)
@@ -149,7 +223,20 @@ def dashboard_locais(
         59,
         59,
     )
-    dados = buscar_top_locais(_collect_filtros(**filtros), primeiro_dia, ultimo_dia, limit)
+    filtros = _ensure_default_diretor(
+        _collect_filtros(
+            cr=cr,
+            cliente=cliente,
+            diretor_executivo=diretor_executivo,
+            diretor_regional=diretor_regional,
+            gerente_regional=gerente_regional,
+            gerente=gerente,
+            supervisor=supervisor,
+            pec_01=pec_01,
+            pec_02=pec_02,
+        )
+    )
+    dados = buscar_top_locais(filtros, primeiro_dia, ultimo_dia, limit)
     return {"success": True, "data": dados}
 
 
@@ -157,7 +244,15 @@ def dashboard_locais(
 def dashboard_pizza(
     mes: Optional[int] = Query(None, ge=1, le=12),
     ano: Optional[int] = Query(None, ge=2000),
-    **filtros: str,
+    cr: Optional[str] = None,
+    cliente: Optional[str] = None,
+    diretor_executivo: Optional[str] = None,
+    diretor_regional: Optional[str] = None,
+    gerente_regional: Optional[str] = None,
+    gerente: Optional[str] = None,
+    supervisor: Optional[str] = None,
+    pec_01: Optional[str] = None,
+    pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     target_mes, target_ano = _mes_ano_defaults(mes, ano)
     primeiro_dia = datetime(target_ano, target_mes, 1)
@@ -169,7 +264,20 @@ def dashboard_pizza(
         59,
         59,
     )
-    dados = buscar_distribuicao_status(_collect_filtros(**filtros), primeiro_dia, ultimo_dia)
+    filtros = _ensure_default_diretor(
+        _collect_filtros(
+            cr=cr,
+            cliente=cliente,
+            diretor_executivo=diretor_executivo,
+            diretor_regional=diretor_regional,
+            gerente_regional=gerente_regional,
+            gerente=gerente,
+            supervisor=supervisor,
+            pec_01=pec_01,
+            pec_02=pec_02,
+        )
+    )
+    dados = buscar_distribuicao_status(filtros, primeiro_dia, ultimo_dia)
     return {"success": True, "data": dados}
 
 
@@ -183,10 +291,31 @@ def dashboard_filtros() -> Dict[str, Any]:
 def dashboard_heatmap_dias(
     mes: Optional[int] = Query(None, ge=1, le=12),
     ano: Optional[int] = Query(None, ge=2000),
-    **filtros: str,
+    cr: Optional[str] = None,
+    cliente: Optional[str] = None,
+    diretor_executivo: Optional[str] = None,
+    diretor_regional: Optional[str] = None,
+    gerente_regional: Optional[str] = None,
+    gerente: Optional[str] = None,
+    supervisor: Optional[str] = None,
+    pec_01: Optional[str] = None,
+    pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     target_mes, target_ano = _mes_ano_defaults(mes, ano)
-    dados = buscar_heatmap_por_dia(_collect_filtros(**filtros), target_mes, target_ano)
+    filtros = _ensure_default_diretor(
+        _collect_filtros(
+            cr=cr,
+            cliente=cliente,
+            diretor_executivo=diretor_executivo,
+            diretor_regional=diretor_regional,
+            gerente_regional=gerente_regional,
+            gerente=gerente,
+            supervisor=supervisor,
+            pec_01=pec_01,
+            pec_02=pec_02,
+        )
+    )
+    dados = buscar_heatmap_por_dia(filtros, target_mes, target_ano)
     return {"success": True, "data": dados, "mes": target_mes, "ano": target_ano}
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.models.mensagem import (
     atualizar_mensagem,
@@ -12,7 +12,7 @@ from app.models.mensagem import (
     obter_mensagem,
     toggle_ativa,
 )
-from gps_bot.api.schemas.mensagens import (
+from api.schemas.mensagens import (
     Mensagem,
     MensagemCreate,
     MensagemToggleResponse,
@@ -90,9 +90,10 @@ def atualizar_mensagem_endpoint(mensagem_id: int, payload: MensagemUpdate) -> Me
     return _serialize_mensagem(registro)
 
 
-@router.delete("/{mensagem_id}", status_code=status.HTTP_204_NO_CONTENT)
-def deletar_mensagem_endpoint(mensagem_id: int) -> None:
+@router.delete("/{mensagem_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+def deletar_mensagem_endpoint(mensagem_id: int) -> Response:
     deletar_mensagem(mensagem_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/{mensagem_id}/toggle", response_model=MensagemToggleResponse)

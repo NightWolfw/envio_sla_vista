@@ -206,3 +206,29 @@ def atualizar_grupo(grupo_id, dados):
     conn.commit()
     cur.close()
     conn.close()
+
+
+def listar_ids_com_cr():
+    """Retorna IDs dos grupos que possuem CR definido."""
+    conn = get_db_site()
+    cur = conn.cursor()
+    cur.execute("SELECT id, nome_grupo, cr FROM grupos_whatsapp WHERE cr IS NOT NULL AND cr != '' ORDER BY nome_grupo")
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return rows
+
+
+def deletar_grupos_por_ids(ids):
+    """Remove grupos pelo ID."""
+    if not ids:
+        return 0
+    conn = get_db_site()
+    cur = conn.cursor()
+    placeholders = ",".join(["%s"] * len(ids))
+    cur.execute(f"DELETE FROM grupos_whatsapp WHERE id IN ({placeholders})", tuple(ids))
+    removidos = cur.rowcount
+    conn.commit()
+    cur.close()
+    conn.close()
+    return removidos
