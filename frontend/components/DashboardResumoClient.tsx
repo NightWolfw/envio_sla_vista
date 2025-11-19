@@ -20,7 +20,7 @@ type ResumoPayload = {
 };
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL ?? "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
 const DEFAULT_DIRETOR = "MARCOS NASCIMENTO PEDREIRA";
 
 export default function DashboardResumoClient() {
