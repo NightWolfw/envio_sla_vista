@@ -41,10 +41,16 @@ __turbopack_context__.s([
     ()=>createAgendamento,
     "deleteAgendamento",
     ()=>deleteAgendamento,
+    "deleteAgendamentosBulk",
+    ()=>deleteAgendamentosBulk,
     "deleteGroups",
     ()=>deleteGroups,
     "fetchSlaTemplate",
     ()=>fetchSlaTemplate,
+    "generatePdfAgendamento",
+    ()=>generatePdfAgendamento,
+    "generatePdfBulk",
+    ()=>generatePdfBulk,
     "getAgendamentoLogs",
     ()=>getAgendamentoLogs,
     "getAgendamentos",
@@ -81,6 +87,8 @@ __turbopack_context__.s([
     ()=>pauseAgendamento,
     "resumeAgendamento",
     ()=>resumeAgendamento,
+    "sendAgendamentoNow",
+    ()=>sendAgendamentoNow,
     "syncGroupStructure",
     ()=>syncGroupStructure,
     "updateAgendamento",
@@ -172,6 +180,22 @@ async function pauseAgendamento(id) {
 }
 async function resumeAgendamento(id) {
     return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/resume`);
+}
+async function sendAgendamentoNow(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/send-now`);
+}
+async function generatePdfAgendamento(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/pdf`);
+}
+async function generatePdfBulk(ids) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["clientApi"].post("/agendamentos/bulk/pdf", {
+        ids
+    });
+}
+async function deleteAgendamentosBulk(ids) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["clientApi"].delete("/agendamentos/bulk", {
+        ids
+    });
 }
 async function getAgendamentoLogs(agendamentoId, page = 1, pageSize = 10) {
     const query = buildQuery({
@@ -1321,6 +1345,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$en
 ;
 ;
 ;
+const ACCENT_BUTTON_CLASS = "bg-accent text-[#0f172a] font-semibold shadow-panel transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60 disabled:opacity-50";
 function EnvioSlaView() {
     const [page, setPage] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(1);
     const [pageSize, setPageSize] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(10);
@@ -1337,6 +1362,7 @@ function EnvioSlaView() {
     const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(true);
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(null);
     const [statusMessage, setStatusMessage] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [selectedIds, setSelectedIds] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
     const [showFilters, setShowFilters] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
     const [modal, setModal] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])({
         open: false,
@@ -1388,6 +1414,34 @@ function EnvioSlaView() {
         pageSize,
         filters
     ]);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
+        setSelectedIds((prev)=>prev.filter((id)=>agendamentos.some((item)=>item.id === id)));
+    }, [
+        agendamentos
+    ]);
+    const allIds = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>agendamentos.map((item)=>item.id), [
+        agendamentos
+    ]);
+    const isAllSelected = allIds.length > 0 && allIds.every((id)=>selectedIds.includes(id));
+    const hasSelection = selectedIds.length > 0;
+    const toggleSelect = (id)=>{
+        setSelectedIds((prev)=>prev.includes(id) ? prev.filter((item)=>item !== id) : [
+                ...prev,
+                id
+            ]);
+    };
+    const toggleSelectAll = ()=>{
+        if (!allIds.length) return;
+        if (isAllSelected) {
+            setSelectedIds((prev)=>prev.filter((id)=>!allIds.includes(id)));
+        } else {
+            setSelectedIds((prev)=>Array.from(new Set([
+                    ...prev,
+                    ...allIds
+                ])));
+        }
+    };
+    const clearSelection = ()=>setSelectedIds([]);
     const refresh = async (message)=>{
         await fetchAgendamentos();
         if (message) {
@@ -1430,9 +1484,41 @@ function EnvioSlaView() {
         if (!confirm(`Remover o agendamento do grupo ${agendamento.nome_grupo}?`)) return;
         try {
             await (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["deleteAgendamento"])(agendamento.id);
+            setSelectedIds((prev)=>prev.filter((value)=>value !== agendamento.id));
             refresh("Agendamento removido.");
         } catch (err) {
             setStatusMessage(err.message ?? "Erro ao remover agendamento.");
+        }
+    };
+    const handleBulkDelete = async ()=>{
+        if (!hasSelection) return;
+        if (!confirm(`Remover ${selectedIds.length} agendamento(s) selecionado(s)?`)) return;
+        try {
+            const response = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["deleteAgendamentosBulk"])(selectedIds);
+            setStatusMessage(`Agendamentos removidos: ${response.removed}${response.failures.length ? ` | Falhas: ${response.failures.join(", ")}` : ""}.`);
+            clearSelection();
+            refresh();
+        } catch (err) {
+            setStatusMessage(err.message ?? "Erro ao remover agendamentos.");
+        }
+    };
+    const handleGeneratePdf = async (agendamentoId)=>{
+        try {
+            const result = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["generatePdfAgendamento"])(agendamentoId);
+            window.open(result.url, "_blank", "noopener");
+            setStatusMessage("PDF gerado.");
+        } catch (err) {
+            setStatusMessage(err.message ?? "Erro ao gerar PDF.");
+        }
+    };
+    const handleBulkGeneratePdf = async ()=>{
+        if (!hasSelection) return;
+        try {
+            const result = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["generatePdfBulk"])(selectedIds);
+            result.successes.forEach(({ url })=>window.open(url, "_blank", "noopener"));
+            setStatusMessage(`PDFs gerados: ${result.successes.length}${result.failures.length ? ` | Falhas: ${result.failures.join(", ")}` : ""}.`);
+        } catch (err) {
+            setStatusMessage(err.message ?? "Erro ao gerar PDFs.");
         }
     };
     const handleClone = async (agendamento)=>{
@@ -1454,6 +1540,15 @@ function EnvioSlaView() {
             }
         } catch (err) {
             setStatusMessage(err.message ?? "Erro ao alterar status.");
+        }
+    };
+    const handleSendNow = async (agendamento)=>{
+        if (!confirm(`Enviar o SLA do grupo ${agendamento.nome_grupo} agora?`)) return;
+        try {
+            await (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["sendAgendamentoNow"])(agendamento.id);
+            refresh(`Envio imediato disparado para ${agendamento.nome_grupo}.`);
+        } catch (err) {
+            setError(err.message ?? "Erro ao enviar imediatamente.");
         }
     };
     const openLogs = (agendamento)=>setLogsState({
@@ -1548,7 +1643,7 @@ function EnvioSlaView() {
                                 children: "Operações"
                             }, void 0, false, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 205,
+                                lineNumber: 289,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
@@ -1556,7 +1651,7 @@ function EnvioSlaView() {
                                 children: "Envio SLA"
                             }, void 0, false, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 206,
+                                lineNumber: 290,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1564,13 +1659,13 @@ function EnvioSlaView() {
                                 children: "Gerencie agendamentos, templates e logs de envio."
                             }, void 0, false, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 207,
+                                lineNumber: 291,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                        lineNumber: 204,
+                        lineNumber: 288,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1579,33 +1674,33 @@ function EnvioSlaView() {
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                 type: "button",
                                 onClick: openTemplateConfirm,
-                                className: "rounded-xl border border-border px-4 py-2 text-sm font-medium text-text transition hover:border-accent hover:text-accent",
+                                className: `${ACCENT_BUTTON_CLASS} rounded-xl px-4 py-2 text-sm`,
                                 children: "Configurações"
                             }, void 0, false, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 210,
+                                lineNumber: 294,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                 type: "button",
                                 onClick: openCreateModal,
-                                className: "rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-slate-900 shadow-panel transition hover:bg-cyan-300",
+                                className: `${ACCENT_BUTTON_CLASS} rounded-xl px-5 py-2 text-sm`,
                                 children: "Novo Agendamento SLA"
                             }, void 0, false, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 217,
+                                lineNumber: 301,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                        lineNumber: 209,
+                        lineNumber: 293,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                lineNumber: 203,
+                lineNumber: 287,
                 columnNumber: 7
             }, this),
             statusMessage && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1613,7 +1708,7 @@ function EnvioSlaView() {
                 children: statusMessage
             }, void 0, false, {
                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                lineNumber: 228,
+                lineNumber: 312,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
@@ -1622,26 +1717,26 @@ function EnvioSlaView() {
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                         type: "button",
                         onClick: ()=>setShowFilters((prev)=>!prev),
-                        className: "flex w-full items-center justify-between rounded-xl border border-border px-4 py-2 text-left text-sm text-text transition hover:border-accent",
+                        className: `flex w-full items-center justify-between rounded-xl px-4 py-2 text-left text-sm ${ACCENT_BUTTON_CLASS}`,
                         children: [
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                 children: "Filtro avançado"
                             }, void 0, false, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 239,
+                                lineNumber: 323,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                 children: showFilters ? "−" : "+"
                             }, void 0, false, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 240,
+                                lineNumber: 324,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                        lineNumber: 234,
+                        lineNumber: 318,
                         columnNumber: 9
                     }, this),
                     showFilters && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -1661,13 +1756,13 @@ function EnvioSlaView() {
                                                 }))
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                        lineNumber: 246,
+                                        lineNumber: 330,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 244,
+                                lineNumber: 328,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -1683,13 +1778,13 @@ function EnvioSlaView() {
                                                 }))
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                        lineNumber: 254,
+                                        lineNumber: 338,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 252,
+                                lineNumber: 336,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -1709,7 +1804,7 @@ function EnvioSlaView() {
                                                 children: "Todos"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 267,
+                                                lineNumber: 351,
                                                 columnNumber: 17
                                             }, this),
                                             __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$envio$2d$sla$2f$constants$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["tipoEnvioOptions"].map((opt)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1717,19 +1812,19 @@ function EnvioSlaView() {
                                                     children: opt.label
                                                 }, opt.value, false, {
                                                     fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                    lineNumber: 269,
+                                                    lineNumber: 353,
                                                     columnNumber: 19
                                                 }, this))
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                        lineNumber: 262,
+                                        lineNumber: 346,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 260,
+                                lineNumber: 344,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -1749,7 +1844,7 @@ function EnvioSlaView() {
                                                 children: "Todos"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 282,
+                                                lineNumber: 366,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1757,7 +1852,7 @@ function EnvioSlaView() {
                                                 children: "Ativos"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 283,
+                                                lineNumber: 367,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1765,19 +1860,19 @@ function EnvioSlaView() {
                                                 children: "Pausados"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 284,
+                                                lineNumber: 368,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                        lineNumber: 277,
+                                        lineNumber: 361,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 275,
+                                lineNumber: 359,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -1797,7 +1892,7 @@ function EnvioSlaView() {
                                                 children: "Todos"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 294,
+                                                lineNumber: 378,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1805,7 +1900,7 @@ function EnvioSlaView() {
                                                 children: "Seg"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 295,
+                                                lineNumber: 379,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1813,7 +1908,7 @@ function EnvioSlaView() {
                                                 children: "Ter"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 296,
+                                                lineNumber: 380,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1821,7 +1916,7 @@ function EnvioSlaView() {
                                                 children: "Qua"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 297,
+                                                lineNumber: 381,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1829,7 +1924,7 @@ function EnvioSlaView() {
                                                 children: "Qui"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 298,
+                                                lineNumber: 382,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1837,7 +1932,7 @@ function EnvioSlaView() {
                                                 children: "Sex"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 299,
+                                                lineNumber: 383,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1845,7 +1940,7 @@ function EnvioSlaView() {
                                                 children: "Sáb"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 300,
+                                                lineNumber: 384,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1853,19 +1948,19 @@ function EnvioSlaView() {
                                                 children: "Dom"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 301,
+                                                lineNumber: 385,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                        lineNumber: 289,
+                                        lineNumber: 373,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 287,
+                                lineNumber: 371,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1873,39 +1968,39 @@ function EnvioSlaView() {
                                 children: [
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                         type: "submit",
-                                        className: "flex-1 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-slate-900 shadow hover:bg-cyan-300",
+                                        className: `flex-1 rounded-xl px-4 py-2 text-sm ${ACCENT_BUTTON_CLASS}`,
                                         children: "Aplicar filtros"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                        lineNumber: 305,
+                                        lineNumber: 389,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                         type: "button",
                                         onClick: handleResetFilters,
-                                        className: "rounded-xl border border-border px-4 py-2 text-sm text-text hover:text-accent",
+                                        className: `rounded-xl px-4 py-2 text-sm ${ACCENT_BUTTON_CLASS}`,
                                         children: "Limpar"
                                     }, void 0, false, {
                                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                        lineNumber: 311,
+                                        lineNumber: 395,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 304,
+                                lineNumber: 388,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                        lineNumber: 243,
+                        lineNumber: 327,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                lineNumber: 233,
+                lineNumber: 317,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
@@ -1916,7 +2011,7 @@ function EnvioSlaView() {
                         children: error
                     }, void 0, false, {
                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                        lineNumber: 325,
+                        lineNumber: 409,
                         columnNumber: 11
                     }, this),
                     loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1924,304 +2019,407 @@ function EnvioSlaView() {
                         children: "Carregando agendamentos..."
                     }, void 0, false, {
                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                        lineNumber: 330,
+                        lineNumber: 414,
                         columnNumber: 11
                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "overflow-x-auto",
-                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("table", {
-                            className: "w-full min-w-[680px] border-collapse text-sm text-text",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("thead", {
-                                    className: "bg-surfaceMuted/60 text-xs uppercase tracking-wide text-textMuted",
-                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "mb-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        children: hasSelection ? `${selectedIds.length} selecionado(s)` : "Nenhum agendamento selecionado"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                        lineNumber: 420,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "flex flex-wrap gap-2",
                                         children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-3 py-2 text-left",
-                                                children: "Grupo"
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                type: "button",
+                                                disabled: !hasSelection,
+                                                onClick: handleBulkGeneratePdf,
+                                                className: `${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`,
+                                                children: "Gerar PDF"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 338,
-                                                columnNumber: 19
+                                                lineNumber: 422,
+                                                columnNumber: 17
                                             }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-3 py-2 text-left",
-                                                children: "CR"
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                type: "button",
+                                                disabled: !hasSelection,
+                                                onClick: handleBulkDelete,
+                                                className: `${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`,
+                                                children: "Deletar"
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 339,
-                                                columnNumber: 19
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-3 py-2 text-left",
-                                                children: "Tipo"
+                                                lineNumber: 430,
+                                                columnNumber: 17
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                        lineNumber: 421,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                lineNumber: 419,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("table", {
+                                className: "w-full min-w-[680px] border-collapse text-sm text-text",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("thead", {
+                                        className: "bg-surfaceMuted/60 text-xs uppercase tracking-wide text-textMuted",
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                    className: "px-3 py-2 text-center",
+                                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                        type: "checkbox",
+                                                        className: "h-4 w-4 accent-accent",
+                                                        checked: isAllSelected && allIds.length > 0,
+                                                        onChange: toggleSelectAll,
+                                                        "aria-label": "Selecionar todos"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                        lineNumber: 444,
+                                                        columnNumber: 21
+                                                    }, this)
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 443,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                    className: "px-3 py-2 text-left",
+                                                    children: "Grupo"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 452,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                    className: "px-3 py-2 text-left",
+                                                    children: "CR"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 453,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                    className: "px-3 py-2 text-left",
+                                                    children: "Tipo"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 454,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                    className: "px-3 py-2 text-left",
+                                                    children: "Dias"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 455,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                    className: "px-3 py-2 text-left",
+                                                    children: "Janela"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 456,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                    className: "px-3 py-2 text-left",
+                                                    children: "Próximo envio"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 457,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                    className: "px-3 py-2 text-left",
+                                                    children: "Status"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 458,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                    className: "px-3 py-2 text-left",
+                                                    children: "Último envio"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 459,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                    className: "px-3 py-2 text-center",
+                                                    children: "Ações"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 460,
+                                                    columnNumber: 19
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                            lineNumber: 442,
+                                            columnNumber: 17
+                                        }, this)
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                        lineNumber: 441,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
+                                        children: [
+                                            agendamentos.map((item)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                                    className: "border-b border-border/40 text-sm",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            className: "px-3 py-2 text-center",
+                                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                                type: "checkbox",
+                                                                className: "h-4 w-4 accent-accent",
+                                                                checked: selectedIds.includes(item.id),
+                                                                onChange: ()=>toggleSelect(item.id),
+                                                                "aria-label": `Selecionar ${item.nome_grupo}`
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                lineNumber: 467,
+                                                                columnNumber: 23
+                                                            }, this)
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                            lineNumber: 466,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            className: "px-3 py-2 font-medium text-white",
+                                                            children: item.nome_grupo
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                            lineNumber: 475,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            className: "px-3 py-2 text-textMuted",
+                                                            children: item.cr ?? "--"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                            lineNumber: 476,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            className: "px-3 py-2 capitalize",
+                                                            children: item.tipo_envio
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                            lineNumber: 477,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            className: "px-3 py-2 text-textMuted",
+                                                            children: item.dias_semana ? item.dias_semana.split(",").map((d)=>d.trim()).join(", ") : "--"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                            lineNumber: 478,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            className: "px-3 py-2 text-textMuted",
+                                                            children: [
+                                                                item.hora_inicio?.slice(0, 5),
+                                                                " / ",
+                                                                item.hora_fim?.slice(0, 5)
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                            lineNumber: 481,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            className: "px-3 py-2 text-textMuted",
+                                                            children: item.proximo_envio ?? "--"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                            lineNumber: 484,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            className: "px-3 py-2",
+                                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                className: `rounded-full px-2 py-1 text-xs font-semibold ${item.ativo ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-200"}`,
+                                                                children: item.ativo ? "Ativo" : "Pausado"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                lineNumber: 486,
+                                                                columnNumber: 23
+                                                            }, this)
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                            lineNumber: 485,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            className: "px-3 py-2 text-textMuted",
+                                                            children: item.ultimo_status ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                children: [
+                                                                    item.ultimo_status,
+                                                                    " ",
+                                                                    item.ultimo_envio && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                        className: "text-xs text-textMuted/70",
+                                                                        children: [
+                                                                            "(",
+                                                                            item.ultimo_envio,
+                                                                            ")"
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                        lineNumber: 498,
+                                                                        columnNumber: 49
+                                                                    }, this)
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                lineNumber: 496,
+                                                                columnNumber: 25
+                                                            }, this) : "--"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                            lineNumber: 494,
+                                                            columnNumber: 21
+                                                        }, this),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                            className: "px-3 py-2",
+                                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                className: "flex flex-wrap items-center justify-center gap-2 text-xs",
+                                                                children: [
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                        className: `${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`,
+                                                                        onClick: ()=>openEditModal(item),
+                                                                        children: "Editar"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                        lineNumber: 506,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                        className: `${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`,
+                                                                        onClick: ()=>handleClone(item),
+                                                                        children: "Clonar"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                        lineNumber: 512,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                        className: `${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`,
+                                                                        onClick: ()=>handleGeneratePdf(item.id),
+                                                                        children: "Gerar PDF"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                        lineNumber: 518,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                        className: `${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`,
+                                                                        onClick: ()=>handleToggleStatus(item),
+                                                                        children: item.ativo ? "Pausar" : "Retomar"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                        lineNumber: 524,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                        className: `${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`,
+                                                                        onClick: ()=>handleSendNow(item),
+                                                                        children: "Enviar agora"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                        lineNumber: 530,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                        className: `${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`,
+                                                                        onClick: ()=>openLogs(item),
+                                                                        children: "Logs"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                        lineNumber: 536,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                        className: `${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`,
+                                                                        onClick: ()=>handleDelete(item),
+                                                                        children: "Excluir"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                        lineNumber: 542,
+                                                                        columnNumber: 25
+                                                                    }, this)
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                                lineNumber: 505,
+                                                                columnNumber: 23
+                                                            }, this)
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                            lineNumber: 504,
+                                                            columnNumber: 21
+                                                        }, this)
+                                                    ]
+                                                }, item.id, true, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 465,
+                                                    columnNumber: 19
+                                                }, this)),
+                                            !agendamentos.length && !loading && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                    className: "px-3 py-6 text-center text-textMuted",
+                                                    colSpan: 10,
+                                                    children: "Nenhum agendamento encontrado com os filtros atuais."
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                                    lineNumber: 554,
+                                                    columnNumber: 21
+                                                }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 340,
-                                                columnNumber: 19
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-3 py-2 text-left",
-                                                children: "Dias"
-                                            }, void 0, false, {
-                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 341,
-                                                columnNumber: 19
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-3 py-2 text-left",
-                                                children: "Janela"
-                                            }, void 0, false, {
-                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 342,
-                                                columnNumber: 19
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-3 py-2 text-left",
-                                                children: "Próximo envio"
-                                            }, void 0, false, {
-                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 343,
-                                                columnNumber: 19
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-3 py-2 text-left",
-                                                children: "Status"
-                                            }, void 0, false, {
-                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 344,
-                                                columnNumber: 19
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-3 py-2 text-left",
-                                                children: "Último envio"
-                                            }, void 0, false, {
-                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 345,
-                                                columnNumber: 19
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-3 py-2 text-center",
-                                                children: "Ações"
-                                            }, void 0, false, {
-                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 346,
+                                                lineNumber: 553,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                        lineNumber: 337,
-                                        columnNumber: 17
+                                        lineNumber: 463,
+                                        columnNumber: 15
                                     }, this)
-                                }, void 0, false, {
-                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                    lineNumber: 336,
-                                    columnNumber: 15
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
-                                    children: [
-                                        agendamentos.map((item)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
-                                                className: "border-b border-border/40 text-sm",
-                                                children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
-                                                        className: "px-3 py-2 font-medium text-white",
-                                                        children: item.nome_grupo
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                        lineNumber: 352,
-                                                        columnNumber: 21
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
-                                                        className: "px-3 py-2 text-textMuted",
-                                                        children: item.cr ?? "--"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                        lineNumber: 353,
-                                                        columnNumber: 21
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
-                                                        className: "px-3 py-2 capitalize",
-                                                        children: item.tipo_envio
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                        lineNumber: 354,
-                                                        columnNumber: 21
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
-                                                        className: "px-3 py-2 text-textMuted",
-                                                        children: item.dias_semana ? item.dias_semana.split(",").map((d)=>d.trim()).join(", ") : "--"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                        lineNumber: 355,
-                                                        columnNumber: 21
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
-                                                        className: "px-3 py-2 text-textMuted",
-                                                        children: [
-                                                            item.hora_inicio?.slice(0, 5),
-                                                            " / ",
-                                                            item.hora_fim?.slice(0, 5)
-                                                        ]
-                                                    }, void 0, true, {
-                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                        lineNumber: 358,
-                                                        columnNumber: 21
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
-                                                        className: "px-3 py-2 text-textMuted",
-                                                        children: item.proximo_envio ?? "--"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                        lineNumber: 361,
-                                                        columnNumber: 21
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
-                                                        className: "px-3 py-2",
-                                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                            className: `rounded-full px-2 py-1 text-xs font-semibold ${item.ativo ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-200"}`,
-                                                            children: item.ativo ? "Ativo" : "Pausado"
-                                                        }, void 0, false, {
-                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                            lineNumber: 363,
-                                                            columnNumber: 23
-                                                        }, this)
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                        lineNumber: 362,
-                                                        columnNumber: 21
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
-                                                        className: "px-3 py-2 text-textMuted",
-                                                        children: item.ultimo_status ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                            children: [
-                                                                item.ultimo_status,
-                                                                " ",
-                                                                item.ultimo_envio && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                                    className: "text-xs text-textMuted/70",
-                                                                    children: [
-                                                                        "(",
-                                                                        item.ultimo_envio,
-                                                                        ")"
-                                                                    ]
-                                                                }, void 0, true, {
-                                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                                    lineNumber: 375,
-                                                                    columnNumber: 49
-                                                                }, this)
-                                                            ]
-                                                        }, void 0, true, {
-                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                            lineNumber: 373,
-                                                            columnNumber: 25
-                                                        }, this) : "--"
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                        lineNumber: 371,
-                                                        columnNumber: 21
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
-                                                        className: "px-3 py-2",
-                                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                            className: "flex items-center justify-center gap-2 text-xs",
-                                                            children: [
-                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                                    className: "text-accent hover:underline",
-                                                                    onClick: ()=>openEditModal(item),
-                                                                    children: "Editar"
-                                                                }, void 0, false, {
-                                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                                    lineNumber: 383,
-                                                                    columnNumber: 25
-                                                                }, this),
-                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                                    className: "text-accent hover:underline",
-                                                                    onClick: ()=>handleClone(item),
-                                                                    children: "Clonar"
-                                                                }, void 0, false, {
-                                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                                    lineNumber: 386,
-                                                                    columnNumber: 25
-                                                                }, this),
-                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                                    className: "text-accent hover:underline",
-                                                                    onClick: ()=>handleToggleStatus(item),
-                                                                    children: item.ativo ? "Pausar" : "Retomar"
-                                                                }, void 0, false, {
-                                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                                    lineNumber: 389,
-                                                                    columnNumber: 25
-                                                                }, this),
-                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                                    className: "text-accent hover:underline",
-                                                                    onClick: ()=>openLogs(item),
-                                                                    children: "Logs"
-                                                                }, void 0, false, {
-                                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                                    lineNumber: 392,
-                                                                    columnNumber: 25
-                                                                }, this),
-                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                                    className: "text-rose-300 hover:underline",
-                                                                    onClick: ()=>handleDelete(item),
-                                                                    children: "Excluir"
-                                                                }, void 0, false, {
-                                                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                                    lineNumber: 395,
-                                                                    columnNumber: 25
-                                                                }, this)
-                                                            ]
-                                                        }, void 0, true, {
-                                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                            lineNumber: 382,
-                                                            columnNumber: 23
-                                                        }, this)
-                                                    }, void 0, false, {
-                                                        fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                        lineNumber: 381,
-                                                        columnNumber: 21
-                                                    }, this)
-                                                ]
-                                            }, item.id, true, {
-                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 351,
-                                                columnNumber: 19
-                                            }, this)),
-                                        !agendamentos.length && !loading && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
-                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
-                                                className: "px-3 py-6 text-center text-textMuted",
-                                                colSpan: 9,
-                                                children: "Nenhum agendamento encontrado com os filtros atuais."
-                                            }, void 0, false, {
-                                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                                lineNumber: 404,
-                                                columnNumber: 21
-                                            }, this)
-                                        }, void 0, false, {
-                                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                            lineNumber: 403,
-                                            columnNumber: 19
-                                        }, this)
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                    lineNumber: 349,
-                                    columnNumber: 15
-                                }, this)
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                            lineNumber: 335,
-                            columnNumber: 13
-                        }, this)
-                    }, void 0, false, {
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
+                                lineNumber: 440,
+                                columnNumber: 13
+                            }, this)
+                        ]
+                    }, void 0, true, {
                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                        lineNumber: 334,
+                        lineNumber: 418,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                lineNumber: 323,
+                lineNumber: 407,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2239,7 +2437,7 @@ function EnvioSlaView() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                        lineNumber: 416,
+                        lineNumber: 566,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2249,22 +2447,22 @@ function EnvioSlaView() {
                                 type: "button",
                                 disabled: page <= 1,
                                 onClick: ()=>setPage((prev)=>Math.max(1, prev - 1)),
-                                className: "rounded-lg border border-border px-3 py-1 text-text disabled:opacity-40",
+                                className: `${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-sm`,
                                 children: "Anterior"
                             }, void 0, false, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 420,
+                                lineNumber: 570,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                 type: "button",
                                 disabled: page >= totalPages,
                                 onClick: ()=>setPage((prev)=>Math.min(totalPages, prev + 1)),
-                                className: "rounded-lg border border-border px-3 py-1 text-text disabled:opacity-40",
+                                className: `${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-sm`,
                                 children: "Próxima"
                             }, void 0, false, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 428,
+                                lineNumber: 578,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -2286,24 +2484,24 @@ function EnvioSlaView() {
                                         ]
                                     }, size, true, {
                                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                        lineNumber: 445,
+                                        lineNumber: 595,
                                         columnNumber: 15
                                     }, this))
                             }, void 0, false, {
                                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                                lineNumber: 436,
+                                lineNumber: 586,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                        lineNumber: 419,
+                        lineNumber: 569,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                lineNumber: 415,
+                lineNumber: 565,
                 columnNumber: 7
             }, this),
             modal.open && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$envio$2d$sla$2f$AgendamentoModal$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
@@ -2316,7 +2514,7 @@ function EnvioSlaView() {
                 }
             }, void 0, false, {
                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                lineNumber: 454,
+                lineNumber: 604,
                 columnNumber: 9
             }, this),
             logsState.open && logsState.agendamento && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$envio$2d$sla$2f$LogsModal$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
@@ -2324,7 +2522,7 @@ function EnvioSlaView() {
                 onClose: closeLogs
             }, void 0, false, {
                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                lineNumber: 466,
+                lineNumber: 616,
                 columnNumber: 9
             }, this),
             templateState.confirm && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$envio$2d$sla$2f$ConfirmModal$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
@@ -2336,7 +2534,7 @@ function EnvioSlaView() {
                 onCancel: closeTemplateConfirm
             }, void 0, false, {
                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                lineNumber: 470,
+                lineNumber: 620,
                 columnNumber: 9
             }, this),
             templateState.open && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$envio$2d$sla$2f$TemplateModal$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
@@ -2350,13 +2548,13 @@ function EnvioSlaView() {
                 onSave: handleTemplateSave
             }, void 0, false, {
                 fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-                lineNumber: 481,
+                lineNumber: 631,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/frontend/components/envio-sla/EnvioSlaView.tsx",
-        lineNumber: 202,
+        lineNumber: 286,
         columnNumber: 5
     }, this);
 }

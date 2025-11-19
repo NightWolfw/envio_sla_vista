@@ -4,6 +4,9 @@ Funções auxiliares gerais do sistema
 import re
 from datetime import datetime, timedelta
 
+import pytz
+
+TIMEZONE_BRASILIA = pytz.timezone("America/Sao_Paulo")
 
 def formatar_cr(cr_valor):
     """Formata CR com zeros à esquerda (5 dígitos)"""
@@ -66,7 +69,7 @@ def formatar_horario(horario_str):
 
 def calcular_proximo_envio(horario, dias_semana=None):
     """Calcula data/hora do próximo envio baseado em horário e dias da semana"""
-    agora = datetime.now()
+    agora = datetime.now(TIMEZONE_BRASILIA)
     hora, minuto = map(int, horario.split(':'))
 
     # Se não tem dias específicos, próximo envio é hoje ou amanhã

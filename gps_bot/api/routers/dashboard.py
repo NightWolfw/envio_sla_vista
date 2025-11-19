@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import calendar
 from datetime import datetime, timedelta
+import pytz
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -17,6 +18,8 @@ from app.models.dashboard import (
     buscar_top_executores,
     buscar_top_locais,
 )
+
+TIMEZONE_BRASILIA = pytz.timezone("America/Sao_Paulo")
 
 router = APIRouter()
 
@@ -34,7 +37,7 @@ def _ensure_default_diretor(filtros: Dict[str, str]) -> Dict[str, str]:
 
 
 def _mes_ano_defaults(mes: Optional[int], ano: Optional[int]) -> tuple[int, int]:
-    hoje = datetime.now()
+    hoje = datetime.now(TIMEZONE_BRASILIA)
     return (mes or hoje.month, ano or hoje.year)
 
 
@@ -66,7 +69,7 @@ def dashboard_resumo(
         )
     )
 
-    hoje = datetime.now()
+    hoje = datetime.now(TIMEZONE_BRASILIA)
     primeiro_dia = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
     ultimo_dia = primeiro_dia + timedelta(days=1) - timedelta(microseconds=1)
 
@@ -130,14 +133,16 @@ def dashboard_heatmap(
     pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     target_mes, target_ano = _mes_ano_defaults(mes, ano)
-    primeiro_dia = datetime(target_ano, target_mes, 1)
-    ultimo_dia = datetime(
-        target_ano,
-        target_mes,
-        calendar.monthrange(target_ano, target_mes)[1],
-        23,
-        59,
-        59,
+    primeiro_dia = TIMEZONE_BRASILIA.localize(datetime(target_ano, target_mes, 1))
+    ultimo_dia = TIMEZONE_BRASILIA.localize(
+        datetime(
+            target_ano,
+            target_mes,
+            calendar.monthrange(target_ano, target_mes)[1],
+            23,
+            59,
+            59,
+        )
     )
     filtros = _ensure_default_diretor(
         _collect_filtros(
@@ -172,14 +177,16 @@ def dashboard_executores(
     pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     target_mes, target_ano = _mes_ano_defaults(mes, ano)
-    primeiro_dia = datetime(target_ano, target_mes, 1)
-    ultimo_dia = datetime(
-        target_ano,
-        target_mes,
-        calendar.monthrange(target_ano, target_mes)[1],
-        23,
-        59,
-        59,
+    primeiro_dia = TIMEZONE_BRASILIA.localize(datetime(target_ano, target_mes, 1))
+    ultimo_dia = TIMEZONE_BRASILIA.localize(
+        datetime(
+            target_ano,
+            target_mes,
+            calendar.monthrange(target_ano, target_mes)[1],
+            23,
+            59,
+            59,
+        )
     )
     filtros = _ensure_default_diretor(
         _collect_filtros(
@@ -214,14 +221,16 @@ def dashboard_locais(
     pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     target_mes, target_ano = _mes_ano_defaults(mes, ano)
-    primeiro_dia = datetime(target_ano, target_mes, 1)
-    ultimo_dia = datetime(
-        target_ano,
-        target_mes,
-        calendar.monthrange(target_ano, target_mes)[1],
-        23,
-        59,
-        59,
+    primeiro_dia = TIMEZONE_BRASILIA.localize(datetime(target_ano, target_mes, 1))
+    ultimo_dia = TIMEZONE_BRASILIA.localize(
+        datetime(
+            target_ano,
+            target_mes,
+            calendar.monthrange(target_ano, target_mes)[1],
+            23,
+            59,
+            59,
+        )
     )
     filtros = _ensure_default_diretor(
         _collect_filtros(
@@ -255,14 +264,16 @@ def dashboard_pizza(
     pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     target_mes, target_ano = _mes_ano_defaults(mes, ano)
-    primeiro_dia = datetime(target_ano, target_mes, 1)
-    ultimo_dia = datetime(
-        target_ano,
-        target_mes,
-        calendar.monthrange(target_ano, target_mes)[1],
-        23,
-        59,
-        59,
+    primeiro_dia = TIMEZONE_BRASILIA.localize(datetime(target_ano, target_mes, 1))
+    ultimo_dia = TIMEZONE_BRASILIA.localize(
+        datetime(
+            target_ano,
+            target_mes,
+            calendar.monthrange(target_ano, target_mes)[1],
+            23,
+            59,
+            59,
+        )
     )
     filtros = _ensure_default_diretor(
         _collect_filtros(

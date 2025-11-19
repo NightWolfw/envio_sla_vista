@@ -2,29 +2,43 @@ from datetime import datetime, timedelta
 import re
 from typing import Any, Dict
 
+import pytz
+
 from app.models.sla_template import (
     DEFAULT_PROGRAMADAS_TEMPLATE,
     DEFAULT_RESULTADOS_TEMPLATE,
     get_sla_templates,
 )
 
+TIMEZONE_BRASILIA = pytz.timezone("America/Sao_Paulo")
+
+
+def _to_brasilia(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return TIMEZONE_BRASILIA.localize(dt)
+    return dt.astimezone(TIMEZONE_BRASILIA)
+
 
 def calcular_datas_consulta(data_envio, hora_inicio, dia_offset_inicio, hora_fim, dia_offset_fim):
     """
     Calcula data_inicio e data_fim baseado nos offsets
     """
-    data_inicio = data_envio + timedelta(days=dia_offset_inicio)
-    data_inicio = datetime.combine(data_inicio.date(), hora_inicio)
+    base = _to_brasilia(data_envio)
 
-    data_fim = data_envio + timedelta(days=dia_offset_fim)
-    data_fim = datetime.combine(data_fim.date(), hora_fim)
+    data_inicio = base + timedelta(days=dia_offset_inicio)
+    inicio_naive = datetime.combine(data_inicio.date(), hora_inicio)
+    data_inicio = TIMEZONE_BRASILIA.localize(inicio_naive)
+
+    data_fim = base + timedelta(days=dia_offset_fim)
+    fim_naive = datetime.combine(data_fim.date(), hora_fim)
+    data_fim = TIMEZONE_BRASILIA.localize(fim_naive)
 
     return data_inicio, data_fim
 
 
 def obter_saudacao():
-    """Retorna saudação baseada na hora atual"""
-    hora = datetime.now().hour
+    """Retorna saudacao baseada na hora atual"""
+    hora = datetime.now(TIMEZONE_BRASILIA).hour
 
     if 5 <= hora < 12:
         return "Bom Dia"
@@ -32,8 +46,6 @@ def obter_saudacao():
         return "Boa Tarde"
     else:
         return "Boa Noite"
-
-
 def calcular_porcentagem_feedback(finalizadas, total):
     """
     Calcula porcentagem e retorna emoji + mensagem de feedback

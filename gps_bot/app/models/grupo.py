@@ -1,15 +1,30 @@
 from app.models.database import get_db_site
 
+GRUPO_COLUMNS = [
+    'id',
+    'group_id',
+    'nome_grupo',
+    'envio',
+    'envio_pdf',
+    'cr',
+    'cliente',
+    'pec_01',
+    'pec_02',
+    'diretorexecutivo',
+    'diretorregional',
+    'gerenteregional',
+    'gerente',
+    'supervisor'
+]
+
 
 def listar_grupos(filtros=None):
     """Lista grupos com filtros opcionais"""
     conn = get_db_site()
     cur = conn.cursor()
 
-    query = """
-        SELECT id, group_id, nome_grupo, envio, cr, cliente, pec_01, pec_02,
-               diretorexecutivo, diretorregional, gerenteregional, gerente,
-               supervisor
+    query = f"""
+        SELECT {', '.join(GRUPO_COLUMNS)}
         FROM grupos_whatsapp
         WHERE 1=1
     """
@@ -84,10 +99,8 @@ def obter_grupo(grupo_id):
     conn = get_db_site()
     cur = conn.cursor()
 
-    query = """
-        SELECT id, group_id, nome_grupo, envio, cr, cliente, pec_01, pec_02,
-               diretorexecutivo, diretorregional, gerenteregional, gerente,
-               supervisor
+    query = f"""
+        SELECT {', '.join(GRUPO_COLUMNS)}
         FROM grupos_whatsapp
         WHERE id = %s
     """
@@ -191,6 +204,7 @@ def atualizar_grupo(grupo_id, dados):
         SET group_id = %s, 
             nome_grupo = %s, 
             envio = %s, 
+            envio_pdf = %s,
             cr = %s
         WHERE id = %s
     """
@@ -199,6 +213,7 @@ def atualizar_grupo(grupo_id, dados):
         dados['group_id'],
         dados['nome'],
         dados['enviar_mensagem'],
+        dados['envio_pdf'],
         dados['cr'],
         grupo_id
     ))

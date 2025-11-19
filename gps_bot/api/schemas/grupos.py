@@ -12,6 +12,7 @@ class Grupo(BaseModel):
     group_id: str
     nome_grupo: str
     envio: bool
+    envio_pdf: bool
     cr: Optional[str] = None
     cliente: Optional[str] = None
     pec_01: Optional[str] = None
@@ -27,6 +28,7 @@ class GrupoUpdate(BaseModel):
     group_id: str
     nome: str
     enviar_mensagem: bool
+    envio_pdf: bool
     cr: Optional[str] = None
 
 

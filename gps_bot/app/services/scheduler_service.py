@@ -4,16 +4,19 @@ Scheduler para envios automatizados de SLA
 import atexit
 import logging
 import os
+import threading
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
+from urllib.parse import quote
 
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, timedelta
 
-from app.models.agendamento import listar_agendamentos, atualizar_agendamento
-from app.models.grupo import obter_grupo
+import config as project_config
+from app.models.agendamento import AGENDAMENTO_COLUMNS, listar_agendamentos, atualizar_agendamento, obter_agendamento
+from app.models.grupo import obter_grupo, GRUPO_COLUMNS
 from app.services.mensagem_agendamento import (
     calcular_datas_consulta,
     formatar_mensagem_programadas,
@@ -21,10 +24,11 @@ from app.services.mensagem_agendamento import (
 )
 from app.services.pdf_sla import gerar_pdf_relatorio
 from app.services.sla_consulta import buscar_tarefas_por_periodo, buscar_tarefas_detalhadas
-from app.services.whatsapp import enviar_mensagem_texto, enviar_pdf_whatsapp
+from app.services.whatsapp import enviar_mensagem_texto
 
 logger = logging.getLogger(__name__)
 TIMEZONE_BRASILIA = pytz.timezone('America/Sao_Paulo')
+PUBLIC_BASE_URL = project_config.PUBLIC_API_BASE_URL.rstrip('/')
 
 scheduler = BackgroundScheduler(timezone=TIMEZONE_BRASILIA)
 ultimos_envios: Dict[str, bool] = {}  # Cache em memória para evitar duplicação
@@ -32,6 +36,92 @@ _scheduler_started = False
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 LOCKFILE_PATH = Path(os.getenv("SCHEDULER_LOCKFILE", BASE_DIR / 'scheduler.lock'))
+
+
+def _pdf_download_url(caminho_pdf: str) -> str:
+    filename = Path(caminho_pdf).name
+    return f"{PUBLIC_BASE_URL}/api/files/sla/{quote(filename)}"
+
+
+def _agendar_remocao_pdf(caminho_pdf: str, delay: int = 300) -> None:
+    def _remover():
+        try:
+            if os.path.exists(caminho_pdf):
+                os.remove(caminho_pdf)
+                logger.info(f"[PID {os.getpid()}] PDF temporário removido: {caminho_pdf}")
+        except Exception as exc:
+            logger.error(f"[PID {os.getpid()}] Erro ao remover PDF temporário {caminho_pdf}: {exc}")
+
+    timer = threading.Timer(delay, _remover)
+    timer.daemon = True
+    timer.start()
+
+
+def _normalizar_data_envio(data_envio: datetime) -> datetime:
+    if data_envio.tzinfo is None:
+        return TIMEZONE_BRASILIA.localize(data_envio)
+    return data_envio.astimezone(TIMEZONE_BRASILIA)
+
+
+def _obter_relatorio_contexto(agendamento: Dict[str, Any], cr: Any):
+    data_envio_local = _normalizar_data_envio(agendamento['data_envio'])
+
+    data_inicio, data_fim = calcular_datas_consulta(
+        data_envio_local,
+        agendamento['hora_inicio'],
+        agendamento['dia_offset_inicio'],
+        agendamento['hora_fim'],
+        agendamento['dia_offset_fim']
+    )
+
+    if agendamento['tipo_envio'] == 'programadas':
+        tarefas = buscar_tarefas_detalhadas(cr, data_inicio, data_fim, tipos_status=['em_aberto', 'iniciadas'])
+    else:
+        tarefas = buscar_tarefas_detalhadas(cr, data_inicio, data_fim)
+
+    return data_envio_local, data_inicio, data_fim, tarefas
+
+
+def gerar_pdf_agendamento(agendamento_id: int) -> str:
+    registro = obter_agendamento(agendamento_id)
+    if not registro:
+        raise LookupError("Agendamento não encontrado")
+
+    agendamento = dict(zip(AGENDAMENTO_COLUMNS, registro))
+    grupo_row = obter_grupo(agendamento['grupo_id'])
+    if not grupo_row:
+        raise LookupError("Grupo não encontrado")
+
+    grupo = dict(zip(GRUPO_COLUMNS, grupo_row))
+    cr = grupo['cr']
+    nome_grupo = grupo['nome_grupo']
+
+    _, data_inicio, data_fim, tarefas = _obter_relatorio_contexto(agendamento, cr)
+    caminho_pdf = gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, agendamento['tipo_envio'])
+    _agendar_remocao_pdf(caminho_pdf)
+    return _pdf_download_url(caminho_pdf)
+
+
+def _pdf_download_url(caminho_pdf: str) -> str:
+    filename = Path(caminho_pdf).name
+    return f"{PUBLIC_BASE_URL}/api/files/sla/{quote(filename)}"
+
+
+
+def _agendar_remocao_pdf(caminho_pdf: str, delay: int = 300) -> None:
+    def _remover():
+        try:
+            if os.path.exists(caminho_pdf):
+                os.remove(caminho_pdf)
+                logger.info(f"[PID {os.getpid()}] PDF temporário removido: {caminho_pdf}")
+        except Exception as exc:
+            logger.error(f"[PID {os.getpid()}] Erro ao remover PDF temporário {caminho_pdf}: {exc}")
+
+    timer = threading.Timer(delay, _remover)
+    timer.daemon = True
+    timer.start()
+
+
 
 
 def cleanup_lockfile():
@@ -130,8 +220,13 @@ def atualizar_proximo_envio(agendamento_id, nova_data):
         logger.error(f"[PID {os.getpid()}] Erro ao atualizar próximo envio: {e}")
 
 
-def enviar_sla_agendado(agendamento):
-    """Executa o envio de SLA"""
+def enviar_sla_agendado(agendamento, atualizar_proximo=True):
+    """Executa o envio de SLA.
+
+    Args:
+        agendamento: registro completo do agendamento atual.
+        atualizar_proximo: define se o próximo envio deve ser recalculado após a execução.
+    """
     print(f"\n{'#' * 60}")
     print(f"[ENVIO] [PID {os.getpid()}] INICIANDO ENVIO - Agendamento {agendamento['id']}")
     print(f"{'#' * 60}\n")
@@ -139,64 +234,53 @@ def enviar_sla_agendado(agendamento):
     try:
         logger.info(f"[PID {os.getpid()}] === INICIANDO ENVIO PARA AGENDAMENTO {agendamento['id']} ===")
 
-        grupo = obter_grupo(agendamento['grupo_id'])
-        if not grupo:
+        grupo_row = obter_grupo(agendamento['grupo_id'])
+        if not grupo_row:
             raise Exception("Grupo não encontrado")
 
-        group_id = grupo[1]
-        cr = grupo[4]
-        nome_grupo = grupo[2]
+        grupo = dict(zip(GRUPO_COLUMNS, grupo_row))
+        group_id = grupo['group_id']
+        cr = grupo['cr']
+        nome_grupo = grupo['nome_grupo']
+        envio_pdf_habilitado = bool(grupo.get('envio_pdf'))
 
-        # Calcula período
-        data_envio = agendamento['data_envio']
-        if data_envio.tzinfo is None:
-            data_envio = TIMEZONE_BRASILIA.localize(data_envio)
-
-        data_inicio, data_fim = calcular_datas_consulta(
-            data_envio,
-            agendamento['hora_inicio'],
-            agendamento['dia_offset_inicio'],
-            agendamento['hora_fim'],
-            agendamento['dia_offset_fim']
-        )
+        data_envio_local, data_inicio, data_fim, tarefas = _obter_relatorio_contexto(agendamento, cr)
 
         # Busca stats
         stats = buscar_tarefas_por_periodo(cr, data_inicio, data_fim, agendamento['tipo_envio'])
 
         # Formata mensagem
         if agendamento['tipo_envio'] == 'resultados':
-            mensagem = formatar_mensagem_resultados(data_inicio, data_fim, stats, data_envio)
+            mensagem = formatar_mensagem_resultados(data_inicio, data_fim, stats, data_envio_local)
         else:
-            mensagem = formatar_mensagem_programadas(data_inicio, data_fim, stats, data_envio)
+            mensagem = formatar_mensagem_programadas(data_inicio, data_fim, stats, data_envio_local)
 
-        # Envia mensagem
+        mensagem_final = mensagem
+        pdf_url = None
+        if envio_pdf_habilitado:
+            logger.info(f"[PID {os.getpid()}] Gerando PDF...")
+            caminho_pdf = gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, agendamento['tipo_envio'])
+            _agendar_remocao_pdf(caminho_pdf)
+            pdf_url = _pdf_download_url(caminho_pdf)
+            mensagem_final = f"{mensagem}\n\n[PDF] Relatório completo: {pdf_url}"
+        else:
+            logger.info(f"[PID {os.getpid()}] Envio de PDF desabilitado para este grupo.")
+
         logger.info(f"[PID {os.getpid()}] Enviando mensagem...")
-        resposta_msg = enviar_mensagem_texto(group_id, mensagem)
+        resposta_msg = enviar_mensagem_texto(group_id, mensagem_final)
 
-        # Busca tarefas para PDF
-        if agendamento['tipo_envio'] == 'programadas':
-            tarefas = buscar_tarefas_detalhadas(cr, data_inicio, data_fim, tipos_status=['em_aberto', 'iniciadas'])
-        else:
-            tarefas = buscar_tarefas_detalhadas(cr, data_inicio, data_fim)
-
-        # Gera e envia PDF
-        logger.info(f"[PID {os.getpid()}] Gerando PDF...")
-        caminho_pdf = gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, agendamento['tipo_envio'])
-
-        logger.info(f"[PID {os.getpid()}] Enviando PDF...")
-        resposta_pdf = enviar_pdf_whatsapp(group_id, caminho_pdf, f"Relatório SLA - {nome_grupo}")
-
-        # Atualiza próximo envio
-        proxima_data = calcular_proximo_envio(agendamento['data_envio'], agendamento['dias_semana'])
-        atualizar_proximo_envio(agendamento['id'], proxima_data)
+        # Atualiza próximo envio quando necessário
+        if atualizar_proximo:
+            proxima_data = calcular_proximo_envio(agendamento['data_envio'], agendamento['dias_semana'])
+            atualizar_proximo_envio(agendamento['id'], proxima_data)
 
         # Registra log
         registrar_log_envio(
             agendamento['id'],
             agendamento['grupo_id'],
             'sucesso',
-            mensagem,
-            f"MSG: {resposta_msg}, PDF: {resposta_pdf}",
+            mensagem_final,
+            f"MSG: {resposta_msg}, PDF_LINK: {pdf_url}",
             ''
         )
 
@@ -216,6 +300,20 @@ def enviar_sla_agendado(agendamento):
             error_detail
         )
         raise
+
+
+def enviar_agendamento_imediato(agendamento_id: int):
+    """Executa o envio manual de um agendamento sem alterar a agenda."""
+    registro = obter_agendamento(agendamento_id)
+    if not registro:
+        raise LookupError("Agendamento não encontrado")
+
+    agendamento = dict(zip(AGENDAMENTO_COLUMNS, registro))
+    if not agendamento.get('ativo'):
+        raise ValueError("Agendamento está pausado.")
+
+    enviar_sla_agendado(agendamento, atualizar_proximo=False)
+    return agendamento
 
 
 def verificar_agendamentos():

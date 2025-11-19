@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from api.schemas.sla import SLAPreview, SLAPreviewRequest, SLATemplate
-from app.models.grupo import obter_grupo
+from app.models.grupo import obter_grupo, GRUPO_COLUMNS
 from app.models.sla_template import get_sla_templates, update_sla_templates
 from app.services.mensagem_agendamento import (
     calcular_datas_consulta,
@@ -17,12 +17,13 @@ router = APIRouter()
 
 @router.post("/preview/{grupo_id}", response_model=SLAPreview)
 def preview_mensagem(grupo_id: int, payload: SLAPreviewRequest) -> SLAPreview:
-    grupo = obter_grupo(grupo_id)
-    if not grupo:
+    grupo_row = obter_grupo(grupo_id)
+    if not grupo_row:
         raise HTTPException(status_code=404, detail="Grupo não encontrado")
 
-    cr = grupo[4]
-    nome_grupo = grupo[2]
+    grupo = dict(zip(GRUPO_COLUMNS, grupo_row))
+    cr = grupo.get("cr")
+    nome_grupo = grupo.get("nome_grupo")
 
     if not cr:
         raise HTTPException(status_code=400, detail="Grupo sem CR configurado")

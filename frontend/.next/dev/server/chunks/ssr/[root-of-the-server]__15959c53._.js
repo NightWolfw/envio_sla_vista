@@ -55,10 +55,16 @@ __turbopack_context__.s([
     ()=>createAgendamento,
     "deleteAgendamento",
     ()=>deleteAgendamento,
+    "deleteAgendamentosBulk",
+    ()=>deleteAgendamentosBulk,
     "deleteGroups",
     ()=>deleteGroups,
     "fetchSlaTemplate",
     ()=>fetchSlaTemplate,
+    "generatePdfAgendamento",
+    ()=>generatePdfAgendamento,
+    "generatePdfBulk",
+    ()=>generatePdfBulk,
     "getAgendamentoLogs",
     ()=>getAgendamentoLogs,
     "getAgendamentos",
@@ -95,6 +101,8 @@ __turbopack_context__.s([
     ()=>pauseAgendamento,
     "resumeAgendamento",
     ()=>resumeAgendamento,
+    "sendAgendamentoNow",
+    ()=>sendAgendamentoNow,
     "syncGroupStructure",
     ()=>syncGroupStructure,
     "updateAgendamento",
@@ -186,6 +194,22 @@ async function pauseAgendamento(id) {
 }
 async function resumeAgendamento(id) {
     return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/resume`);
+}
+async function sendAgendamentoNow(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/send-now`);
+}
+async function generatePdfAgendamento(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/pdf`);
+}
+async function generatePdfBulk(ids) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].post("/agendamentos/bulk/pdf", {
+        ids
+    });
+}
+async function deleteAgendamentosBulk(ids) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["clientApi"].delete("/agendamentos/bulk", {
+        ids
+    });
 }
 async function getAgendamentoLogs(agendamentoId, page = 1, pageSize = 10) {
     const query = buildQuery({

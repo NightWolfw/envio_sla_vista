@@ -4,7 +4,7 @@ services:
   # ==================== EVOLUTION API ====================
   evolution_api:
     container_name: evolution_api
-    image: evoapicloud/evolution-api:latest
+    image: evoapicloud/evolution-api:v2.3.5
     restart: always
     depends_on:
       - redis

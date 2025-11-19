@@ -8,6 +8,19 @@ from app.models.database import get_db_site
 # Timezone de Brasília
 TIMEZONE_BRASILIA = pytz.timezone('America/Sao_Paulo')
 
+
+def _to_brasilia(dt: datetime):
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return TIMEZONE_BRASILIA.localize(dt)
+    return dt.astimezone(TIMEZONE_BRASILIA)
+
+
+def _to_brasilia_naive(dt: datetime):
+    aware = _to_brasilia(dt)
+    return aware.replace(tzinfo=None) if aware else None
+
 AGENDAMENTO_COLUMNS = [
     'id',
     'grupo_id',
@@ -38,11 +51,13 @@ def criar_agendamento(dados):
         RETURNING id
     """
 
+    data_envio = _to_brasilia_naive(dados['data_envio'])
+
     cur.execute(query, (
         dados['grupo_id'],
         dados['tipo_envio'],
         dados['dias_semana'],
-        dados['data_envio'],
+        data_envio,
         dados['hora_inicio'],
         dados['dia_offset_inicio'],
         dados['hora_fim'],
@@ -89,11 +104,7 @@ def listar_agendamentos():
     agendamentos = []
     for row in rows:
         # Converte para timezone de Brasília
-        data_envio = row[6]
-        if data_envio.tzinfo is None:
-            data_envio = TIMEZONE_BRASILIA.localize(data_envio)
-        else:
-            data_envio = data_envio.astimezone(TIMEZONE_BRASILIA)
+        data_envio = _to_brasilia(row[6])
 
         agendamentos.append({
             'id': row[0],
@@ -139,7 +150,7 @@ def listar_agendamentos_filtrado(filtros: Dict[str, Any], page: int, page_size: 
         params.append(f"%{filtros['grupo'].lower()}%")
 
     if filtros.get('cr'):
-        where_clauses.append("g.cr ILIKE %s")
+        where_clauses.append("CAST(g.cr AS TEXT) ILIKE %s")
         params.append(f"%{filtros['cr']}%")
 
     if filtros.get('dia'):
@@ -148,11 +159,11 @@ def listar_agendamentos_filtrado(filtros: Dict[str, Any], page: int, page_size: 
 
     if filtros.get('data_inicio'):
         where_clauses.append("a.data_envio >= %s")
-        params.append(filtros['data_inicio'])
+        params.append(_to_brasilia_naive(filtros['data_inicio']))
 
     if filtros.get('data_fim'):
         where_clauses.append("a.data_envio <= %s")
-        params.append(filtros['data_fim'])
+        params.append(_to_brasilia_naive(filtros['data_fim']))
 
     where_clause = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
@@ -207,17 +218,13 @@ def listar_agendamentos_filtrado(filtros: Dict[str, Any], page: int, page_size: 
 
     itens = []
     for row in rows:
-        data_envio = row[6]
-        if data_envio:
-            if data_envio.tzinfo is None:
-                data_envio = TIMEZONE_BRASILIA.localize(data_envio)
-            else:
-                data_envio = data_envio.astimezone(TIMEZONE_BRASILIA)
+        data_envio = _to_brasilia(row[6])
+        ultimo_envio = _to_brasilia(row[15]) if row[15] else None
         itens.append({
             'id': row[0],
             'grupo_id': row[1],
             'nome_grupo': row[2],
-            'cr': row[3],
+            'cr': str(row[3]) if row[3] is not None else None,
             'tipo_envio': row[4],
             'dias_semana': row[5],
             'data_envio': data_envio,
@@ -230,7 +237,7 @@ def listar_agendamentos_filtrado(filtros: Dict[str, Any], page: int, page_size: 
             'criado_em': row[12],
             'atualizado_em': row[13],
             'ultimo_status': row[14],
-            'ultimo_envio': row[15].strftime('%d/%m/%Y %H:%M:%S') if row[15] else None,
+            'ultimo_envio': ultimo_envio.strftime('%d/%m/%Y %H:%M:%S') if ultimo_envio else None,
             'ultimo_erro': row[16]
         })
 
@@ -319,14 +326,16 @@ def obter_logs_agendamento(agendamento_id, page: int = 1, page_size: int = 20):
 
     logs = []
     for row in rows:
+        data_envio = _to_brasilia(row[1])
+        criado_em = _to_brasilia(row[6])
         logs.append({
             'id': row[0],
-            'data_envio': row[1].strftime('%d/%m/%Y %H:%M:%S') if row[1] else '',
+            'data_envio': data_envio.strftime('%d/%m/%Y %H:%M:%S') if data_envio else '',
             'status': row[2],
             'mensagem_enviada': row[3],
             'resposta_api': row[4],
             'erro': row[5],
-            'criado_em': row[6].strftime('%d/%m/%Y %H:%M:%S') if row[6] else '',
+            'criado_em': criado_em.strftime('%d/%m/%Y %H:%M:%S') if criado_em else '',
             'nome_grupo': row[7]
         })
 
@@ -355,11 +364,13 @@ def atualizar_agendamento(agendamento_id, dados):
         WHERE id = %s
     """
 
+    data_envio = _to_brasilia_naive(dados['data_envio'])
+
     cur.execute(query, (
         dados['grupo_id'],
         dados['tipo_envio'],
         dados['dias_semana'],
-        dados['data_envio'],
+        data_envio,
         dados['hora_inicio'],
         dados['dia_offset_inicio'],
         dados['hora_fim'],
@@ -396,7 +407,7 @@ def clonar_agendamento(agendamento_id: int) -> int:
         'grupo_id': data['grupo_id'],
         'tipo_envio': data['tipo_envio'],
         'dias_semana': data['dias_semana'],
-        'data_envio': data['data_envio'],
+        'data_envio': _to_brasilia(data['data_envio']),
         'hora_inicio': data['hora_inicio'],
         'dia_offset_inicio': data['dia_offset_inicio'],
         'hora_fim': data['hora_fim'],

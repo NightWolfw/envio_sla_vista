@@ -81,6 +81,8 @@ __turbopack_context__.s([
     ()=>pauseAgendamento,
     "resumeAgendamento",
     ()=>resumeAgendamento,
+    "sendAgendamentoNow",
+    ()=>sendAgendamentoNow,
     "syncGroupStructure",
     ()=>syncGroupStructure,
     "updateAgendamento",
@@ -172,6 +174,9 @@ async function pauseAgendamento(id) {
 }
 async function resumeAgendamento(id) {
     return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/resume`);
+}
+async function sendAgendamentoNow(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/send-now`);
 }
 async function getAgendamentoLogs(agendamentoId, page = 1, pageSize = 10) {
     const query = buildQuery({

@@ -12,6 +12,16 @@ import config as project_config
 logger = logging.getLogger(__name__)
 
 
+def _ensure_success(response: requests.Response, contexto: str):
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as exc:
+        body = response.text
+        logger.error("%s - HTTP %s: %s", contexto, response.status_code, body)
+        raise Exception(f"{contexto}: HTTP {response.status_code} - {body}") from exc
+    return response
+
+
 def get_evolution_config() -> Dict[str, Any]:
     """Retorna configuração da Evolution API"""
     return project_config.EVOLUTION_CONFIG.copy()
@@ -46,15 +56,13 @@ def enviar_mensagem_texto(group_id, mensagem):
         logger.info(f"Enviando mensagem para grupo {group_id}")
 
         response = requests.post(url, json=payload, headers=headers, timeout=30)
-        response.raise_for_status()
-
-        resultado = response.json()
+        resultado = _ensure_success(response, f"Erro ao enviar mensagem para {group_id}").json()
         logger.info(f"Mensagem enviada com sucesso: {resultado}")
 
         return resultado
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"Erro ao enviar mensagem: {e}")
+        logger.error(f"Erro ao enviar mensagem para {group_id}: {e}")
         raise Exception(f"Erro ao enviar mensagem: {str(e)}")
 
 
@@ -120,9 +128,7 @@ def enviar_pdf_whatsapp(group_id, caminho_pdf, caption=''):
         logger.info(f"Enviando PDF {filename} para grupo {group_id}")
 
         response = requests.post(url, json=payload, headers=headers, timeout=60)
-        response.raise_for_status()
-
-        resultado = response.json()
+        resultado = _ensure_success(response, f"Erro ao enviar PDF para {group_id}").json()
         logger.info(f"PDF enviado com sucesso: {resultado}")
 
         return resultado
@@ -131,7 +137,7 @@ def enviar_pdf_whatsapp(group_id, caminho_pdf, caption=''):
         logger.error(f"Arquivo PDF não encontrado: {caminho_pdf}")
         raise Exception(f"Arquivo PDF não encontrado: {caminho_pdf}")
     except requests.exceptions.RequestException as e:
-        logger.error(f"Erro ao enviar PDF: {e}")
+        logger.error(f"Erro ao enviar PDF para {group_id}: {e}")
         raise Exception(f"Erro ao enviar PDF: {str(e)}")
 
 
@@ -216,9 +222,7 @@ def enviar_arquivo(group_id, caminho_arquivo, caption='', mimetype='application/
         logger.info(f"Enviando arquivo {filename} para grupo {group_id}")
 
         response = requests.post(url, json=payload, headers=headers, timeout=60)
-        response.raise_for_status()
-
-        resultado = response.json()
+        resultado = _ensure_success(response, f"Erro ao enviar arquivo para {group_id}").json()
         logger.info(f"Arquivo enviado com sucesso: {resultado}")
 
         return resultado
@@ -227,7 +231,7 @@ def enviar_arquivo(group_id, caminho_arquivo, caption='', mimetype='application/
         logger.error(f"Arquivo não encontrado: {caminho_arquivo}")
         raise Exception(f"Arquivo não encontrado: {caminho_arquivo}")
     except requests.exceptions.RequestException as e:
-        logger.error(f"Erro ao enviar arquivo: {e}")
+        logger.error(f"Erro ao enviar arquivo para {group_id}: {e}")
         raise Exception(f"Erro ao enviar arquivo: {str(e)}")
 
 

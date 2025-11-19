@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.models.database import get_db_site
-from app.models.grupo import listar_grupos, obter_valores_unicos_filtros
+from app.models.grupo import listar_grupos, obter_valores_unicos_filtros, GRUPO_COLUMNS
 from app.services.whatsapp import enviar_mensagem
 
 router = APIRouter()
@@ -31,20 +31,22 @@ class EnvioResponse(BaseModel):
 
 
 def _serialize_grupo(row: tuple[Any, ...]) -> Dict[str, Any]:
+    data = dict(zip(GRUPO_COLUMNS, row))
     return {
-        "id": row[0],
-        "group_id": row[1],
-        "nome_grupo": row[2],
-        "envio": row[3],
-        "cr": row[4],
-        "cliente": row[5],
-        "pec_01": row[6],
-        "pec_02": row[7],
-        "diretorexecutivo": row[8],
-        "diretorregional": row[9],
-        "gerenteregional": row[10],
-        "gerente": row[11],
-        "supervisor": row[12],
+        "id": data["id"],
+        "group_id": data["group_id"],
+        "nome_grupo": data["nome_grupo"],
+        "envio": data["envio"],
+        "envio_pdf": data.get("envio_pdf", False),
+        "cr": data.get("cr"),
+        "cliente": data.get("cliente"),
+        "pec_01": data.get("pec_01"),
+        "pec_02": data.get("pec_02"),
+        "diretorexecutivo": data.get("diretorexecutivo"),
+        "diretorregional": data.get("diretorregional"),
+        "gerenteregional": data.get("gerenteregional"),
+        "gerente": data.get("gerente"),
+        "supervisor": data.get("supervisor"),
     }
 
 

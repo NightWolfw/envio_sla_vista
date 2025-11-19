@@ -53,6 +53,7 @@ export default function GroupTable({ grupos, selectedIds, onToggle, onToggleAll,
               <th>Group ID</th>
               <th>CR</th>
               <th>Envio</th>
+              <th>Envio PDF</th>
               <th>Cliente</th>
               <th>PEC 01</th>
               <th>PEC 02</th>
@@ -78,6 +79,9 @@ export default function GroupTable({ grupos, selectedIds, onToggle, onToggleAll,
                   <td>
                     <span className="chip">{grupo.envio ? "Ativo" : "Inativo"}</span>
                   </td>
+                  <td>
+                    <span className="chip">{grupo.envio_pdf ? "Habilitado" : "Desabilitado"}</span>
+                  </td>
                   <td>{grupo.cliente ?? "—"}</td>
                   <td>{grupo.pec_01 ?? "—"}</td>
                   <td>{grupo.pec_02 ?? "—"}</td>
@@ -97,7 +101,7 @@ export default function GroupTable({ grupos, selectedIds, onToggle, onToggleAll,
             })}
             {data.items.length === 0 && (
               <tr>
-                <td colSpan={14} style={{ textAlign: "center", padding: "1rem" }}>
+                <td colSpan={15} style={{ textAlign: "center", padding: "1rem" }}>
                   Nenhum grupo encontrado com os filtros atuais.
                 </td>
               </tr>

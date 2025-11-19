@@ -66,6 +66,7 @@ export type Grupo = {
   group_id: string;
   nome_grupo: string;
   envio: boolean;
+  envio_pdf: boolean;
   cr?: string | null;
   cliente?: string | null;
   pec_01?: string | null;
@@ -125,6 +126,27 @@ export type AgendamentoFilters = {
   data_fim?: string;
 };
 
+export type EnviarAgoraResponse = {
+  id: number;
+  status: string;
+  message: string;
+};
+
+export type PdfLinkResponse = {
+  id: number;
+  url: string;
+};
+
+export type PdfBulkResponse = {
+  successes: PdfLinkResponse[];
+  failures: number[];
+};
+
+export type BulkDeleteResponse = {
+  removed: number;
+  failures: number[];
+};
+
 function buildQuery(params: Record<string, any>): string {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -178,6 +200,22 @@ export async function pauseAgendamento(id: number) {
 
 export async function resumeAgendamento(id: number) {
   return clientApi.post<{ id: number; ativo: boolean }>(`/agendamentos/${id}/resume`);
+}
+
+export async function sendAgendamentoNow(id: number) {
+  return clientApi.post<EnviarAgoraResponse>(`/agendamentos/${id}/send-now`);
+}
+
+export async function generatePdfAgendamento(id: number) {
+  return clientApi.post<PdfLinkResponse>(`/agendamentos/${id}/pdf`);
+}
+
+export async function generatePdfBulk(ids: number[]) {
+  return clientApi.post<PdfBulkResponse>("/agendamentos/bulk/pdf", { ids });
+}
+
+export async function deleteAgendamentosBulk(ids: number[]) {
+  return clientApi.delete<BulkDeleteResponse>("/agendamentos/bulk", { ids });
 }
 
 export type AgendamentoLog = {

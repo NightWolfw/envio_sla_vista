@@ -77,6 +77,22 @@ class AgendamentoLog(BaseModel):
     nome_grupo: Optional[str]
 
 
+class EnviarAgoraResponse(BaseModel):
+    id: int
+    status: Literal["enviado", "erro"]
+    message: str
+
+
+class PdfLinkResponse(BaseModel):
+    id: int
+    url: str
+
+
+class PdfBulkResponse(BaseModel):
+    successes: list[PdfLinkResponse]
+    failures: list[int]
+
+
 class ToggleResponse(BaseModel):
     id: int
     ativo: bool
@@ -94,3 +110,12 @@ class AgendamentoLogList(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class BulkIdsRequest(BaseModel):
+    ids: list[int] = Field(default_factory=list)
+
+
+class BulkDeleteResponse(BaseModel):
+    removed: int
+    failures: list[int]

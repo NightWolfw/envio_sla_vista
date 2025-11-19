@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import pytz
+
 from fastapi import APIRouter, HTTPException
 
 from app.models.database import get_db_site
 from api.schemas.main import OverviewStats
 
 router = APIRouter()
+TIMEZONE_BRASILIA = pytz.timezone("America/Sao_Paulo")
 
 
 @router.get("/stats", response_model=OverviewStats)
@@ -33,7 +36,7 @@ def obter_estatisticas() -> OverviewStats:
             total_grupos=total_grupos,
             total_mensagens=total_mensagens,
             total_envios=total_envios,
-            generated_at=datetime.now(),
+            generated_at=datetime.now(TIMEZONE_BRASILIA),
         )
     except Exception as exc:  # pragma: no cover - apenas logging
         raise HTTPException(status_code=500, detail=str(exc)) from exc

@@ -69,6 +69,16 @@ docker-compose -f docker-compose-completo.yml logs -f envio_sla_app
 - **GPS Bot**: http://localhost:5000
 - **Evolution API**: http://localhost:8080
 
+## 📄 Relatórios SLA (PDF via link)
+
+- O envio automático agora gera o PDF localmente e envia **somente o link** no WhatsApp. Nada de upload de mídia pela Evolution API.
+- Garanta que `PUBLIC_API_BASE_URL` (no `.env`) aponte para o endereço público do FastAPI; ele monta as URLs que são abertas no frontend/WhatsApp.
+- Use `PDF_STORAGE_DIR` para definir onde os PDFs temporários serão salvos dentro do container (por padrão `gps_bot/temp_pdfs`). Eles são excluídos automaticamente após 5 minutos.
+- Endpoints úteis para testes:
+  - `POST /api/agendamentos/{id}/pdf` → gera e retorna um link único.
+  - `POST /api/agendamentos/bulk/pdf` → gera links para vários agendamentos.
+  - `GET /api/files/sla/{filename}` → baixa o PDF pelo link retornado.
+
 ## 📊 Comandos Úteis
 
 ```bash

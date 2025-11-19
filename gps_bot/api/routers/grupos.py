@@ -19,6 +19,7 @@ from app.models.grupo import (
     atualizar_grupo,
     listar_ids_com_cr,
     deletar_grupos_por_ids,
+    GRUPO_COLUMNS,
 )
 from app.services.estrutura import atualizar_dados_estrutura, atualizar_grupo_especifico
 
@@ -26,27 +27,13 @@ router = APIRouter()
 
 
 def _serialize_grupo(row: tuple[Any, ...]) -> Grupo:
-    keys = [
-        "id",
-        "group_id",
-        "nome_grupo",
-        "envio",
-        "cr",
-        "cliente",
-        "pec_01",
-        "pec_02",
-        "diretorexecutivo",
-        "diretorregional",
-        "gerenteregional",
-        "gerente",
-        "supervisor",
-    ]
-    data = dict(zip(keys, row))
+    data = dict(zip(GRUPO_COLUMNS, row))
     return Grupo(
         id=data["id"],
         group_id=data["group_id"],
         nome_grupo=data["nome_grupo"],
         envio=bool(data["envio"]),
+        envio_pdf=bool(data.get("envio_pdf", False)),
         cr=data.get("cr"),
         cliente=data.get("cliente"),
         pec_01=data.get("pec_01"),

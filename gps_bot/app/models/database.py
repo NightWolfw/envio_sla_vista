@@ -46,6 +46,9 @@ def conectar_com_retry(
                 password=config['password'],
                 connect_timeout=10  # Timeout de 10 segundos por tentativa
             )
+            with conn.cursor() as cur:
+                cur.execute("SET TIME ZONE %s", ('America/Sao_Paulo',))
+            conn.commit()
             
             print(f"[{db_nome}] ✅ Conexão estabelecida com sucesso!")
             return conn

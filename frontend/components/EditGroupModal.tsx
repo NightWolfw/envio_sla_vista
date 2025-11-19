@@ -28,6 +28,7 @@ export default function EditGroupModal({ grupo, onClose }: Props) {
         group_id: form.get("group_id"),
         nome: form.get("nome_grupo"),
         enviar_mensagem: form.get("envio") === "on",
+        envio_pdf: form.get("envio_pdf") === "on",
         cr: form.get("cr")
       });
       setStatus({ type: "success", message: "Grupo atualizado com sucesso!" });
@@ -71,15 +72,26 @@ export default function EditGroupModal({ grupo, onClose }: Props) {
               <input className={inputClasses} name="cr" defaultValue={grupo.cr ?? ""} />
             </label>
           </div>
-          <label className="flex items-center gap-3 text-sm font-medium text-text">
-            <input
-              type="checkbox"
-              name="envio"
-              defaultChecked={grupo.envio}
-              className="h-5 w-5 rounded border-border bg-surface accent-accent transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            />
-            <span>Habilitar envio</span>
-          </label>
+          <div className="flex flex-col gap-3">
+            <label className="flex items-center gap-3 text-sm font-medium text-text">
+              <input
+                type="checkbox"
+                name="envio"
+                defaultChecked={grupo.envio}
+                className="h-5 w-5 rounded border-border bg-surface accent-accent transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              />
+              <span>Habilitar envio</span>
+            </label>
+            <label className="flex items-center gap-3 text-sm font-medium text-text">
+              <input
+                type="checkbox"
+                name="envio_pdf"
+                defaultChecked={grupo.envio_pdf}
+                className="h-5 w-5 rounded border-border bg-surface accent-accent transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              />
+              <span>Enviar PDF automaticamente junto com a mensagem programada</span>
+            </label>
+          </div>
           <div className="flex items-center justify-end gap-3">
             <button
               type="submit"

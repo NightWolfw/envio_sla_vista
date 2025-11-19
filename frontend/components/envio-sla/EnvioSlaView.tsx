@@ -7,10 +7,14 @@ import {
   type SlaTemplate,
   cloneAgendamento,
   deleteAgendamento,
+  deleteAgendamentosBulk,
   fetchSlaTemplate,
   getAgendamentosPaged,
   pauseAgendamento,
   resumeAgendamento,
+  generatePdfAgendamento,
+  generatePdfBulk,
+  sendAgendamentoNow,
   updateSlaTemplate
 } from "../../lib/api";
 import { templateVariables, tipoEnvioOptions } from "./constants";
@@ -18,6 +22,9 @@ import AgendamentoModal from "./AgendamentoModal";
 import LogsModal from "./LogsModal";
 import TemplateModal from "./TemplateModal";
 import ConfirmModal from "./ConfirmModal";
+
+const ACCENT_BUTTON_CLASS =
+  "bg-accent text-[#0f172a] font-semibold shadow-panel transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60 disabled:opacity-50";
 
 type TemplateState = {
   open: boolean;
@@ -55,6 +62,7 @@ export default function EnvioSlaView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [modal, setModal] = useState<ModalState>({ open: false, mode: "create" });
   const [logsState, setLogsState] = useState<LogsState>({ open: false });
@@ -98,6 +106,29 @@ export default function EnvioSlaView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, filters]);
 
+  useEffect(() => {
+    setSelectedIds((prev) => prev.filter((id) => agendamentos.some((item) => item.id === id)));
+  }, [agendamentos]);
+
+  const allIds = useMemo(() => agendamentos.map((item) => item.id), [agendamentos]);
+  const isAllSelected = allIds.length > 0 && allIds.every((id) => selectedIds.includes(id));
+  const hasSelection = selectedIds.length > 0;
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  };
+
+  const toggleSelectAll = () => {
+    if (!allIds.length) return;
+    if (isAllSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !allIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...allIds])));
+    }
+  };
+
+  const clearSelection = () => setSelectedIds([]);
+
   const refresh = async (message?: string) => {
     await fetchAgendamentos();
     if (message) {
@@ -127,9 +158,52 @@ export default function EnvioSlaView() {
     if (!confirm(`Remover o agendamento do grupo ${agendamento.nome_grupo}?`)) return;
     try {
       await deleteAgendamento(agendamento.id);
+      setSelectedIds((prev) => prev.filter((value) => value !== agendamento.id));
       refresh("Agendamento removido.");
     } catch (err: any) {
       setStatusMessage(err.message ?? "Erro ao remover agendamento.");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!hasSelection) return;
+    if (!confirm(`Remover ${selectedIds.length} agendamento(s) selecionado(s)?`)) return;
+    try {
+      const response = await deleteAgendamentosBulk(selectedIds);
+      setStatusMessage(
+        `Agendamentos removidos: ${response.removed}${
+          response.failures.length ? ` | Falhas: ${response.failures.join(", ")}` : ""
+        }.`
+      );
+      clearSelection();
+      refresh();
+    } catch (err: any) {
+      setStatusMessage(err.message ?? "Erro ao remover agendamentos.");
+    }
+  };
+
+  const handleGeneratePdf = async (agendamentoId: number) => {
+    try {
+      const result = await generatePdfAgendamento(agendamentoId);
+      window.open(result.url, "_blank", "noopener");
+      setStatusMessage("PDF gerado.");
+    } catch (err: any) {
+      setStatusMessage(err.message ?? "Erro ao gerar PDF.");
+    }
+  };
+
+  const handleBulkGeneratePdf = async () => {
+    if (!hasSelection) return;
+    try {
+      const result = await generatePdfBulk(selectedIds);
+      result.successes.forEach(({ url }) => window.open(url, "_blank", "noopener"));
+      setStatusMessage(
+        `PDFs gerados: ${result.successes.length}${
+          result.failures.length ? ` | Falhas: ${result.failures.join(", ")}` : ""
+        }.`
+      );
+    } catch (err: any) {
+      setStatusMessage(err.message ?? "Erro ao gerar PDFs.");
     }
   };
 
@@ -153,6 +227,16 @@ export default function EnvioSlaView() {
       }
     } catch (err: any) {
       setStatusMessage(err.message ?? "Erro ao alterar status.");
+    }
+  };
+
+  const handleSendNow = async (agendamento: Agendamento) => {
+    if (!confirm(`Enviar o SLA do grupo ${agendamento.nome_grupo} agora?`)) return;
+    try {
+      await sendAgendamentoNow(agendamento.id);
+      refresh(`Envio imediato disparado para ${agendamento.nome_grupo}.`);
+    } catch (err: any) {
+      setError(err.message ?? "Erro ao enviar imediatamente.");
     }
   };
 
@@ -210,14 +294,14 @@ export default function EnvioSlaView() {
           <button
             type="button"
             onClick={openTemplateConfirm}
-            className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-text transition hover:border-accent hover:text-accent"
+            className={`${ACCENT_BUTTON_CLASS} rounded-xl px-4 py-2 text-sm`}
           >
             Configurações
           </button>
           <button
             type="button"
             onClick={openCreateModal}
-            className="rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-slate-900 shadow-panel transition hover:bg-cyan-300"
+            className={`${ACCENT_BUTTON_CLASS} rounded-xl px-5 py-2 text-sm`}
           >
             Novo Agendamento SLA
           </button>
@@ -234,7 +318,7 @@ export default function EnvioSlaView() {
         <button
           type="button"
           onClick={() => setShowFilters((prev) => !prev)}
-          className="flex w-full items-center justify-between rounded-xl border border-border px-4 py-2 text-left text-sm text-text transition hover:border-accent"
+          className={`flex w-full items-center justify-between rounded-xl px-4 py-2 text-left text-sm ${ACCENT_BUTTON_CLASS}`}
         >
           <span>Filtro avançado</span>
           <span>{showFilters ? "−" : "+"}</span>
@@ -304,14 +388,14 @@ export default function EnvioSlaView() {
             <div className="flex items-end gap-3">
               <button
                 type="submit"
-                className="flex-1 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-slate-900 shadow hover:bg-cyan-300"
+                className={`flex-1 rounded-xl px-4 py-2 text-sm ${ACCENT_BUTTON_CLASS}`}
               >
                 Aplicar filtros
               </button>
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="rounded-xl border border-border px-4 py-2 text-sm text-text hover:text-accent"
+                className={`rounded-xl px-4 py-2 text-sm ${ACCENT_BUTTON_CLASS}`}
               >
                 Limpar
               </button>
@@ -332,9 +416,39 @@ export default function EnvioSlaView() {
           </div>
         ) : (
           <div className="overflow-x-auto">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text">
+              <span>{hasSelection ? `${selectedIds.length} selecionado(s)` : "Nenhum agendamento selecionado"}</span>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={!hasSelection}
+                  onClick={handleBulkGeneratePdf}
+                  className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`}
+                >
+                  Gerar PDF
+                </button>
+                <button
+                  type="button"
+                  disabled={!hasSelection}
+                  onClick={handleBulkDelete}
+                  className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`}
+                >
+                  Deletar
+                </button>
+              </div>
+            </div>
             <table className="w-full min-w-[680px] border-collapse text-sm text-text">
               <thead className="bg-surfaceMuted/60 text-xs uppercase tracking-wide text-textMuted">
                 <tr>
+                  <th className="px-3 py-2 text-center">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-accent"
+                      checked={isAllSelected && allIds.length > 0}
+                      onChange={toggleSelectAll}
+                      aria-label="Selecionar todos"
+                    />
+                  </th>
                   <th className="px-3 py-2 text-left">Grupo</th>
                   <th className="px-3 py-2 text-left">CR</th>
                   <th className="px-3 py-2 text-left">Tipo</th>
@@ -349,6 +463,15 @@ export default function EnvioSlaView() {
               <tbody>
                 {agendamentos.map((item) => (
                   <tr key={item.id} className="border-b border-border/40 text-sm">
+                    <td className="px-3 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-accent"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={() => toggleSelect(item.id)}
+                        aria-label={`Selecionar ${item.nome_grupo}`}
+                      />
+                    </td>
                     <td className="px-3 py-2 font-medium text-white">{item.nome_grupo}</td>
                     <td className="px-3 py-2 text-textMuted">{item.cr ?? "--"}</td>
                     <td className="px-3 py-2 capitalize">{item.tipo_envio}</td>
@@ -379,20 +502,47 @@ export default function EnvioSlaView() {
                       )}
                     </td>
                     <td className="px-3 py-2">
-                      <div className="flex items-center justify-center gap-2 text-xs">
-                        <button className="text-accent hover:underline" onClick={() => openEditModal(item)}>
+                      <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+                        <button
+                          className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`}
+                          onClick={() => openEditModal(item)}
+                        >
                           Editar
                         </button>
-                        <button className="text-accent hover:underline" onClick={() => handleClone(item)}>
+                        <button
+                          className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`}
+                          onClick={() => handleClone(item)}
+                        >
                           Clonar
                         </button>
-                        <button className="text-accent hover:underline" onClick={() => handleToggleStatus(item)}>
+                        <button
+                          className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`}
+                          onClick={() => handleGeneratePdf(item.id)}
+                        >
+                          Gerar PDF
+                        </button>
+                        <button
+                          className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`}
+                          onClick={() => handleToggleStatus(item)}
+                        >
                           {item.ativo ? "Pausar" : "Retomar"}
                         </button>
-                        <button className="text-accent hover:underline" onClick={() => openLogs(item)}>
+                        <button
+                          className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`}
+                          onClick={() => handleSendNow(item)}
+                        >
+                          Enviar agora
+                        </button>
+                        <button
+                          className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`}
+                          onClick={() => openLogs(item)}
+                        >
                           Logs
                         </button>
-                        <button className="text-rose-300 hover:underline" onClick={() => handleDelete(item)}>
+                        <button
+                          className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`}
+                          onClick={() => handleDelete(item)}
+                        >
                           Excluir
                         </button>
                       </div>
@@ -401,7 +551,7 @@ export default function EnvioSlaView() {
                 ))}
                 {!agendamentos.length && !loading && (
                   <tr>
-                    <td className="px-3 py-6 text-center text-textMuted" colSpan={9}>
+                    <td className="px-3 py-6 text-center text-textMuted" colSpan={10}>
                       Nenhum agendamento encontrado com os filtros atuais.
                     </td>
                   </tr>
@@ -421,7 +571,7 @@ export default function EnvioSlaView() {
             type="button"
             disabled={page <= 1}
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            className="rounded-lg border border-border px-3 py-1 text-text disabled:opacity-40"
+            className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-sm`}
           >
             Anterior
           </button>
@@ -429,7 +579,7 @@ export default function EnvioSlaView() {
             type="button"
             disabled={page >= totalPages}
             onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-            className="rounded-lg border border-border px-3 py-1 text-text disabled:opacity-40"
+            className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-sm`}
           >
             Próxima
           </button>
