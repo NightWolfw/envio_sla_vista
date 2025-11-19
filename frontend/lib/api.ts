@@ -1,7 +1,6 @@
 import { clientApi } from "./client";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://soloalive.uk/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   try {
