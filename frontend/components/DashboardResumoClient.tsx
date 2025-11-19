@@ -80,11 +80,18 @@ export default function DashboardResumoClient() {
     );
   }
 
+  const safeData: ResumoData = data ?? {
+    finalizadas: 0,
+    nao_realizadas: 0,
+    em_aberto: 0,
+    iniciadas: 0
+  };
+
   const resumoCards = [
-    { label: "Finalizadas", value: data.finalizadas ?? 0 },
-    { label: "Não realizadas", value: data.nao_realizadas ?? 0 },
-    { label: "Em aberto", value: data.em_aberto ?? 0 },
-    { label: "Iniciadas", value: data.iniciadas ?? 0 }
+    { label: "Finalizadas", value: safeData.finalizadas ?? 0 },
+    { label: "Não realizadas", value: safeData.nao_realizadas ?? 0 },
+    { label: "Em aberto", value: safeData.em_aberto ?? 0 },
+    { label: "Iniciadas", value: safeData.iniciadas ?? 0 }
   ];
 
   return (
