@@ -20,3 +20,7 @@ teste_rapido.py
 temp_pdfs/
 uploads/
 scheduler.lock
+
+# Node
+node_modules/
+frontend/node_modules/
