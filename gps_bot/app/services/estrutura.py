@@ -167,6 +167,8 @@ def atualizar_grupo_especifico(grupo_id):
         if not gestores:
             return False
 
+        diretor_exec, diretor_reg, gerente_reg, gerente, supervisor = gestores
+
         # Atualiza grupo
         cur_sla.execute("""
             UPDATE grupos_whatsapp
@@ -175,7 +177,7 @@ def atualizar_grupo_especifico(grupo_id):
                 gerenteregional = %s, gerente = %s, supervisor = %s,
                 ultima_atualizacao = CURRENT_TIMESTAMP
             WHERE id = %s
-        """, (*gestores, grupo_id))
+        """, (cliente, pec_01, pec_02, diretor_exec, diretor_reg, gerente_reg, gerente, supervisor, grupo_id))
 
         conn_sla.commit()
         return True

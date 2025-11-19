@@ -1,0 +1,5 @@
+{
+  "/envio-sla/page": "app/envio-sla/page.js",
+  "/grupos/page": "app/grupos/page.js",
+  "/page": "app/page.js"
+}

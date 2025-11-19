@@ -1,15 +1,30 @@
 from app.models.database import get_db_site
 
+GRUPO_COLUMNS = [
+    'id',
+    'group_id',
+    'nome_grupo',
+    'envio',
+    'envio_pdf',
+    'cr',
+    'cliente',
+    'pec_01',
+    'pec_02',
+    'diretorexecutivo',
+    'diretorregional',
+    'gerenteregional',
+    'gerente',
+    'supervisor'
+]
+
 
 def listar_grupos(filtros=None):
     """Lista grupos com filtros opcionais"""
     conn = get_db_site()
     cur = conn.cursor()
 
-    query = """
-        SELECT id, group_id, nome_grupo, envio, cr, cliente, pec_01, pec_02,
-               diretorexecutivo, diretorregional, gerenteregional, gerente,
-               supervisor
+    query = f"""
+        SELECT {', '.join(GRUPO_COLUMNS)}
         FROM grupos_whatsapp
         WHERE 1=1
     """
@@ -84,10 +99,8 @@ def obter_grupo(grupo_id):
     conn = get_db_site()
     cur = conn.cursor()
 
-    query = """
-        SELECT id, group_id, nome_grupo, envio, cr, cliente, pec_01, pec_02,
-               diretorexecutivo, diretorregional, gerenteregional, gerente,
-               supervisor
+    query = f"""
+        SELECT {', '.join(GRUPO_COLUMNS)}
         FROM grupos_whatsapp
         WHERE id = %s
     """
@@ -191,6 +204,7 @@ def atualizar_grupo(grupo_id, dados):
         SET group_id = %s, 
             nome_grupo = %s, 
             envio = %s, 
+            envio_pdf = %s,
             cr = %s
         WHERE id = %s
     """
@@ -199,6 +213,7 @@ def atualizar_grupo(grupo_id, dados):
         dados['group_id'],
         dados['nome'],
         dados['enviar_mensagem'],
+        dados['envio_pdf'],
         dados['cr'],
         grupo_id
     ))
@@ -206,3 +221,29 @@ def atualizar_grupo(grupo_id, dados):
     conn.commit()
     cur.close()
     conn.close()
+
+
+def listar_ids_com_cr():
+    """Retorna IDs dos grupos que possuem CR definido."""
+    conn = get_db_site()
+    cur = conn.cursor()
+    cur.execute("SELECT id, nome_grupo, cr FROM grupos_whatsapp WHERE cr IS NOT NULL AND cr != '' ORDER BY nome_grupo")
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return rows
+
+
+def deletar_grupos_por_ids(ids):
+    """Remove grupos pelo ID."""
+    if not ids:
+        return 0
+    conn = get_db_site()
+    cur = conn.cursor()
+    placeholders = ",".join(["%s"] * len(ids))
+    cur.execute(f"DELETE FROM grupos_whatsapp WHERE id IN ({placeholders})", tuple(ids))
+    removidos = cur.rowcount
+    conn.commit()
+    cur.close()
+    conn.close()
+    return removidos

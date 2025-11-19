@@ -1,9 +1,41 @@
-from app.models.database import get_db_site
 from datetime import datetime
+from typing import Any, Dict, List, Tuple
+
 import pytz
+
+from app.models.database import get_db_site
 
 # Timezone de Brasília
 TIMEZONE_BRASILIA = pytz.timezone('America/Sao_Paulo')
+
+
+def _to_brasilia(dt: datetime):
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return TIMEZONE_BRASILIA.localize(dt)
+    return dt.astimezone(TIMEZONE_BRASILIA)
+
+
+def _to_brasilia_naive(dt: datetime):
+    aware = _to_brasilia(dt)
+    return aware.replace(tzinfo=None) if aware else None
+
+AGENDAMENTO_COLUMNS = [
+    'id',
+    'grupo_id',
+    'tipo_envio',
+    'dias_semana',
+    'data_envio',
+    'hora_inicio',
+    'dia_offset_inicio',
+    'hora_fim',
+    'dia_offset_fim',
+    'ativo',
+    'proximo_envio',
+    'criado_em',
+    'atualizado_em'
+]
 
 
 def criar_agendamento(dados):
@@ -19,11 +51,13 @@ def criar_agendamento(dados):
         RETURNING id
     """
 
+    data_envio = _to_brasilia_naive(dados['data_envio'])
+
     cur.execute(query, (
         dados['grupo_id'],
         dados['tipo_envio'],
         dados['dias_semana'],
-        dados['data_envio'],
+        data_envio,
         dados['hora_inicio'],
         dados['dia_offset_inicio'],
         dados['hora_fim'],
@@ -70,11 +104,7 @@ def listar_agendamentos():
     agendamentos = []
     for row in rows:
         # Converte para timezone de Brasília
-        data_envio = row[6]
-        if data_envio.tzinfo is None:
-            data_envio = TIMEZONE_BRASILIA.localize(data_envio)
-        else:
-            data_envio = data_envio.astimezone(TIMEZONE_BRASILIA)
+        data_envio = _to_brasilia(row[6])
 
         agendamentos.append({
             'id': row[0],
@@ -97,6 +127,124 @@ def listar_agendamentos():
     conn.close()
 
     return agendamentos
+
+
+def listar_agendamentos_filtrado(filtros: Dict[str, Any], page: int, page_size: int) -> Tuple[List[Dict[str, Any]], int]:
+    """Lista agendamentos com filtros e paginação"""
+    conn = get_db_site()
+    cur = conn.cursor()
+
+    where_clauses = []
+    params: List[Any] = []
+
+    if filtros.get('tipo_envio'):
+        where_clauses.append("a.tipo_envio = %s")
+        params.append(filtros['tipo_envio'])
+
+    if filtros.get('ativo') is not None:
+        where_clauses.append("a.ativo = %s")
+        params.append(filtros['ativo'])
+
+    if filtros.get('grupo'):
+        where_clauses.append("LOWER(g.nome_grupo) LIKE %s")
+        params.append(f"%{filtros['grupo'].lower()}%")
+
+    if filtros.get('cr'):
+        where_clauses.append("CAST(g.cr AS TEXT) ILIKE %s")
+        params.append(f"%{filtros['cr']}%")
+
+    if filtros.get('dia'):
+        where_clauses.append("a.dias_semana ILIKE %s")
+        params.append(f"%{filtros['dia']}%")
+
+    if filtros.get('data_inicio'):
+        where_clauses.append("a.data_envio >= %s")
+        params.append(_to_brasilia_naive(filtros['data_inicio']))
+
+    if filtros.get('data_fim'):
+        where_clauses.append("a.data_envio <= %s")
+        params.append(_to_brasilia_naive(filtros['data_fim']))
+
+    where_clause = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+    count_query = f"""
+        SELECT COUNT(*)
+        FROM agendamentos a
+        INNER JOIN grupos_whatsapp g ON a.grupo_id = g.id
+        {where_clause}
+    """
+    cur.execute(count_query, params)
+    total = cur.fetchone()[0]
+
+    offset = (page - 1) * page_size
+    data_query = f"""
+        SELECT 
+            a.id,
+            a.grupo_id,
+            g.nome_grupo,
+            g.cr,
+            a.tipo_envio,
+            a.dias_semana,
+            a.data_envio,
+            a.hora_inicio,
+            a.dia_offset_inicio,
+            a.hora_fim,
+            a.dia_offset_fim,
+            a.ativo,
+            a.criado_em,
+            a.atualizado_em,
+            last_log.status as ultimo_status,
+            last_log.data_envio as ultimo_envio,
+            last_log.erro as ultimo_erro
+        FROM agendamentos a
+        INNER JOIN grupos_whatsapp g ON a.grupo_id = g.id
+        LEFT JOIN LATERAL (
+            SELECT 
+                l.status,
+                l.data_envio,
+                l.erro
+            FROM agendamento_logs l
+            WHERE l.agendamento_id = a.id
+            ORDER BY l.criado_em DESC
+            LIMIT 1
+        ) AS last_log ON TRUE
+        {where_clause}
+        ORDER BY a.criado_em DESC
+        LIMIT %s OFFSET %s
+    """
+    query_params = params + [page_size, offset]
+    cur.execute(data_query, query_params)
+    rows = cur.fetchall()
+
+    itens = []
+    for row in rows:
+        data_envio = _to_brasilia(row[6])
+        ultimo_envio = _to_brasilia(row[15]) if row[15] else None
+        itens.append({
+            'id': row[0],
+            'grupo_id': row[1],
+            'nome_grupo': row[2],
+            'cr': str(row[3]) if row[3] is not None else None,
+            'tipo_envio': row[4],
+            'dias_semana': row[5],
+            'data_envio': data_envio,
+            'proximo_envio': data_envio.strftime('%d/%m/%Y %H:%M') if data_envio else None,
+            'hora_inicio': row[7],
+            'dia_offset_inicio': row[8],
+            'hora_fim': row[9],
+            'dia_offset_fim': row[10],
+            'ativo': row[11],
+            'criado_em': row[12],
+            'atualizado_em': row[13],
+            'ultimo_status': row[14],
+            'ultimo_envio': ultimo_envio.strftime('%d/%m/%Y %H:%M:%S') if ultimo_envio else None,
+            'ultimo_erro': row[16]
+        })
+
+    cur.close()
+    conn.close()
+
+    return itens, total
 
 
 def obter_agendamento(agendamento_id):
@@ -143,10 +291,18 @@ def toggle_agendamento(agendamento_id):
     conn.close()
 
 
-def obter_logs_agendamento(agendamento_id):
-    """Busca logs de envio de um agendamento"""
+def obter_logs_agendamento(agendamento_id, page: int = 1, page_size: int = 20):
+    """Busca logs de envio de um agendamento com paginação"""
     conn = get_db_site()
     cur = conn.cursor()
+
+    count_query = """
+        SELECT COUNT(*) FROM agendamento_logs WHERE agendamento_id = %s
+    """
+    cur.execute(count_query, (agendamento_id,))
+    total = cur.fetchone()[0]
+
+    offset = (page - 1) * page_size
 
     query = """
         SELECT 
@@ -162,28 +318,31 @@ def obter_logs_agendamento(agendamento_id):
         INNER JOIN grupos_whatsapp g ON l.grupo_id = g.id
         WHERE l.agendamento_id = %s
         ORDER BY l.criado_em DESC
+        LIMIT %s OFFSET %s
     """
 
-    cur.execute(query, (agendamento_id,))
+    cur.execute(query, (agendamento_id, page_size, offset))
     rows = cur.fetchall()
 
     logs = []
     for row in rows:
+        data_envio = _to_brasilia(row[1])
+        criado_em = _to_brasilia(row[6])
         logs.append({
             'id': row[0],
-            'data_envio': row[1].strftime('%d/%m/%Y %H:%M:%S') if row[1] else '',
+            'data_envio': data_envio.strftime('%d/%m/%Y %H:%M:%S') if data_envio else '',
             'status': row[2],
             'mensagem_enviada': row[3],
             'resposta_api': row[4],
             'erro': row[5],
-            'criado_em': row[6].strftime('%d/%m/%Y %H:%M:%S') if row[6] else '',
+            'criado_em': criado_em.strftime('%d/%m/%Y %H:%M:%S') if criado_em else '',
             'nome_grupo': row[7]
         })
 
     cur.close()
     conn.close()
 
-    return logs
+    return logs, total
 
 
 def atualizar_agendamento(agendamento_id, dados):
@@ -205,11 +364,13 @@ def atualizar_agendamento(agendamento_id, dados):
         WHERE id = %s
     """
 
+    data_envio = _to_brasilia_naive(dados['data_envio'])
+
     cur.execute(query, (
         dados['grupo_id'],
         dados['tipo_envio'],
         dados['dias_semana'],
-        dados['data_envio'],
+        data_envio,
         dados['hora_inicio'],
         dados['dia_offset_inicio'],
         dados['hora_fim'],
@@ -220,3 +381,36 @@ def atualizar_agendamento(agendamento_id, dados):
     conn.commit()
     cur.close()
     conn.close()
+
+
+def definir_status_agendamento(agendamento_id: int, ativo: bool) -> None:
+    conn = get_db_site()
+    cur = conn.cursor()
+    query = """
+        UPDATE agendamentos
+        SET ativo = %s,
+            atualizado_em = NOW()
+        WHERE id = %s
+    """
+    cur.execute(query, (ativo, agendamento_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def clonar_agendamento(agendamento_id: int) -> int:
+    registro = obter_agendamento(agendamento_id)
+    if not registro:
+        raise ValueError("Agendamento não encontrado para clonagem")
+    data = dict(zip(AGENDAMENTO_COLUMNS, registro))
+    novo = {
+        'grupo_id': data['grupo_id'],
+        'tipo_envio': data['tipo_envio'],
+        'dias_semana': data['dias_semana'],
+        'data_envio': _to_brasilia(data['data_envio']),
+        'hora_inicio': data['hora_inicio'],
+        'dia_offset_inicio': data['dia_offset_inicio'],
+        'hora_fim': data['hora_fim'],
+        'dia_offset_fim': data['dia_offset_fim']
+    }
+    return criar_agendamento(novo)

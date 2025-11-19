@@ -4,6 +4,7 @@
 
 1. **001_add_mensagens_agendadas.sql** - Adiciona tabela `mensagens_agendadas`
 2. **002_add_agendamento_logs.sql** - Adiciona tabela `agendamento_logs` para logs detalhados
+3. **003_add_envio_pdf_to_grupos.sql** - Adiciona coluna `envio_pdf` aos grupos para controlar envio automático de PDF
 
 ## Como Aplicar as Migrações
 

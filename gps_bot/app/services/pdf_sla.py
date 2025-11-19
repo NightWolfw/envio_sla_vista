@@ -6,6 +6,25 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from datetime import datetime
 import os
+from pathlib import Path
+
+import pytz
+import config as project_config
+
+TIMEZONE_BRASILIA = pytz.timezone("America/Sao_Paulo")
+PDF_DIR = Path(project_config.PDF_STORAGE_DIR)
+
+
+def _to_brasilia(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return TIMEZONE_BRASILIA.localize(dt)
+    return dt.astimezone(TIMEZONE_BRASILIA)
+
+
+def _format_datetime(dt: datetime, pattern: str = '%d/%m/%Y %H:%M') -> str:
+    if not dt:
+        return ''
+    return _to_brasilia(dt).strftime(pattern)
 
 
 def quebrar_texto(texto, max_length=40):
@@ -50,16 +69,14 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
     """
     Gera PDF HORIZONTAL com relatório de tarefas
     """
-    # Cria diretório
-    temp_dir = 'temp_pdfs'
-    os.makedirs(temp_dir, exist_ok=True)
+    PDF_DIR.mkdir(parents=True, exist_ok=True)
 
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now(TIMEZONE_BRASILIA).strftime('%Y%m%d_%H%M%S')
     filename = f"sla_{cr}_{timestamp}.pdf"
-    filepath = os.path.join(temp_dir, filename)
+    filepath = PDF_DIR / filename
 
     # Documento HORIZONTAL (landscape)
-    doc = SimpleDocTemplate(filepath, pagesize=landscape(A4), topMargin=1 * cm, bottomMargin=1 * cm)
+    doc = SimpleDocTemplate(str(filepath), pagesize=landscape(A4), topMargin=1 * cm, bottomMargin=1 * cm)
     elements = []
 
     # Estilos
@@ -87,7 +104,7 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
     elements.append(title)
 
     # Período
-    periodo_texto = f"Período: {data_inicio.strftime('%d/%m/%Y %H:%M')} até {data_fim.strftime('%d/%m/%Y %H:%M')} | CR: {cr}"
+    periodo_texto = f"Per��odo: {_format_datetime(data_inicio)} atǸ {_format_datetime(data_fim)} | CR: {cr}"
     subtitle = Paragraph(periodo_texto, subtitle_style)
     elements.append(subtitle)
     elements.append(Spacer(1, 0.3 * cm))
@@ -102,11 +119,10 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
             numero = str(tarefa.get('numero', ''))
             # ✅ Agora 'descricao' contém o valor de t.nome
             descricao = quebrar_texto(tarefa.get('descricao', ''), 25)
-            disponibilizacao = tarefa.get('disponibilizacao').strftime('%d/%m %H:%M') if tarefa.get(
-                'disponibilizacao') else ''
-            prazo = tarefa.get('prazo').strftime('%d/%m %H:%M') if tarefa.get('prazo') else ''
-            inicioreal = tarefa.get('inicioreal').strftime('%d/%m %H:%M') if tarefa.get('inicioreal') else '-'
-            terminoreal = tarefa.get('terminoreal').strftime('%d/%m %H:%M') if tarefa.get('terminoreal') else '-'
+            disponibilizacao = _format_datetime(tarefa.get('disponibilizacao'), '%d/%m %H:%M')
+            prazo = _format_datetime(tarefa.get('prazo'), '%d/%m %H:%M')
+            inicioreal = _format_datetime(tarefa.get('inicioreal'), '%d/%m %H:%M') or '-'
+            terminoreal = _format_datetime(tarefa.get('terminoreal'), '%d/%m %H:%M') or '-'
             status_texto = str(tarefa.get('status_texto', ''))
             executor = quebrar_texto(tarefa.get('executor', 'N/A') or 'N/A', 15)
             local = alinhar_direita_local(tarefa.get('local', 'N/A'), 25)
@@ -156,7 +172,7 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
     # Rodapé
     elements.append(Spacer(1, 0.5 * cm))
     footer = Paragraph(
-        f"<i>Relatório gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M:%S')}</i>",
+        f"<i>Relatório gerado em {datetime.now(TIMEZONE_BRASILIA).strftime('%d/%m/%Y às %H:%M:%S')}</i>",
         subtitle_style
     )
     elements.append(footer)
@@ -164,4 +180,4 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
     # Gera PDF
     doc.build(elements)
 
-    return filepath
+    return str(filepath)

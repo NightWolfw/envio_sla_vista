@@ -2,26 +2,28 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from gps_bot.api.schemas.sla import SLAPreview, SLAPreviewRequest
-from gps_bot.app.models.grupo import obter_grupo
-from gps_bot.app.services.mensagem_agendamento import (
+from api.schemas.sla import SLAPreview, SLAPreviewRequest, SLATemplate
+from app.models.grupo import obter_grupo, GRUPO_COLUMNS
+from app.models.sla_template import get_sla_templates, update_sla_templates
+from app.services.mensagem_agendamento import (
     calcular_datas_consulta,
     formatar_mensagem_programadas,
     formatar_mensagem_resultados,
 )
-from gps_bot.app.services.sla_consulta import buscar_tarefas_por_periodo
+from app.services.sla_consulta import buscar_tarefas_por_periodo
 
 router = APIRouter()
 
 
 @router.post("/preview/{grupo_id}", response_model=SLAPreview)
 def preview_mensagem(grupo_id: int, payload: SLAPreviewRequest) -> SLAPreview:
-    grupo = obter_grupo(grupo_id)
-    if not grupo:
+    grupo_row = obter_grupo(grupo_id)
+    if not grupo_row:
         raise HTTPException(status_code=404, detail="Grupo não encontrado")
 
-    cr = grupo[4]
-    nome_grupo = grupo[2]
+    grupo = dict(zip(GRUPO_COLUMNS, grupo_row))
+    cr = grupo.get("cr")
+    nome_grupo = grupo.get("nome_grupo")
 
     if not cr:
         raise HTTPException(status_code=400, detail="Grupo sem CR configurado")
@@ -59,4 +61,22 @@ def preview_mensagem(grupo_id: int, payload: SLAPreviewRequest) -> SLAPreview:
         tipo_envio=payload.tipo_envio,
         stats=stats,
         mensagem=mensagem,
+    )
+
+
+@router.get("/template", response_model=SLATemplate)
+def obter_template_sla() -> SLATemplate:
+    templates = get_sla_templates()
+    return SLATemplate(
+        resultados=templates.get("resultados", ""),
+        programadas=templates.get("programadas", ""),
+    )
+
+
+@router.put("/template", response_model=SLATemplate)
+def atualizar_template_sla(payload: SLATemplate) -> SLATemplate:
+    templates = update_sla_templates(payload.resultados, payload.programadas)
+    return SLATemplate(
+        resultados=templates.get("resultados", ""),
+        programadas=templates.get("programadas", ""),
     )

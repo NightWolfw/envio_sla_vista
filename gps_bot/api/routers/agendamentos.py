@@ -3,26 +3,36 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query, Response
 
-from gps_bot.api.schemas.agendamentos import (
+from api.schemas.agendamentos import (
     Agendamento,
     AgendamentoCreate,
     AgendamentoCreatedResponse,
     AgendamentoDetail,
     AgendamentoLog,
+    AgendamentoLogList,
+    AgendamentoListResponse,
     AgendamentoUpdate,
+    EnviarAgoraResponse,
+    PdfLinkResponse,
+    PdfBulkResponse,
     ToggleResponse,
+    BulkIdsRequest,
+    BulkDeleteResponse,
 )
-from gps_bot.app.models.agendamento import (
+from app.models.agendamento import (
     atualizar_agendamento,
+    clonar_agendamento,
     criar_agendamento,
     deletar_agendamento,
-    listar_agendamentos,
+    definir_status_agendamento,
+    listar_agendamentos_filtrado,
     obter_agendamento,
     obter_logs_agendamento,
     toggle_agendamento,
 )
+from app.services.scheduler_service import enviar_agendamento_imediato, gerar_pdf_agendamento
 
 router = APIRouter()
 
@@ -61,10 +71,34 @@ def _serialize_agendamento_detail(row: tuple[Any, ...]) -> AgendamentoDetail:
     )
 
 
-@router.get("/", response_model=list[Agendamento])
-def listar_agendamentos_endpoint() -> list[Agendamento]:
-    agendamentos = listar_agendamentos()
-    return [Agendamento(**agendamento) for agendamento in agendamentos]
+@router.get("/", response_model=AgendamentoListResponse)
+def listar_agendamentos_endpoint(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    tipo_envio: str | None = Query(None),
+    ativo: bool | None = Query(None),
+    grupo: str | None = Query(None),
+    cr: str | None = Query(None),
+    dia: str | None = Query(None),
+    data_inicio: datetime | None = Query(None),
+    data_fim: datetime | None = Query(None),
+) -> AgendamentoListResponse:
+    filtros = {
+        "tipo_envio": tipo_envio,
+        "ativo": ativo,
+        "grupo": grupo,
+        "cr": cr,
+        "dia": dia,
+        "data_inicio": data_inicio,
+        "data_fim": data_fim,
+    }
+    itens, total = listar_agendamentos_filtrado(filtros, page, page_size)
+    return AgendamentoListResponse(
+        items=[Agendamento(**item) for item in itens],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.post("/", response_model=AgendamentoCreatedResponse, status_code=201)
@@ -73,6 +107,34 @@ def criar_agendamento_endpoint(payload: AgendamentoCreate) -> AgendamentoCreated
     dados["dias_semana"] = ",".join(payload.dias_semana)
     agendamento_id = criar_agendamento(dados)
     return AgendamentoCreatedResponse(id=agendamento_id)
+
+
+@router.post("/bulk/pdf", response_model=PdfBulkResponse)
+def gerar_pdf_em_massa(payload: BulkIdsRequest) -> PdfBulkResponse:
+    successes: list[PdfLinkResponse] = []
+    failures: list[int] = []
+    for agendamento_id in payload.ids:
+        try:
+            url = gerar_pdf_agendamento(agendamento_id)
+            successes.append(PdfLinkResponse(id=agendamento_id, url=url))
+        except LookupError:
+            failures.append(agendamento_id)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return PdfBulkResponse(successes=successes, failures=failures)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+def deletar_agendamentos_em_massa(payload: BulkIdsRequest) -> BulkDeleteResponse:
+    removidos = 0
+    failures: list[int] = []
+    for agendamento_id in payload.ids:
+        try:
+            deletar_agendamento(agendamento_id)
+            removidos += 1
+        except Exception:
+            failures.append(agendamento_id)
+    return BulkDeleteResponse(removed=removidos, failures=failures)
 
 
 @router.get("/{agendamento_id}", response_model=AgendamentoDetail)
@@ -94,9 +156,10 @@ def atualizar_agendamento_endpoint(agendamento_id: int, payload: AgendamentoUpda
     return _serialize_agendamento_detail(registro)
 
 
-@router.delete("/{agendamento_id}", status_code=204)
-def deletar_agendamento_endpoint(agendamento_id: int) -> None:
+@router.delete("/{agendamento_id}", status_code=204, response_class=Response)
+def deletar_agendamento_endpoint(agendamento_id: int) -> Response:
     deletar_agendamento(agendamento_id)
+    return Response(status_code=204)
 
 
 @router.post("/{agendamento_id}/toggle", response_model=ToggleResponse)
@@ -109,7 +172,68 @@ def toggle_agendamento_endpoint(agendamento_id: int) -> ToggleResponse:
     return ToggleResponse(id=detalhe.id, ativo=detalhe.ativo)
 
 
-@router.get("/{agendamento_id}/logs", response_model=list[AgendamentoLog])
-def listar_logs_agendamento_endpoint(agendamento_id: int) -> list[AgendamentoLog]:
-    logs = obter_logs_agendamento(agendamento_id)
-    return [AgendamentoLog(**log) for log in logs]
+@router.post("/{agendamento_id}/clone", response_model=AgendamentoCreatedResponse, status_code=201)
+def clonar_agendamento_endpoint(agendamento_id: int) -> AgendamentoCreatedResponse:
+    novo_id = clonar_agendamento(agendamento_id)
+    return AgendamentoCreatedResponse(id=novo_id)
+
+
+@router.post("/{agendamento_id}/pause", response_model=ToggleResponse)
+def pausar_agendamento_endpoint(agendamento_id: int) -> ToggleResponse:
+    definir_status_agendamento(agendamento_id, False)
+    registro = obter_agendamento(agendamento_id)
+    if not registro:
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado após pausa")
+    detalhe = _serialize_agendamento_detail(registro)
+    return ToggleResponse(id=detalhe.id, ativo=detalhe.ativo)
+
+
+@router.post("/{agendamento_id}/resume", response_model=ToggleResponse)
+def retomar_agendamento_endpoint(agendamento_id: int) -> ToggleResponse:
+    definir_status_agendamento(agendamento_id, True)
+    registro = obter_agendamento(agendamento_id)
+    if not registro:
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado após retomada")
+    detalhe = _serialize_agendamento_detail(registro)
+    return ToggleResponse(id=detalhe.id, ativo=detalhe.ativo)
+
+
+@router.post("/{agendamento_id}/send-now", response_model=EnviarAgoraResponse)
+def enviar_agora_endpoint(agendamento_id: int) -> EnviarAgoraResponse:
+    try:
+        agendamento = enviar_agendamento_imediato(agendamento_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return EnviarAgoraResponse(id=agendamento["id"], status="enviado", message="Envio manual concluído com sucesso.")
+
+
+
+@router.post("/{agendamento_id}/pdf", response_model=PdfLinkResponse)
+def gerar_pdf_agendamento_endpoint(agendamento_id: int) -> PdfLinkResponse:
+    try:
+        url = gerar_pdf_agendamento(agendamento_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return PdfLinkResponse(id=agendamento_id, url=url)
+
+
+@router.get("/{agendamento_id}/logs", response_model=AgendamentoLogList)
+def listar_logs_agendamento_endpoint(
+    agendamento_id: int,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
+) -> AgendamentoLogList:
+    logs, total = obter_logs_agendamento(agendamento_id, page, page_size)
+    return AgendamentoLogList(
+        items=[AgendamentoLog(**log) for log in logs],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )

@@ -4,39 +4,36 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from gps_bot.api.schemas.grupos import Grupo, GrupoFiltersResponse, GrupoUpdate
-from gps_bot.app.models.grupo import (
+from api.schemas.grupos import (
+    Grupo,
+    GrupoFiltersResponse,
+    GrupoUpdate,
+    GrupoDeleteRequest,
+    GrupoDeleteResponse,
+    GrupoCRItem,
+)
+from app.models.grupo import (
     listar_grupos,
     obter_grupo,
     obter_valores_unicos_filtros,
     atualizar_grupo,
+    listar_ids_com_cr,
+    deletar_grupos_por_ids,
+    GRUPO_COLUMNS,
 )
+from app.services.estrutura import atualizar_dados_estrutura, atualizar_grupo_especifico
 
 router = APIRouter()
 
 
 def _serialize_grupo(row: tuple[Any, ...]) -> Grupo:
-    keys = [
-        "id",
-        "group_id",
-        "nome_grupo",
-        "envio",
-        "cr",
-        "cliente",
-        "pec_01",
-        "pec_02",
-        "diretorexecutivo",
-        "diretorregional",
-        "gerenteregional",
-        "gerente",
-        "supervisor",
-    ]
-    data = dict(zip(keys, row))
+    data = dict(zip(GRUPO_COLUMNS, row))
     return Grupo(
         id=data["id"],
         group_id=data["group_id"],
         nome_grupo=data["nome_grupo"],
         envio=bool(data["envio"]),
+        envio_pdf=bool(data.get("envio_pdf", False)),
         cr=data.get("cr"),
         cliente=data.get("cliente"),
         pec_01=data.get("pec_01"),
@@ -94,6 +91,12 @@ def listar_filtros() -> GrupoFiltersResponse:
     return GrupoFiltersResponse(**filtros)
 
 
+@router.get("/com-cr", response_model=list[GrupoCRItem])
+def listar_com_cr() -> list[GrupoCRItem]:
+    rows = listar_ids_com_cr()
+    return [GrupoCRItem(id=row[0], nome_grupo=row[1], cr=row[2]) for row in rows]
+
+
 @router.get("/{grupo_id}", response_model=Grupo)
 def obter_grupo_endpoint(grupo_id: int) -> Grupo:
     grupo = obter_grupo(grupo_id)
@@ -109,3 +112,23 @@ def atualizar_grupo_endpoint(grupo_id: int, payload: GrupoUpdate) -> Grupo:
     if not grupo:
         raise HTTPException(status_code=404, detail="Grupo não encontrado após atualização")
     return _serialize_grupo(grupo)
+
+
+@router.delete("/", response_model=GrupoDeleteResponse)
+def deletar_grupos(payload: GrupoDeleteRequest) -> GrupoDeleteResponse:
+    removidos = deletar_grupos_por_ids(payload.ids)
+    return GrupoDeleteResponse(removidos=removidos)
+
+
+@router.post("/{grupo_id}/sync-estrutura")
+def sincronizar_grupo(grupo_id: int) -> dict[str, bool]:
+    sucesso = atualizar_grupo_especifico(grupo_id)
+    if not sucesso:
+        raise HTTPException(status_code=400, detail="Não foi possível atualizar a estrutura deste grupo.")
+    return {"success": True}
+
+
+@router.post("/sync-estrutura")
+def sincronizar_todos() -> dict[str, int]:
+    resultado = atualizar_dados_estrutura()
+    return resultado

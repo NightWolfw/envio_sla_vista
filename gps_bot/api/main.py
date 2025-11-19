@@ -6,8 +6,18 @@ from typing import Sequence
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from gps_bot.api.routers import agendamentos, dashboard, envio, grupos, mensagens, sla, main as main_router
-from gps_bot.app.services.scheduler_service import iniciar_scheduler, parar_scheduler
+from api.routers import (
+    agendamentos,
+    dashboard,
+    envio,
+    grupos,
+    mensagens,
+    sla,
+    main as main_router,
+    evolution,
+    files,
+)
+from app.services.scheduler_service import iniciar_scheduler, parar_scheduler
 
 
 def _get_allowed_origins() -> Sequence[str]:
@@ -38,6 +48,8 @@ app.include_router(mensagens.router, prefix="/api/mensagens", tags=["Mensagens"]
 app.include_router(envio.router, prefix="/api/envio", tags=["Envio"])
 app.include_router(sla.router, prefix="/api/sla", tags=["SLA"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
+app.include_router(evolution.router, prefix="/api/evolution", tags=["Evolution API"])
+app.include_router(files.router, prefix="/api/files", tags=["Files"])
 
 
 @app.on_event("startup")

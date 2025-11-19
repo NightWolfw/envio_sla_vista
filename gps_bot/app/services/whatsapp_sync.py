@@ -1,11 +1,16 @@
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import requests
 
 from app.models.database import get_db_site
 from app.services.estrutura import atualizar_grupo_especifico
-from gps_bot import config as project_config
+import config as project_config
+
+_CACHE_TTL_SECONDS = 180
+_grupos_cache: Optional[List[Dict[str, Any]]] = None
+_grupos_cache_timestamp: float = 0.0
+
 
 def buscar_grupos_api() -> list[Dict[str, Any]]:
     """Busca todos os grupos da Evolution API com retry"""
@@ -43,9 +48,25 @@ def buscar_grupos_api() -> list[Dict[str, Any]]:
             else:
                 raise
 
-def comparar_grupos_novos() -> List[Dict[str, Any]]:
-    """Compara grupos da API com banco e retorna grupos novos"""
+def _get_grupos_api_cached(force_refresh: bool = False) -> List[Dict[str, Any]]:
+    """Retorna grupos com cache simples em memória"""
+    global _grupos_cache, _grupos_cache_timestamp
+    now = time.time()
+    if (
+        not force_refresh
+        and _grupos_cache is not None
+        and (now - _grupos_cache_timestamp) < _CACHE_TTL_SECONDS
+    ):
+        return _grupos_cache
+
     grupos_api = buscar_grupos_api()
+    _grupos_cache = grupos_api
+    _grupos_cache_timestamp = now
+    return grupos_api
+
+def comparar_grupos_novos(force_refresh: bool = False) -> List[Dict[str, Any]]:
+    """Compara grupos da API com banco e retorna grupos novos"""
+    grupos_api = _get_grupos_api_cached(force_refresh=force_refresh)
     
     # Busca IDs já cadastrados no banco
     conn = get_db_site()
@@ -83,8 +104,8 @@ def inserir_grupos_novos(grupos_com_cr: List[Dict[str, Any]]) -> Dict[str, Any]:
             envio = True if cr else False
             
             cur.execute("""
-                INSERT INTO grupos_whatsapp (group_id, nome_grupo, cr, envio)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO grupos_whatsapp (group_id, nome_grupo, cr, envio, envio_pdf)
+                VALUES (%s, %s, %s, %s, FALSE)
                 RETURNING id
             """, (grupo['group_id'], grupo['nome'], cr, envio))
             

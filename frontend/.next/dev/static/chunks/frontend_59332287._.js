@@ -1,0 +1,2190 @@
+(globalThis.TURBOPACK || (globalThis.TURBOPACK = [])).push([typeof document === "object" ? document.currentScript : undefined,
+"[project]/frontend/lib/client.ts [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "clientApi",
+    ()=>clientApi
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/frontend/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
+"use client";
+const API_BASE = __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
+async function request(path, method, body) {
+    const res = await fetch(`${API_BASE}${path}`, {
+        method,
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: body ? JSON.stringify(body) : undefined
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Erro ${res.status}`);
+    }
+    if (res.status === 204) {
+        return {};
+    }
+    return res.json();
+}
+const clientApi = {
+    put: (path, body)=>request(path, "PUT", body),
+    post: (path, body)=>request(path, "POST", body),
+    delete: (path, body)=>request(path, "DELETE", body)
+};
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/frontend/lib/api.ts [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "cloneAgendamento",
+    ()=>cloneAgendamento,
+    "createAgendamento",
+    ()=>createAgendamento,
+    "deleteAgendamento",
+    ()=>deleteAgendamento,
+    "deleteAgendamentosBulk",
+    ()=>deleteAgendamentosBulk,
+    "deleteGroups",
+    ()=>deleteGroups,
+    "fetchSlaTemplate",
+    ()=>fetchSlaTemplate,
+    "generatePdfAgendamento",
+    ()=>generatePdfAgendamento,
+    "generatePdfBulk",
+    ()=>generatePdfBulk,
+    "getAgendamentoLogs",
+    ()=>getAgendamentoLogs,
+    "getAgendamentos",
+    ()=>getAgendamentos,
+    "getAgendamentosPaged",
+    ()=>getAgendamentosPaged,
+    "getAllEvolutionGroups",
+    ()=>getAllEvolutionGroups,
+    "getDashboardPizza",
+    ()=>getDashboardPizza,
+    "getDashboardResumo",
+    ()=>getDashboardResumo,
+    "getDashboardTarefas",
+    ()=>getDashboardTarefas,
+    "getEnvioGrupos",
+    ()=>getEnvioGrupos,
+    "getEvolutionGroups",
+    ()=>getEvolutionGroups,
+    "getGroupsWithCR",
+    ()=>getGroupsWithCR,
+    "getGrupoFiltros",
+    ()=>getGrupoFiltros,
+    "getGrupos",
+    ()=>getGrupos,
+    "getMensagens",
+    ()=>getMensagens,
+    "getSlaPreview",
+    ()=>getSlaPreview,
+    "getStats",
+    ()=>getStats,
+    "importEvolutionGroups",
+    ()=>importEvolutionGroups,
+    "pauseAgendamento",
+    ()=>pauseAgendamento,
+    "resumeAgendamento",
+    ()=>resumeAgendamento,
+    "sendAgendamentoNow",
+    ()=>sendAgendamentoNow,
+    "syncGroupStructure",
+    ()=>syncGroupStructure,
+    "updateAgendamento",
+    ()=>updateAgendamento,
+    "updateSlaTemplate",
+    ()=>updateSlaTemplate
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/frontend/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/lib/client.ts [app-client] (ecmascript)");
+;
+const API_BASE = __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].env.NEXT_PUBLIC_API_BASE_URL ?? __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].env.API_BASE_URL ?? "http://localhost:5000/api";
+async function apiFetch(path, init) {
+    try {
+        const res = await fetch(`${API_BASE}${path}`, {
+            ...init,
+            headers: {
+                "Content-Type": "application/json",
+                ...init?.headers ?? {}
+            },
+            cache: "no-store",
+            next: {
+                revalidate: 0
+            }
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`Erro na API (${res.status}): ${text}`);
+        }
+        return res.json();
+    } catch (error) {
+        console.error("Falha ao buscar API", error);
+        if (error instanceof TypeError || error instanceof Error && error.message.toLowerCase().includes("fetch failed")) {
+            throw new Error(`Não foi possível conectar à API (${API_BASE}). Verifique se o backend FastAPI está rodando e se NEXT_PUBLIC_API_BASE_URL está configurado.`);
+        }
+        throw error;
+    }
+}
+async function getStats() {
+    return apiFetch("/stats");
+}
+async function getDashboardResumo(params) {
+    const query = params ? `?${params.toString()}` : "";
+    return apiFetch("/dashboard/resumo" + query);
+}
+async function getDashboardTarefas(params) {
+    const query = params ? `?${params.toString()}` : "";
+    return apiFetch("/dashboard/tarefas-mes" + query);
+}
+async function getDashboardPizza(params) {
+    const query = params ? `?${params.toString()}` : "";
+    return apiFetch("/dashboard/pizza" + query);
+}
+async function getGrupos() {
+    return apiFetch("/grupos");
+}
+async function getGrupoFiltros() {
+    return apiFetch("/grupos/filtros/meta");
+}
+function buildQuery(params) {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value])=>{
+        if (value === undefined || value === null || value === "") return;
+        query.set(key, String(value));
+    });
+    const text = query.toString();
+    return text ? `?${text}` : "";
+}
+async function getAgendamentos(filters) {
+    const response = await getAgendamentosPaged(filters);
+    return response.items;
+}
+async function getAgendamentosPaged(filters) {
+    const query = buildQuery(filters ?? {});
+    return apiFetch(`/agendamentos${query}`);
+}
+async function createAgendamento(payload) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].post("/agendamentos", payload);
+}
+async function updateAgendamento(id, payload) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].put(`/agendamentos/${id}`, payload);
+}
+async function deleteAgendamento(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].delete(`/agendamentos/${id}`);
+}
+async function cloneAgendamento(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/clone`);
+}
+async function pauseAgendamento(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/pause`);
+}
+async function resumeAgendamento(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/resume`);
+}
+async function sendAgendamentoNow(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/send-now`);
+}
+async function generatePdfAgendamento(id) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].post(`/agendamentos/${id}/pdf`);
+}
+async function generatePdfBulk(ids) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].post("/agendamentos/bulk/pdf", {
+        ids
+    });
+}
+async function deleteAgendamentosBulk(ids) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].delete("/agendamentos/bulk", {
+        ids
+    });
+}
+async function getAgendamentoLogs(agendamentoId, page = 1, pageSize = 10) {
+    const query = buildQuery({
+        page,
+        page_size: pageSize
+    });
+    return apiFetch(`/agendamentos/${agendamentoId}/logs${query}`);
+}
+async function getMensagens(params) {
+    const suffix = params ? `?${params}` : "";
+    return apiFetch(`/mensagens${suffix}`);
+}
+async function getSlaPreview(grupoId, payload) {
+    return apiFetch(`/sla/preview/${grupoId}`, {
+        method: "POST",
+        body: JSON.stringify(payload)
+    });
+}
+async function fetchSlaTemplate() {
+    return apiFetch("/sla/template");
+}
+async function updateSlaTemplate(payload) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].put("/sla/template", payload);
+}
+async function getEnvioGrupos() {
+    return apiFetch("/envio/grupos");
+}
+async function getEvolutionGroups(page = 1, pageSize = 25) {
+    return apiFetch(`/evolution/groups?page=${page}&page_size=${pageSize}`);
+}
+async function getAllEvolutionGroups() {
+    return apiFetch("/evolution/groups/all");
+}
+async function importEvolutionGroups(grupos) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].post("/evolution/import", {
+        grupos
+    });
+}
+async function getGroupsWithCR() {
+    return apiFetch("/grupos/com-cr");
+}
+async function syncGroupStructure(grupoId) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].post(`/grupos/${grupoId}/sync-estrutura`);
+}
+async function deleteGroups(ids) {
+    return __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].delete("/grupos", {
+        ids
+    });
+}
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/frontend/components/EvolutionModal.tsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>EvolutionModal
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/lib/api.ts [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/navigation.js [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature();
+"use client";
+;
+;
+;
+function EvolutionModal({ onClose }) {
+    _s();
+    const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
+    const [page, setPage] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(1);
+    const [pageSize] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(25);
+    const [allItems, setAllItems] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
+    const [state, setState] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({});
+    const [search, setSearch] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
+    const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
+    const [status, setStatus] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [importProgress, setImportProgress] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(0);
+    const [importTotal, setImportTotal] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(0);
+    const [importing, setImporting] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [loadProgress, setLoadProgress] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(0);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "EvolutionModal.useEffect": ()=>{
+            let cancelled = false;
+            async function load() {
+                setLoadProgress(5);
+                setLoading(true);
+                setStatus(null);
+                try {
+                    const interval = setInterval({
+                        "EvolutionModal.useEffect.load.interval": ()=>{
+                            setLoadProgress({
+                                "EvolutionModal.useEffect.load.interval": (prev)=>Math.min(prev + 10, 90)
+                            }["EvolutionModal.useEffect.load.interval"]);
+                        }
+                    }["EvolutionModal.useEffect.load.interval"], 150);
+                    const data = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getAllEvolutionGroups"])();
+                    clearInterval(interval);
+                    if (!cancelled) {
+                        setAllItems(data.grupos);
+                        setState({
+                            "EvolutionModal.useEffect.load": (prev)=>{
+                                const next = {};
+                                data.grupos.forEach({
+                                    "EvolutionModal.useEffect.load": (grupo)=>{
+                                        if (prev[grupo.group_id]) {
+                                            next[grupo.group_id] = prev[grupo.group_id];
+                                        }
+                                    }
+                                }["EvolutionModal.useEffect.load"]);
+                                return next;
+                            }
+                        }["EvolutionModal.useEffect.load"]);
+                        setLoadProgress(100);
+                    }
+                } catch (error) {
+                    if (!cancelled) setStatus(error.message ?? "Erro ao carregar grupos da Evolution.");
+                } finally{
+                    if (!cancelled) setLoading(false);
+                }
+            }
+            load();
+            return ({
+                "EvolutionModal.useEffect": ()=>{
+                    cancelled = true;
+                }
+            })["EvolutionModal.useEffect"];
+        }
+    }["EvolutionModal.useEffect"], []);
+    const filtered = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
+        "EvolutionModal.useMemo[filtered]": ()=>{
+            const text = search.toLowerCase().trim();
+            if (!text) return allItems;
+            return allItems.filter({
+                "EvolutionModal.useMemo[filtered]": (grupo)=>grupo.nome.toLowerCase().includes(text)
+            }["EvolutionModal.useMemo[filtered]"]);
+        }
+    }["EvolutionModal.useMemo[filtered]"], [
+        allItems,
+        search
+    ]);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "EvolutionModal.useEffect": ()=>{
+            setPage(1);
+        }
+    }["EvolutionModal.useEffect"], [
+        search
+    ]);
+    const maxPage = Math.max(Math.ceil(filtered.length / pageSize), 1);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "EvolutionModal.useEffect": ()=>{
+            if (page > maxPage) {
+                setPage(maxPage);
+            }
+        }
+    }["EvolutionModal.useEffect"], [
+        maxPage,
+        page
+    ]);
+    const paginatedItems = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
+        "EvolutionModal.useMemo[paginatedItems]": ()=>{
+            const start = (page - 1) * pageSize;
+            return filtered.slice(start, start + pageSize);
+        }
+    }["EvolutionModal.useMemo[paginatedItems]"], [
+        filtered,
+        page,
+        pageSize
+    ]);
+    function toggleSelect(group) {
+        setState((prev)=>({
+                ...prev,
+                [group.group_id]: {
+                    selected: !prev[group.group_id]?.selected,
+                    cr: prev[group.group_id]?.cr ?? ""
+                }
+            }));
+    }
+    function updateCr(group_id, cr) {
+        setState((prev)=>({
+                ...prev,
+                [group_id]: {
+                    selected: prev[group_id]?.selected ?? false,
+                    cr
+                }
+            }));
+    }
+    const hasSelection = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
+        "EvolutionModal.useMemo[hasSelection]": ()=>Object.values(state).some({
+                "EvolutionModal.useMemo[hasSelection]": (item)=>item.selected
+            }["EvolutionModal.useMemo[hasSelection]"])
+    }["EvolutionModal.useMemo[hasSelection]"], [
+        state
+    ]);
+    async function handleImport() {
+        const selecionados = Object.entries(state).filter(([, info])=>info.selected).map(([group_id, info])=>({
+                group_id,
+                nome: allItems.find((i)=>i.group_id === group_id)?.nome ?? "",
+                cr: info.cr || null
+            }));
+        if (!selecionados.length) {
+            setStatus("Selecione pelo menos um grupo.");
+            return;
+        }
+        try {
+            setImporting(true);
+            setImportTotal(selecionados.length);
+            setImportProgress(0);
+            for(let i = 0; i < selecionados.length; i += 1){
+                await (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["importEvolutionGroups"])([
+                    selecionados[i]
+                ]);
+                setImportProgress(i + 1);
+                setStatus(`Importando ${i + 1}/${selecionados.length}...`);
+            }
+            setStatus("Importação concluída! Atualizando lista...");
+            router.refresh();
+            setTimeout(onClose, 1200);
+        } catch (error) {
+            setStatus(error.message ?? "Erro ao importar grupos.");
+        } finally{
+            setImporting(false);
+        }
+    }
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "modal-backdrop",
+        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: "modal",
+            children: [
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "modal-header",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                            children: "Sincronizar grupos da Evolution"
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                            lineNumber: 151,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            type: "button",
+                            className: "secondary",
+                            onClick: onClose,
+                            children: "Fechar"
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                            lineNumber: 152,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                    lineNumber: 150,
+                    columnNumber: 9
+                }, this),
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    style: {
+                        display: "flex",
+                        gap: "0.75rem",
+                        marginBottom: "1rem"
+                    },
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            style: {
+                                flex: 1,
+                                position: "relative"
+                            },
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                    placeholder: "Buscar grupos por nome",
+                                    value: search,
+                                    onChange: (e)=>setSearch(e.target.value),
+                                    style: {
+                                        paddingLeft: "2.5rem"
+                                    }
+                                }, void 0, false, {
+                                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                    lineNumber: 159,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    style: {
+                                        position: "absolute",
+                                        left: "0.9rem",
+                                        top: "50%",
+                                        transform: "translateY(-50%)",
+                                        color: "var(--text-muted)"
+                                    },
+                                    children: "🔎"
+                                }, void 0, false, {
+                                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                    lineNumber: 165,
+                                    columnNumber: 13
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                            lineNumber: 158,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            style: {
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem"
+                            },
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                    type: "button",
+                                    className: "secondary",
+                                    disabled: page <= 1,
+                                    onClick: ()=>setPage((p)=>Math.max(1, p - 1)),
+                                    children: "◀"
+                                }, void 0, false, {
+                                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                    lineNumber: 178,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    children: [
+                                        "Página ",
+                                        page,
+                                        " / ",
+                                        maxPage
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                    lineNumber: 181,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                    type: "button",
+                                    className: "secondary",
+                                    disabled: page >= maxPage,
+                                    onClick: ()=>setPage((p)=>Math.min(maxPage, p + 1)),
+                                    children: "▶"
+                                }, void 0, false, {
+                                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                    lineNumber: 184,
+                                    columnNumber: 13
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                            lineNumber: 177,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                    lineNumber: 157,
+                    columnNumber: 9
+                }, this),
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    style: {
+                        maxHeight: "320px",
+                        overflowY: "auto",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px"
+                    },
+                    children: loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "progress-wrapper",
+                        style: {
+                            padding: "1rem"
+                        },
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "progress-bar",
+                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "progress-bar-fill",
+                                    style: {
+                                        width: `${loadProgress}%`
+                                    }
+                                }, void 0, false, {
+                                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                    lineNumber: 199,
+                                    columnNumber: 17
+                                }, this)
+                            }, void 0, false, {
+                                fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                lineNumber: 198,
+                                columnNumber: 15
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                children: [
+                                    loadProgress,
+                                    "%"
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                lineNumber: 201,
+                                columnNumber: 15
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                        lineNumber: 197,
+                        columnNumber: 13
+                    }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("table", {
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("thead", {
+                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {}, void 0, false, {
+                                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                            lineNumber: 207,
+                                            columnNumber: 19
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                            children: "Nome"
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                            lineNumber: 208,
+                                            columnNumber: 19
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                            children: "Group ID"
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                            lineNumber: 209,
+                                            columnNumber: 19
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                            children: "CR"
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                            lineNumber: 210,
+                                            columnNumber: 19
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                    lineNumber: 206,
+                                    columnNumber: 17
+                                }, this)
+                            }, void 0, false, {
+                                fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                lineNumber: 205,
+                                columnNumber: 15
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
+                                children: [
+                                    paginatedItems.map((grupo)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                        type: "checkbox",
+                                                        checked: state[grupo.group_id]?.selected ?? false,
+                                                        onChange: ()=>toggleSelect(grupo)
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                                        lineNumber: 217,
+                                                        columnNumber: 23
+                                                    }, this)
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                                    lineNumber: 216,
+                                                    columnNumber: 21
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                    children: grupo.nome
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                                    lineNumber: 223,
+                                                    columnNumber: 21
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                    children: grupo.group_id
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                                    lineNumber: 224,
+                                                    columnNumber: 21
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                        placeholder: "Informe o CR",
+                                                        value: state[grupo.group_id]?.cr ?? "",
+                                                        onChange: (e)=>updateCr(grupo.group_id, e.target.value)
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                                        lineNumber: 226,
+                                                        columnNumber: 23
+                                                    }, this)
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                                    lineNumber: 225,
+                                                    columnNumber: 21
+                                                }, this)
+                                            ]
+                                        }, grupo.group_id, true, {
+                                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                            lineNumber: 215,
+                                            columnNumber: 19
+                                        }, this)),
+                                    !paginatedItems.length && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                            colSpan: 4,
+                                            style: {
+                                                textAlign: "center",
+                                                padding: "1rem"
+                                            },
+                                            children: "Nenhum grupo encontrado."
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                            lineNumber: 236,
+                                            columnNumber: 21
+                                        }, this)
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                        lineNumber: 235,
+                                        columnNumber: 19
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                lineNumber: 213,
+                                columnNumber: 15
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                        lineNumber: 204,
+                        columnNumber: 13
+                    }, this)
+                }, void 0, false, {
+                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                    lineNumber: 195,
+                    columnNumber: 9
+                }, this),
+                status && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                    style: {
+                        marginTop: "0.75rem"
+                    },
+                    children: status
+                }, void 0, false, {
+                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                    lineNumber: 246,
+                    columnNumber: 20
+                }, this),
+                importTotal > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "progress-wrapper",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "progress-bar",
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "progress-bar-fill",
+                                style: {
+                                    width: `${Math.round(importProgress / importTotal * 100)}%`
+                                }
+                            }, void 0, false, {
+                                fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                                lineNumber: 250,
+                                columnNumber: 15
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                            lineNumber: 249,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                            children: [
+                                importProgress,
+                                "/",
+                                importTotal
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                            lineNumber: 252,
+                            columnNumber: 13
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                    lineNumber: 248,
+                    columnNumber: 11
+                }, this),
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    style: {
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        gap: "0.75rem",
+                        marginTop: "1rem"
+                    },
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            type: "button",
+                            className: "secondary",
+                            onClick: onClose,
+                            children: "Cancelar"
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                            lineNumber: 259,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            type: "button",
+                            onClick: handleImport,
+                            disabled: importing || loading || importTotal > 0 || !hasSelection,
+                            children: importing ? "Importando..." : "Importar selecionados"
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                            lineNumber: 262,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/frontend/components/EvolutionModal.tsx",
+                    lineNumber: 258,
+                    columnNumber: 9
+                }, this)
+            ]
+        }, void 0, true, {
+            fileName: "[project]/frontend/components/EvolutionModal.tsx",
+            lineNumber: 149,
+            columnNumber: 7
+        }, this)
+    }, void 0, false, {
+        fileName: "[project]/frontend/components/EvolutionModal.tsx",
+        lineNumber: 148,
+        columnNumber: 5
+    }, this);
+}
+_s(EvolutionModal, "eQhrWz6r9Ph/32TIn7G6rSS//IU=", false, function() {
+    return [
+        __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
+    ];
+});
+_c = EvolutionModal;
+var _c;
+__turbopack_context__.k.register(_c, "EvolutionModal");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/frontend/components/StructureSyncModal.tsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>StructureSyncModal
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/lib/api.ts [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/navigation.js [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature();
+"use client";
+;
+;
+;
+function StructureSyncModal({ onClose }) {
+    _s();
+    const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
+    const [groups, setGroups] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
+    const [loaded, setLoaded] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [progress, setProgress] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(0);
+    const [status, setStatus] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("Carregando grupos com CR...");
+    const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "StructureSyncModal.useEffect": ()=>{
+            let cancelled = false;
+            async function load() {
+                try {
+                    const data = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getGroupsWithCR"])();
+                    if (!cancelled) {
+                        setGroups(data);
+                        setStatus(`Encontrados ${data.length} grupo(s) com CR. Iniciando sincronização...`);
+                        setLoaded(true);
+                    }
+                } catch (err) {
+                    if (!cancelled) setError(err?.message ?? "Erro ao buscar grupos.");
+                }
+            }
+            load();
+            return ({
+                "StructureSyncModal.useEffect": ()=>{
+                    cancelled = true;
+                }
+            })["StructureSyncModal.useEffect"];
+        }
+    }["StructureSyncModal.useEffect"], []);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "StructureSyncModal.useEffect": ()=>{
+            let cancelled = false;
+            async function sync() {
+                if (!loaded || !groups.length) {
+                    if (loaded) {
+                        setStatus("Nenhum grupo com CR encontrado.");
+                    }
+                    return;
+                }
+                for(let i = 0; i < groups.length; i += 1){
+                    if (cancelled) break;
+                    const grupo = groups[i];
+                    try {
+                        await (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["syncGroupStructure"])(grupo.id);
+                        setProgress(i + 1);
+                        setStatus(`Sincronizando ${grupo.nome_grupo} (${i + 1}/${groups.length})`);
+                    } catch (err) {
+                        setError(err?.message ?? `Falha ao sincronizar ${grupo.nome_grupo}`);
+                        break;
+                    }
+                }
+                if (!cancelled) {
+                    setStatus("Sincronização concluída!");
+                    router.refresh();
+                    setTimeout(onClose, 1200);
+                }
+            }
+            if (loaded) {
+                sync();
+            }
+            return ({
+                "StructureSyncModal.useEffect": ()=>{
+                    cancelled = true;
+                }
+            })["StructureSyncModal.useEffect"];
+        }
+    }["StructureSyncModal.useEffect"], [
+        loaded,
+        groups,
+        router
+    ]);
+    const total = groups.length || 1;
+    const percent = Math.min(100, Math.round(progress / total * 100));
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "modal-backdrop",
+        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: "modal",
+            children: [
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "modal-header",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                            children: "Sincronizar estrutura (Vista)"
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+                            lineNumber: 81,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            type: "button",
+                            className: "secondary",
+                            onClick: onClose,
+                            children: "Fechar"
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+                            lineNumber: 82,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+                    lineNumber: 80,
+                    columnNumber: 9
+                }, this),
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                    children: status
+                }, void 0, false, {
+                    fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+                    lineNumber: 86,
+                    columnNumber: 9
+                }, this),
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "progress-wrapper",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "progress-bar",
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "progress-bar-fill",
+                                style: {
+                                    width: `${percent}%`
+                                }
+                            }, void 0, false, {
+                                fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+                                lineNumber: 89,
+                                columnNumber: 13
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+                            lineNumber: 88,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                            children: [
+                                percent,
+                                "%"
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+                            lineNumber: 91,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+                    lineNumber: 87,
+                    columnNumber: 9
+                }, this),
+                error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                    style: {
+                        color: "#f87171"
+                    },
+                    children: error
+                }, void 0, false, {
+                    fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+                    lineNumber: 93,
+                    columnNumber: 19
+                }, this),
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                    style: {
+                        color: "var(--text-muted)",
+                        fontSize: "0.9rem"
+                    },
+                    children: "Este processo atualiza Diretor Executivo, Diretor Regional, Cliente etc. com base no CR de cada grupo."
+                }, void 0, false, {
+                    fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+                    lineNumber: 94,
+                    columnNumber: 9
+                }, this)
+            ]
+        }, void 0, true, {
+            fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+            lineNumber: 79,
+            columnNumber: 7
+        }, this)
+    }, void 0, false, {
+        fileName: "[project]/frontend/components/StructureSyncModal.tsx",
+        lineNumber: 78,
+        columnNumber: 5
+    }, this);
+}
+_s(StructureSyncModal, "NHKBjq8QqGQXnEjvHs5MEew1wzQ=", false, function() {
+    return [
+        __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
+    ];
+});
+_c = StructureSyncModal;
+var _c;
+__turbopack_context__.k.register(_c, "StructureSyncModal");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/frontend/components/EditGroupModal.tsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>EditGroupModal
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/lib/client.ts [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/navigation.js [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature();
+"use client";
+;
+;
+;
+const inputClasses = "block w-full rounded-xl border border-border bg-surface/70 px-3 py-2 text-sm text-text placeholder:text-textMuted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/50 transition";
+function EditGroupModal({ grupo, onClose }) {
+    _s();
+    const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
+    const [status, setStatus] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    async function handleSubmit(event) {
+        event.preventDefault();
+        setLoading(true);
+        setStatus(null);
+        const form = new FormData(event.currentTarget);
+        try {
+            await __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clientApi"].put(`/grupos/${grupo.id}`, {
+                group_id: form.get("group_id"),
+                nome: form.get("nome_grupo"),
+                enviar_mensagem: form.get("envio") === "on",
+                envio_pdf: form.get("envio_pdf") === "on",
+                cr: form.get("cr")
+            });
+            setStatus({
+                type: "success",
+                message: "Grupo atualizado com sucesso!"
+            });
+            router.refresh();
+            setTimeout(onClose, 1200);
+        } catch (error) {
+            setStatus({
+                type: "error",
+                message: error.message ?? "Erro ao atualizar o grupo."
+            });
+        } finally{
+            setLoading(false);
+        }
+    }
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm",
+        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: "w-full max-w-2xl rounded-2xl border border-border bg-surface p-6 shadow-panel",
+            children: [
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "mb-4 flex flex-wrap items-center justify-between gap-3",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                    className: "text-xs uppercase tracking-wide text-textMuted/70",
+                                    children: "Editar grupo"
+                                }, void 0, false, {
+                                    fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                    lineNumber: 49,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                    className: "text-xl font-semibold text-white",
+                                    children: grupo.nome_grupo
+                                }, void 0, false, {
+                                    fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                    lineNumber: 50,
+                                    columnNumber: 13
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                            lineNumber: 48,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            type: "button",
+                            className: "inline-flex items-center justify-center rounded-xl border border-border/60 px-4 py-2 text-sm font-medium text-text transition hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                            onClick: onClose,
+                            children: "Fechar"
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                            lineNumber: 52,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                    lineNumber: 47,
+                    columnNumber: 9
+                }, this),
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
+                    className: "space-y-4",
+                    onSubmit: handleSubmit,
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "grid gap-4 md:grid-cols-2",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                    className: "flex flex-col gap-2 text-sm font-semibold text-text",
+                                    children: [
+                                        "Group ID",
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                            className: inputClasses,
+                                            name: "group_id",
+                                            defaultValue: grupo.group_id,
+                                            required: true
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                            lineNumber: 64,
+                                            columnNumber: 15
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                    lineNumber: 62,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                    className: "flex flex-col gap-2 text-sm font-semibold text-text",
+                                    children: [
+                                        "Nome",
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                            className: inputClasses,
+                                            name: "nome_grupo",
+                                            defaultValue: grupo.nome_grupo,
+                                            required: true
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                            lineNumber: 68,
+                                            columnNumber: 15
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                    lineNumber: 66,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                    className: "flex flex-col gap-2 text-sm font-semibold text-text md:col-span-2",
+                                    children: [
+                                        "CR",
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                            className: inputClasses,
+                                            name: "cr",
+                                            defaultValue: grupo.cr ?? ""
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                            lineNumber: 72,
+                                            columnNumber: 15
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                    lineNumber: 70,
+                                    columnNumber: 13
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                            lineNumber: 61,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex flex-col gap-3",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                    className: "flex items-center gap-3 text-sm font-medium text-text",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                            type: "checkbox",
+                                            name: "envio",
+                                            defaultChecked: grupo.envio,
+                                            className: "h-5 w-5 rounded border-border bg-surface accent-accent transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                            lineNumber: 77,
+                                            columnNumber: 15
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                            children: "Habilitar envio"
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                            lineNumber: 83,
+                                            columnNumber: 15
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                    lineNumber: 76,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                    className: "flex items-center gap-3 text-sm font-medium text-text",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                            type: "checkbox",
+                                            name: "envio_pdf",
+                                            defaultChecked: grupo.envio_pdf,
+                                            className: "h-5 w-5 rounded border-border bg-surface accent-accent transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                            lineNumber: 86,
+                                            columnNumber: 15
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                            children: "Enviar PDF automaticamente junto com a mensagem programada"
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                            lineNumber: 92,
+                                            columnNumber: 15
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                    lineNumber: 85,
+                                    columnNumber: 13
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                            lineNumber: 75,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex items-center justify-end gap-3",
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                type: "submit",
+                                disabled: loading,
+                                className: "inline-flex items-center justify-center rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-cyan-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-70",
+                                children: loading ? "Salvando..." : "Salvar alterações"
+                            }, void 0, false, {
+                                fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                                lineNumber: 96,
+                                columnNumber: 13
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                            lineNumber: 95,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                    lineNumber: 60,
+                    columnNumber: 9
+                }, this),
+                status && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                    className: `mt-3 text-sm ${status.type === "success" ? "text-emerald-400" : "text-rose-400"}`,
+                    children: status.message
+                }, void 0, false, {
+                    fileName: "[project]/frontend/components/EditGroupModal.tsx",
+                    lineNumber: 106,
+                    columnNumber: 11
+                }, this)
+            ]
+        }, void 0, true, {
+            fileName: "[project]/frontend/components/EditGroupModal.tsx",
+            lineNumber: 46,
+            columnNumber: 7
+        }, this)
+    }, void 0, false, {
+        fileName: "[project]/frontend/components/EditGroupModal.tsx",
+        lineNumber: 45,
+        columnNumber: 5
+    }, this);
+}
+_s(EditGroupModal, "awbNI12KCBIOwcWlfqF7BcOlJig=", false, function() {
+    return [
+        __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
+    ];
+});
+_c = EditGroupModal;
+var _c;
+__turbopack_context__.k.register(_c, "EditGroupModal");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/frontend/components/GroupTable.tsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>GroupTable
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$react$2d$icons$2f$fa$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/react-icons/fa/index.mjs [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature();
+"use client";
+;
+;
+const PAGE_SIZE = 10;
+function GroupTable({ grupos, selectedIds, onToggle, onToggleAll, onEdit }) {
+    _s();
+    const [page, setPage] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(1);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "GroupTable.useEffect": ()=>{
+            setPage(1);
+        }
+    }["GroupTable.useEffect"], [
+        grupos.length
+    ]);
+    const data = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
+        "GroupTable.useMemo[data]": ()=>{
+            const totalPages = Math.max(1, Math.ceil(grupos.length / PAGE_SIZE));
+            const currentPage = Math.min(page, totalPages);
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const current = grupos.slice(start, start + PAGE_SIZE);
+            return {
+                totalPages,
+                currentPage,
+                items: current
+            };
+        }
+    }["GroupTable.useMemo[data]"], [
+        grupos,
+        page
+    ]);
+    const visibleIds = data.items.map((g)=>g.id);
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id)=>selectedIds.includes(id));
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        style: {
+            display: "grid",
+            gap: "1rem"
+        },
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                style: {
+                    overflowX: "auto"
+                },
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("table", {
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("thead", {
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                            type: "checkbox",
+                                            checked: allSelected,
+                                            onChange: ()=>onToggleAll(visibleIds)
+                                        }, void 0, false, {
+                                            fileName: "[project]/frontend/components/GroupTable.tsx",
+                                            lineNumber: 46,
+                                            columnNumber: 17
+                                        }, this)
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 45,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "Nome"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 52,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "Group ID"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 53,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "CR"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 54,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "Envio"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 55,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "Envio PDF"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 56,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "Cliente"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 57,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "PEC 01"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 58,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "PEC 02"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 59,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "Diretor Executivo"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 60,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "Diretor Regional"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 61,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "Gerente Regional"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 62,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "Gerente"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 63,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        children: "Supervisor"
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 64,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {}, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 65,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                lineNumber: 44,
+                                columnNumber: 13
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/frontend/components/GroupTable.tsx",
+                            lineNumber: 43,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
+                            children: [
+                                data.items.map((grupo)=>{
+                                    const checked = selectedIds.includes(grupo.id);
+                                    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                    type: "checkbox",
+                                                    checked: checked,
+                                                    onChange: ()=>onToggle(grupo.id)
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                    lineNumber: 74,
+                                                    columnNumber: 21
+                                                }, this)
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 73,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: grupo.nome_grupo
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 76,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: grupo.group_id
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 77,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: grupo.cr ?? "—"
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 78,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    className: "chip",
+                                                    children: grupo.envio ? "Ativo" : "Inativo"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                    lineNumber: 80,
+                                                    columnNumber: 21
+                                                }, this)
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 79,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    className: "chip",
+                                                    children: grupo.envio_pdf ? "Habilitado" : "Desabilitado"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                    lineNumber: 83,
+                                                    columnNumber: 21
+                                                }, this)
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 82,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: grupo.cliente ?? "—"
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 85,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: grupo.pec_01 ?? "—"
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 86,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: grupo.pec_02 ?? "—"
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 87,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: grupo.diretor_executivo ?? "—"
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 88,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: grupo.diretor_regional ?? "—"
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 89,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: grupo.gerente_regional ?? "—"
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 90,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: grupo.gerente ?? "—"
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 91,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: grupo.supervisor ?? "—"
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 92,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                    type: "button",
+                                                    className: "secondary",
+                                                    onClick: ()=>onEdit(grupo),
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$react$2d$icons$2f$fa$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["FaEdit"], {
+                                                            style: {
+                                                                marginRight: "0.35rem"
+                                                            }
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                            lineNumber: 95,
+                                                            columnNumber: 23
+                                                        }, this),
+                                                        "Editar"
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                    lineNumber: 94,
+                                                    columnNumber: 21
+                                                }, this)
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                                lineNumber: 93,
+                                                columnNumber: 19
+                                            }, this)
+                                        ]
+                                    }, grupo.id, true, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 72,
+                                        columnNumber: 17
+                                    }, this);
+                                }),
+                                data.items.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                        colSpan: 15,
+                                        style: {
+                                            textAlign: "center",
+                                            padding: "1rem"
+                                        },
+                                        children: "Nenhum grupo encontrado com os filtros atuais."
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                                        lineNumber: 104,
+                                        columnNumber: 17
+                                    }, this)
+                                }, void 0, false, {
+                                    fileName: "[project]/frontend/components/GroupTable.tsx",
+                                    lineNumber: 103,
+                                    columnNumber: 15
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/frontend/components/GroupTable.tsx",
+                            lineNumber: 68,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/frontend/components/GroupTable.tsx",
+                    lineNumber: 42,
+                    columnNumber: 9
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/frontend/components/GroupTable.tsx",
+                lineNumber: 41,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                style: {
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center"
+                },
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                        children: [
+                            "Página ",
+                            data.currentPage,
+                            " de ",
+                            data.totalPages,
+                            " — ",
+                            grupos.length,
+                            " grupo(s)"
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                        lineNumber: 114,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        style: {
+                            display: "flex",
+                            gap: "0.5rem"
+                        },
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                type: "button",
+                                className: "secondary",
+                                disabled: data.currentPage === 1,
+                                onClick: ()=>setPage((prev)=>Math.max(1, prev - 1)),
+                                children: "◀"
+                            }, void 0, false, {
+                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                lineNumber: 118,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                type: "button",
+                                className: "secondary",
+                                disabled: data.currentPage === data.totalPages,
+                                onClick: ()=>setPage((prev)=>Math.min(data.totalPages, prev + 1)),
+                                children: "▶"
+                            }, void 0, false, {
+                                fileName: "[project]/frontend/components/GroupTable.tsx",
+                                lineNumber: 126,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/frontend/components/GroupTable.tsx",
+                        lineNumber: 117,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/frontend/components/GroupTable.tsx",
+                lineNumber: 113,
+                columnNumber: 7
+            }, this)
+        ]
+    }, void 0, true, {
+        fileName: "[project]/frontend/components/GroupTable.tsx",
+        lineNumber: 40,
+        columnNumber: 5
+    }, this);
+}
+_s(GroupTable, "ZrzUqXe6T3wKGcHJn6RWzTkDJuE=");
+_c = GroupTable;
+var _c;
+__turbopack_context__.k.register(_c, "GroupTable");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/frontend/components/GroupsPageClient.tsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>GroupsPageClient
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/next/navigation.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/lib/api.ts [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$EvolutionModal$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/components/EvolutionModal.tsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$StructureSyncModal$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/components/StructureSyncModal.tsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$EditGroupModal$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/components/EditGroupModal.tsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$GroupTable$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/components/GroupTable.tsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$react$2d$icons$2f$fa$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/frontend/node_modules/react-icons/fa/index.mjs [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature();
+"use client";
+;
+;
+;
+;
+;
+;
+;
+;
+function GroupsPageClient({ grupos, filtros }) {
+    _s();
+    const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
+    const [search, setSearch] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
+    const [selectedFilters, setSelectedFilters] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({});
+    const [selectedIds, setSelectedIds] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
+    const [evolutionOpen, setEvolutionOpen] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [structureOpen, setStructureOpen] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [editGroup, setEditGroup] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [actionStatus, setActionStatus] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [deleteLoading, setDeleteLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const filteredGroups = (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
+        "GroupsPageClient.useMemo[filteredGroups]": ()=>{
+            const text = search.trim().toLowerCase();
+            return grupos.filter({
+                "GroupsPageClient.useMemo[filteredGroups]": (grupo)=>{
+                    const matchesSearch = !text || grupo.nome_grupo.toLowerCase().includes(text) || grupo.group_id.toLowerCase().includes(text) || (grupo.cr ?? "").toLowerCase().includes(text);
+                    if (!matchesSearch) return false;
+                    return Object.entries(selectedFilters).every({
+                        "GroupsPageClient.useMemo[filteredGroups]": ([key, value])=>{
+                            if (!value) return true;
+                            const campo = grupo[key] ?? "";
+                            return campo === value;
+                        }
+                    }["GroupsPageClient.useMemo[filteredGroups]"]);
+                }
+            }["GroupsPageClient.useMemo[filteredGroups]"]);
+        }
+    }["GroupsPageClient.useMemo[filteredGroups]"], [
+        grupos,
+        search,
+        selectedFilters
+    ]);
+    function handleFilterChange(key, value) {
+        setSelectedFilters((prev)=>({
+                ...prev,
+                [key]: value || undefined
+            }));
+    }
+    function toggleSelection(id) {
+        setSelectedIds((prev)=>prev.includes(id) ? prev.filter((item)=>item !== id) : [
+                ...prev,
+                id
+            ]);
+    }
+    function toggleSelectAll(ids) {
+        if (!ids.length) return;
+        const allSelected = ids.every((id)=>selectedIds.includes(id));
+        if (allSelected) {
+            setSelectedIds((prev)=>prev.filter((id)=>!ids.includes(id)));
+        } else {
+            setSelectedIds((prev)=>Array.from(new Set([
+                    ...prev,
+                    ...ids
+                ])));
+        }
+    }
+    async function handleDelete() {
+        if (!selectedIds.length) return;
+        if (!window.confirm(`Remover ${selectedIds.length} grupo(s)?`)) return;
+        setDeleteLoading(true);
+        setActionStatus("Removendo grupos selecionados...");
+        try {
+            await (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$lib$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["deleteGroups"])(selectedIds);
+            setActionStatus("Grupos removidos.");
+            setSelectedIds([]);
+            router.refresh();
+        } catch (error) {
+            setActionStatus(error.message ?? "Erro ao remover grupos.");
+        } finally{
+            setDeleteLoading(false);
+        }
+    }
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "grid",
+        style: {
+            gap: "1.5rem"
+        },
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
+                className: "panel",
+                style: {
+                    display: "grid",
+                    gap: "1rem"
+                },
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                        children: "Grupos WhatsApp"
+                    }, void 0, false, {
+                        fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                        lineNumber: 100,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        style: {
+                            position: "relative"
+                        },
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                placeholder: "Pesquisar por nome, group_id ou CR",
+                                value: search,
+                                onChange: (e)=>setSearch(e.target.value),
+                                style: {
+                                    paddingLeft: "2.5rem"
+                                }
+                            }, void 0, false, {
+                                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                lineNumber: 102,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                style: {
+                                    position: "absolute",
+                                    left: "0.9rem",
+                                    top: "50%",
+                                    transform: "translateY(-50%)",
+                                    color: "var(--text-muted)"
+                                },
+                                children: "🔍"
+                            }, void 0, false, {
+                                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                lineNumber: 108,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                        lineNumber: 101,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        style: {
+                            display: "flex",
+                            gap: "0.75rem",
+                            justifyContent: "flex-end",
+                            flexWrap: "wrap"
+                        },
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                type: "button",
+                                className: "secondary",
+                                onClick: ()=>{
+                                    setSearch("");
+                                    setSelectedFilters({});
+                                },
+                                children: "Limpar filtros"
+                            }, void 0, false, {
+                                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                lineNumber: 122,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                type: "button",
+                                onClick: ()=>setStructureOpen(true),
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$react$2d$icons$2f$fa$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["FaDatabase"], {
+                                        style: {
+                                            marginRight: "0.35rem"
+                                        }
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                        lineNumber: 133,
+                                        columnNumber: 13
+                                    }, this),
+                                    "Sincronizar estrutura"
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                lineNumber: 132,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                type: "button",
+                                onClick: ()=>setEvolutionOpen(true),
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$react$2d$icons$2f$fa$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["FaCloudDownloadAlt"], {
+                                        style: {
+                                            marginRight: "0.35rem"
+                                        }
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                        lineNumber: 137,
+                                        columnNumber: 13
+                                    }, this),
+                                    "Sincronizar Evolution"
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                lineNumber: 136,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                type: "button",
+                                className: "secondary",
+                                disabled: !selectedIds.length || deleteLoading,
+                                onClick: handleDelete,
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$react$2d$icons$2f$fa$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["FaTrash"], {
+                                        style: {
+                                            marginRight: "0.35rem"
+                                        }
+                                    }, void 0, false, {
+                                        fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                        lineNumber: 146,
+                                        columnNumber: 13
+                                    }, this),
+                                    deleteLoading ? "Excluindo..." : `Excluir (${selectedIds.length || 0})`
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                lineNumber: 140,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                        lineNumber: 121,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "filters-grid",
+                        children: [
+                            [
+                                "diretor_executivo",
+                                "Diretor Executivo"
+                            ],
+                            [
+                                "diretor_regional",
+                                "Diretor Regional"
+                            ],
+                            [
+                                "gerente_regional",
+                                "Gerente Regional"
+                            ],
+                            [
+                                "gerente",
+                                "Gerente"
+                            ],
+                            [
+                                "supervisor",
+                                "Supervisor"
+                            ],
+                            [
+                                "cliente",
+                                "Cliente"
+                            ],
+                            [
+                                "pec_01",
+                                "PEC 01"
+                            ],
+                            [
+                                "pec_02",
+                                "PEC 02"
+                            ]
+                        ].map(([key, label])=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                children: [
+                                    label,
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
+                                        value: selectedFilters[key] ?? "",
+                                        onChange: (e)=>handleFilterChange(key, e.target.value),
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                value: "",
+                                                children: "Todos"
+                                            }, void 0, false, {
+                                                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                                lineNumber: 167,
+                                                columnNumber: 17
+                                            }, this),
+                                            (filtros[key === "cliente" ? "cliente" : key] ?? []).map((valor)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                    value: valor,
+                                                    children: valor
+                                                }, valor, false, {
+                                                    fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                                    lineNumber: 169,
+                                                    columnNumber: 19
+                                                }, this))
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                        lineNumber: 166,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, key, true, {
+                                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                                lineNumber: 164,
+                                columnNumber: 13
+                            }, this))
+                    }, void 0, false, {
+                        fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                        lineNumber: 151,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                lineNumber: 99,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
+                className: "panel",
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$GroupTable$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                    grupos: filteredGroups,
+                    selectedIds: selectedIds,
+                    onToggle: toggleSelection,
+                    onToggleAll: toggleSelectAll,
+                    onEdit: (grupo)=>setEditGroup(grupo)
+                }, void 0, false, {
+                    fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                    lineNumber: 180,
+                    columnNumber: 9
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                lineNumber: 179,
+                columnNumber: 7
+            }, this),
+            actionStatus && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                style: {
+                    color: "var(--text-muted)"
+                },
+                children: actionStatus
+            }, void 0, false, {
+                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                lineNumber: 189,
+                columnNumber: 24
+            }, this),
+            evolutionOpen && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$EvolutionModal$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                onClose: ()=>setEvolutionOpen(false)
+            }, void 0, false, {
+                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                lineNumber: 191,
+                columnNumber: 25
+            }, this),
+            structureOpen && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$StructureSyncModal$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                onClose: ()=>setStructureOpen(false)
+            }, void 0, false, {
+                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                lineNumber: 192,
+                columnNumber: 25
+            }, this),
+            editGroup && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$components$2f$EditGroupModal$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                grupo: editGroup,
+                onClose: ()=>setEditGroup(null)
+            }, void 0, false, {
+                fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+                lineNumber: 193,
+                columnNumber: 21
+            }, this)
+        ]
+    }, void 0, true, {
+        fileName: "[project]/frontend/components/GroupsPageClient.tsx",
+        lineNumber: 98,
+        columnNumber: 5
+    }, this);
+}
+_s(GroupsPageClient, "MKITTLe4ANek6q7l6thHuUq+RV8=", false, function() {
+    return [
+        __TURBOPACK__imported__module__$5b$project$5d2f$frontend$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
+    ];
+});
+_c = GroupsPageClient;
+var _c;
+__turbopack_context__.k.register(_c, "GroupsPageClient");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+]);
+
+//# sourceMappingURL=frontend_59332287._.js.map

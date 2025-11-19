@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 14, "column": 0}, "map": {"version":3,"sources":["file:///C:/Bots/Git/envio_sla_vista/frontend/app/envio-sla/page.tsx"],"sourcesContent":["import EnvioSlaView from \"../../components/envio-sla/EnvioSlaView\";\n\nexport default function EnvioSlaPage() {\n  return <EnvioSlaView />;\n}\n"],"names":[],"mappings":";;;;;;;;;;;;AAEe,SAAS;IACtB,qBAAO,0PAAC;;;;;AACV"}}]
+}
