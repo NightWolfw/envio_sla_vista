@@ -56,3 +56,7 @@ logs/
 
 # Uploads (vão por volume)
 app/static/uploads/*
+
+# Node
+node_modules/
+frontend/node_modules/
