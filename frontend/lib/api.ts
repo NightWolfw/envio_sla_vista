@@ -82,8 +82,10 @@ export async function getGrupos(): Promise<Grupo[]> {
   return apiFetch<Grupo[]>("/grupos");
 }
 
-export async function getGrupoFiltros() {
-  return apiFetch("/grupos/filtros/meta");
+export type GrupoFiltros = Record<string, string[]>;
+
+export async function getGrupoFiltros(): Promise<GrupoFiltros> {
+  return apiFetch<GrupoFiltros>("/grupos/filtros/meta");
 }
 
 export type Agendamento = {
