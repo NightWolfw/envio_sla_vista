@@ -19,8 +19,7 @@ type ResumoPayload = {
   };
 };
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://soloalive.uk/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
 const DEFAULT_DIRETOR = "MARCOS NASCIMENTO PEDREIRA";
 
 export default function DashboardResumoClient() {
