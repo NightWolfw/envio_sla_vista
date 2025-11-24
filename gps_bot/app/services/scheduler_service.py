@@ -24,7 +24,7 @@ from app.services.mensagem_agendamento import (
 )
 from app.services.pdf_sla import gerar_pdf_relatorio
 from app.services.sla_consulta import buscar_tarefas_por_periodo, buscar_tarefas_detalhadas
-from app.services.whatsapp import enviar_mensagem_texto
+from app.services.whatsapp import enviar_mensagem_texto, enviar_pdf_whatsapp
 
 logger = logging.getLogger(__name__)
 TIMEZONE_BRASILIA = pytz.timezone('America/Sao_Paulo')
@@ -255,19 +255,32 @@ def enviar_sla_agendado(agendamento, atualizar_proximo=True):
         else:
             mensagem = formatar_mensagem_programadas(data_inicio, data_fim, stats, data_envio_local)
 
-        mensagem_final = mensagem
-        pdf_url = None
-        if envio_pdf_habilitado:
-            logger.info(f"[PID {os.getpid()}] Gerando PDF...")
-            caminho_pdf = gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, agendamento['tipo_envio'])
-            _agendar_remocao_pdf(caminho_pdf)
-            pdf_url = _pdf_download_url(caminho_pdf)
-            mensagem_final = f"{mensagem}\n\n[PDF] Relatório completo: {pdf_url}"
-        else:
-            logger.info(f"[PID {os.getpid()}] Envio de PDF desabilitado para este grupo.")
+    caminho_pdf = None
+    pdf_resposta = None
+    if envio_pdf_habilitado:
+        logger.info(f"[PID {os.getpid()}] Gerando PDF para envio direto...")
+        caminho_pdf = gerar_pdf_relatorio(
+            cr, nome_grupo, tarefas, data_inicio, data_fim, agendamento['tipo_envio']
+        )
+        _agendar_remocao_pdf(caminho_pdf)
+    else:
+        logger.info(f"[PID {os.getpid()}] Envio de PDF desabilitado para este grupo.")
 
-        logger.info(f"[PID {os.getpid()}] Enviando mensagem...")
-        resposta_msg = enviar_mensagem_texto(group_id, mensagem_final)
+    logger.info(f"[PID {os.getpid()}] Enviando mensagem de texto...")
+    resposta_msg = enviar_mensagem_texto(group_id, mensagem)
+
+    pdf_erro = None
+    if envio_pdf_habilitado and caminho_pdf:
+        try:
+            logger.info(f"[PID {os.getpid()}] Enviando PDF como anexo...")
+            pdf_resposta = enviar_pdf_whatsapp(
+                group_id,
+                caminho_pdf,
+                caption=f"Relatório SLA - {nome_grupo}"
+            )
+        except Exception as exc:
+            pdf_erro = str(exc)
+            logger.error(f"[PID {os.getpid()}] Erro ao enviar PDF: {pdf_erro}")
 
         # Atualiza próximo envio quando necessário
         if atualizar_proximo:
@@ -275,13 +288,18 @@ def enviar_sla_agendado(agendamento, atualizar_proximo=True):
             atualizar_proximo_envio(agendamento['id'], proxima_data)
 
         # Registra log
+        resposta_api = f"MSG: {resposta_msg}"
+        if pdf_resposta:
+            resposta_api += f", PDF: {pdf_resposta}"
+
+        status = 'sucesso' if not pdf_erro else 'erro_pdf'
         registrar_log_envio(
             agendamento['id'],
             agendamento['grupo_id'],
-            'sucesso',
-            mensagem_final,
-            f"MSG: {resposta_msg}, PDF_LINK: {pdf_url}",
-            ''
+            status,
+            mensagem,
+            resposta_api,
+            pdf_erro or ''
         )
 
         logger.info(f"[PID {os.getpid()}] === ENVIO CONCLUÍDO ===")
