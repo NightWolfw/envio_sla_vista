@@ -105,6 +105,8 @@ services:
       - EVOLUTION_BASE_URL=${EVOLUTION_BASE_URL}
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
       - EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME}
+      # URL pública para montar links de PDF
+      - PUBLIC_API_BASE_URL=${PUBLIC_API_BASE_URL}
     volumes:
       - ./gps_bot/logs:/app/logs
     networks:
