@@ -1,6 +1,6 @@
 "use client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
+const API_BASE = "https://soloalive.uk/api";
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
