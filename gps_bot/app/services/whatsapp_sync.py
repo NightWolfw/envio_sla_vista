@@ -105,7 +105,7 @@ def inserir_grupos_novos(grupos_com_cr: List[Dict[str, Any]]) -> Dict[str, Any]:
             
             cur.execute("""
                 INSERT INTO grupos_whatsapp (group_id, nome_grupo, cr, envio, envio_pdf)
-                VALUES (%s, %s, %s, %s, FALSE)
+                VALUES (%s, %s, %s, %s, TRUE)
                 RETURNING id
             """, (grupo['group_id'], grupo['nome'], cr, envio))
             
