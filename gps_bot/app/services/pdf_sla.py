@@ -3,7 +3,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from datetime import datetime
 import os
 from pathlib import Path
@@ -25,6 +25,20 @@ def _format_datetime(dt: datetime, pattern: str = '%d/%m/%Y %H:%M') -> str:
     if not dt:
         return ''
     return _to_brasilia(dt).strftime(pattern)
+
+
+def _escape_html(texto: str) -> str:
+    """
+    Escapa caracteres especiais usados pelo Paragraph para evitar quebra de markup.
+    """
+    if texto is None:
+        return ''
+    return (
+        str(texto)
+        .replace('&', '&amp;')
+        .replace('<', '&lt;')
+        .replace('>', '&gt;')
+    )
 
 
 def quebrar_texto(texto, max_length=40):
@@ -51,18 +65,14 @@ def quebrar_texto(texto, max_length=40):
     return '\n'.join(linhas)
 
 
-def alinhar_direita_local(local, max_length=30):
+def formatar_local(local, max_length=80):
     """
-    Alinha local da direita pra esquerda
-    Se ultrapassar o tamanho, mostra só a parte final
+    Formata o campo de local para quebrar linhas sem perder conteúdo.
     """
-    local_str = str(local) if local else ''
-
-    if len(local_str) <= max_length:
-        return local_str
-
-    # Pega os últimos caracteres (direita)
-    return '...' + local_str[-(max_length-3):]
+    texto = str(local or 'N/A').strip()
+    if not texto:
+        texto = 'N/A'
+    return quebrar_texto(texto, max_length)
 
 
 def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_envio='resultados'):
@@ -76,7 +86,14 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
     filepath = PDF_DIR / filename
 
     # Documento HORIZONTAL (landscape)
-    doc = SimpleDocTemplate(str(filepath), pagesize=landscape(A4), topMargin=1 * cm, bottomMargin=1 * cm)
+    doc = SimpleDocTemplate(
+        str(filepath),
+        pagesize=landscape(A4),
+        topMargin=1 * cm,
+        bottomMargin=1 * cm,
+        leftMargin=0.7 * cm,
+        rightMargin=0.7 * cm,
+    )
     elements = []
 
     # Estilos
@@ -98,13 +115,25 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
         spaceAfter=10,
         alignment=TA_CENTER
     )
+    body_style = ParagraphStyle(
+        'BodyTable',
+        parent=styles['Normal'],
+        fontSize=6,
+        leading=7,
+        alignment=TA_LEFT
+    )
+    local_style = ParagraphStyle(
+        'LocalTable',
+        parent=body_style,
+        wordWrap='CJK'
+    )
 
     # Título
     title = Paragraph(f"<b>Relatório SLA - {nome_grupo}</b>", title_style)
     elements.append(title)
 
     # Período
-    periodo_texto = f"Per��odo: {_format_datetime(data_inicio)} atǸ {_format_datetime(data_fim)} | CR: {cr}"
+    periodo_texto = f"Período: {_format_datetime(data_inicio)} até {_format_datetime(data_fim)} | CR: {cr}"
     subtitle = Paragraph(periodo_texto, subtitle_style)
     elements.append(subtitle)
     elements.append(Spacer(1, 0.3 * cm))
@@ -118,14 +147,14 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
         for tarefa in tarefas:
             numero = str(tarefa.get('numero', ''))
             # ✅ Agora 'descricao' contém o valor de t.nome
-            descricao = quebrar_texto(tarefa.get('descricao', ''), 25)
+            descricao = Paragraph(_escape_html(quebrar_texto(tarefa.get('descricao', ''), 30)), body_style)
             disponibilizacao = _format_datetime(tarefa.get('disponibilizacao'), '%d/%m %H:%M')
             prazo = _format_datetime(tarefa.get('prazo'), '%d/%m %H:%M')
             inicioreal = _format_datetime(tarefa.get('inicioreal'), '%d/%m %H:%M') or '-'
             terminoreal = _format_datetime(tarefa.get('terminoreal'), '%d/%m %H:%M') or '-'
             status_texto = str(tarefa.get('status_texto', ''))
-            executor = quebrar_texto(tarefa.get('executor', 'N/A') or 'N/A', 15)
-            local = alinhar_direita_local(tarefa.get('local', 'N/A'), 25)
+            executor = Paragraph(_escape_html(quebrar_texto(tarefa.get('executor', 'N/A') or 'N/A', 20)), body_style)
+            local = Paragraph(_escape_html(formatar_local(tarefa.get('local', 'N/A'), 120)), local_style)
 
             data.append([
                 numero,
@@ -140,7 +169,7 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
             ])
 
         # Larguras das colunas (ajustado para caber tudo)
-        col_widths = [1.2 * cm, 5 * cm, 2 * cm, 2 * cm, 2 * cm, 2 * cm, 2 * cm, 3 * cm, 5 * cm]
+        col_widths = [1.6 * cm, 5 * cm, 2.2 * cm, 2.2 * cm, 2.2 * cm, 2.2 * cm, 2.2 * cm, 3 * cm, 6.7 * cm]
 
         # Cria tabela
         table = Table(data, colWidths=col_widths)
@@ -159,9 +188,15 @@ def gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, tipo_env
             ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
             ('FONTSIZE', (0, 1), (-1, -1), 6),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 1), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
 
-            # Local alinhado à direita
-            ('ALIGN', (8, 1), (8, -1), 'RIGHT'),
+            # Ajustes de alinhamento por coluna
+            ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Nº centralizado
+            ('ALIGN', (8, 1), (8, -1), 'LEFT'),    # Local alinhado à esquerda
         ]))
 
         elements.append(table)
