@@ -12,7 +12,7 @@ import {
 import { tipoEnvioOptions, weekdayOptions } from "./constants";
 
 type Props = {
-  mode: "create" | "edit";
+  mode: "create" | "edit" | "clone";
   agendamento?: Agendamento;
   onClose: () => void;
   onSaved: (message: string) => void;
@@ -23,6 +23,7 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [grupoSearch, setGrupoSearch] = useState("");
   const allWeekdays = weekdayOptions.map((opt) => opt.value);
   const [form, setForm] = useState<AgendamentoPayload>(() => {
     if (!agendamento) {
@@ -90,6 +91,15 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
     });
   };
 
+  const filteredGrupos = grupos.filter((grupo) => {
+    if (!grupoSearch.trim()) return true;
+    const term = grupoSearch.toLowerCase();
+    return (
+      (grupo.nome_grupo && grupo.nome_grupo.toLowerCase().includes(term)) ||
+      (grupo.cr && grupo.cr.toLowerCase().includes(term))
+    );
+  });
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.grupo_id) {
@@ -102,9 +112,10 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
     }
     setSaving(true);
     setError(null);
+    const dataEnvioIso = toIsoWithSaoPaulo(form.data_envio);
     const payload: AgendamentoPayload = {
       ...form,
-      data_envio: new Date(form.data_envio).toISOString(),
+      data_envio: dataEnvioIso,
       hora_inicio: normalizeTime(form.hora_inicio),
       hora_fim: normalizeTime(form.hora_fim)
     };
@@ -112,6 +123,9 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
       if (mode === "edit" && agendamento) {
         await updateAgendamento(agendamento.id, payload);
         onSaved("Agendamento atualizado.");
+      } else if (mode === "clone") {
+        await createAgendamento(payload);
+        onSaved("Agendamento clonado.");
       } else {
         await createAgendamento(payload);
         onSaved("Agendamento criado.");
@@ -127,7 +141,13 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
     <div className="modal-backdrop">
       <div className="modal max-h-[90vh] w-full max-w-3xl overflow-y-auto">
         <div className="modal-header">
-          <h3>{mode === "create" ? "Novo agendamento SLA" : `Editar ${agendamento?.nome_grupo}`}</h3>
+          <h3>
+            {mode === "create"
+              ? "Novo agendamento SLA"
+              : mode === "edit"
+                ? `Editar ${agendamento?.nome_grupo}`
+                : "Clonar agendamento SLA"}
+          </h3>
           <button type="button" className="secondary" onClick={onClose}>
             Fechar
           </button>
@@ -137,7 +157,13 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
         ) : (
           <form className="grid gap-4" onSubmit={handleSubmit}>
             <label className="text-sm font-semibold">
-              Grupo
+              Grupo / CR
+              <input
+                className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text"
+                placeholder="Buscar por nome do grupo ou CR"
+                value={grupoSearch}
+                onChange={(e) => setGrupoSearch(e.target.value)}
+              />
               <select
                 className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text"
                 value={form.grupo_id || ""}
@@ -145,9 +171,9 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
                 required
               >
                 <option value="">Selecione o grupo</option>
-                {grupos.map((grupo) => (
+                {filteredGrupos.map((grupo) => (
                   <option key={grupo.id} value={grupo.id}>
-                    {grupo.nome_grupo}
+                    {grupo.nome_grupo} {grupo.cr ? `(${grupo.cr})` : ""}
                   </option>
                 ))}
               </select>
@@ -261,10 +287,30 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
 function toDateInput(value: string | null | undefined) {
   if (!value) return "";
   const date = new Date(value);
-  return date.toISOString().slice(0, 16);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  })
+    .formatToParts(date)
+    .reduce<Record<string, string>>((acc, part) => {
+      if (part.type !== "literal") acc[part.type] = part.value;
+      return acc;
+    }, {});
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
 
 function normalizeTime(value: string) {
   if (!value) return "00:00";
   return value.length === 5 ? `${value}:00` : value;
+}
+
+function toIsoWithSaoPaulo(value: string) {
+  if (!value) return "";
+  // datetime-local vem como YYYY-MM-DDTHH:MM; anexamos offset -03:00 para preservar horário de America/Sao_Paulo
+  return `${value}:00-03:00`;
 }
