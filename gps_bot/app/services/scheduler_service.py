@@ -25,7 +25,6 @@ from app.services.mensagem_agendamento import (
 from app.services.pdf_sla import gerar_pdf_relatorio
 from app.services.sla_consulta import buscar_tarefas_por_periodo, buscar_tarefas_detalhadas
 from app.services.whatsapp import enviar_mensagem_texto, enviar_pdf_whatsapp
-
 logger = logging.getLogger(__name__)
 TIMEZONE_BRASILIA = pytz.timezone('America/Sao_Paulo')
 PUBLIC_BASE_URL = project_config.PUBLIC_API_BASE_URL.rstrip('/')
@@ -100,28 +99,6 @@ def gerar_pdf_agendamento(agendamento_id: int) -> str:
     caminho_pdf = gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, agendamento['tipo_envio'])
     _agendar_remocao_pdf(caminho_pdf)
     return _pdf_download_url(caminho_pdf)
-
-
-def _pdf_download_url(caminho_pdf: str) -> str:
-    filename = Path(caminho_pdf).name
-    return f"{PUBLIC_BASE_URL}/api/files/sla/{quote(filename)}"
-
-
-
-def _agendar_remocao_pdf(caminho_pdf: str, delay: int = 300) -> None:
-    def _remover():
-        try:
-            if os.path.exists(caminho_pdf):
-                os.remove(caminho_pdf)
-                logger.info(f"[PID {os.getpid()}] PDF temporário removido: {caminho_pdf}")
-        except Exception as exc:
-            logger.error(f"[PID {os.getpid()}] Erro ao remover PDF temporário {caminho_pdf}: {exc}")
-
-    timer = threading.Timer(delay, _remover)
-    timer.daemon = True
-    timer.start()
-
-
 
 
 def cleanup_lockfile():
@@ -255,32 +232,32 @@ def enviar_sla_agendado(agendamento, atualizar_proximo=True):
         else:
             mensagem = formatar_mensagem_programadas(data_inicio, data_fim, stats, data_envio_local)
 
-    caminho_pdf = None
-    pdf_resposta = None
-    if envio_pdf_habilitado:
-        logger.info(f"[PID {os.getpid()}] Gerando PDF para envio direto...")
-        caminho_pdf = gerar_pdf_relatorio(
-            cr, nome_grupo, tarefas, data_inicio, data_fim, agendamento['tipo_envio']
-        )
-        _agendar_remocao_pdf(caminho_pdf)
-    else:
-        logger.info(f"[PID {os.getpid()}] Envio de PDF desabilitado para este grupo.")
-
-    logger.info(f"[PID {os.getpid()}] Enviando mensagem de texto...")
-    resposta_msg = enviar_mensagem_texto(group_id, mensagem)
-
-    pdf_erro = None
-    if envio_pdf_habilitado and caminho_pdf:
-        try:
-            logger.info(f"[PID {os.getpid()}] Enviando PDF como anexo...")
-            pdf_resposta = enviar_pdf_whatsapp(
-                group_id,
-                caminho_pdf,
-                caption=f"Relatório SLA - {nome_grupo}"
+        caminho_pdf = None
+        pdf_resposta = None
+        if envio_pdf_habilitado:
+            logger.info(f"[PID {os.getpid()}] Gerando PDF para envio direto...")
+            caminho_pdf = gerar_pdf_relatorio(
+                cr, nome_grupo, tarefas, data_inicio, data_fim, agendamento['tipo_envio']
             )
-        except Exception as exc:
-            pdf_erro = str(exc)
-            logger.error(f"[PID {os.getpid()}] Erro ao enviar PDF: {pdf_erro}")
+            _agendar_remocao_pdf(caminho_pdf)
+        else:
+            logger.info(f"[PID {os.getpid()}] Envio de PDF desabilitado para este grupo.")
+
+        logger.info(f"[PID {os.getpid()}] Enviando mensagem de texto...")
+        resposta_msg = enviar_mensagem_texto(group_id, mensagem)
+
+        pdf_erro = None
+        if envio_pdf_habilitado and caminho_pdf:
+            try:
+                logger.info(f"[PID {os.getpid()}] Enviando PDF como anexo...")
+                pdf_resposta = enviar_pdf_whatsapp(
+                    group_id,
+                    caminho_pdf,
+                    caption=f"Relatório SLA - {nome_grupo}"
+                )
+            except Exception as exc:
+                pdf_erro = str(exc)
+                logger.error(f"[PID {os.getpid()}] Erro ao enviar PDF: {pdf_erro}")
 
         # Atualiza próximo envio quando necessário
         if atualizar_proximo:
