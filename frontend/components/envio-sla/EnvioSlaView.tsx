@@ -5,7 +5,6 @@ import {
   type Agendamento,
   type AgendamentoFilters,
   type SlaTemplate,
-  cloneAgendamento,
   deleteAgendamento,
   deleteAgendamentosBulk,
   fetchSlaTemplate,
@@ -37,7 +36,7 @@ type TemplateState = {
 
 type ModalState = {
   open: boolean;
-  mode: "create" | "edit";
+  mode: "create" | "edit" | "clone";
   agendamento?: Agendamento | null;
 };
 
@@ -207,13 +206,8 @@ export default function EnvioSlaView() {
     }
   };
 
-  const handleClone = async (agendamento: Agendamento) => {
-    try {
-      await cloneAgendamento(agendamento.id);
-      refresh("Agendamento clonado.");
-    } catch (err: any) {
-      setStatusMessage(err.message ?? "Erro ao clonar agendamento.");
-    }
+  const handleClone = (agendamento: Agendamento) => {
+    setModal({ open: true, mode: "clone", agendamento });
   };
 
   const handleToggleStatus = async (agendamento: Agendamento) => {
