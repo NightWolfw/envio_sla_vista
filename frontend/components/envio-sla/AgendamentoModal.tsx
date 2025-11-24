@@ -23,6 +23,7 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const allWeekdays = weekdayOptions.map((opt) => opt.value);
   const [form, setForm] = useState<AgendamentoPayload>(() => {
     if (!agendamento) {
       return {
@@ -49,6 +50,7 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
       dia_offset_fim: agendamento.dia_offset_fim ?? 0
     };
   });
+  const allSelected = allWeekdays.every((day) => form.dias_semana.includes(day));
 
   useEffect(() => {
     async function load() {
@@ -63,6 +65,30 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
     }
     load();
   }, []);
+
+  const orderDays = (dias: Iterable<string>) => {
+    const set = new Set(dias);
+    return allWeekdays.filter((dia) => set.has(dia));
+  };
+
+  const handleToggleAllDays = (checked: boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      dias_semana: checked ? [...allWeekdays] : []
+    }));
+  };
+
+  const handleToggleDay = (value: string, checked: boolean) => {
+    setForm((prev) => {
+      const dias = new Set(prev.dias_semana);
+      if (checked) {
+        dias.add(value);
+      } else {
+        dias.delete(value);
+      }
+      return { ...prev, dias_semana: orderDays(dias) };
+    });
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -155,6 +181,14 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
             <fieldset className="rounded-xl border border-border/60 p-3">
               <legend className="px-2 text-sm font-semibold text-text">Dias da semana</legend>
               <div className="flex flex-wrap gap-3 text-sm">
+                <label className="flex items-center gap-2 font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={(e) => handleToggleAllDays(e.target.checked)}
+                  />
+                  Todos os dias
+                </label>
                 {weekdayOptions.map((opt) => {
                   const checked = form.dias_semana.includes(opt.value);
                   return (
@@ -162,14 +196,7 @@ export default function AgendamentoModal({ mode, agendamento, onClose, onSaved }
                       <input
                         type="checkbox"
                         checked={checked}
-                        onChange={(e) => {
-                          setForm((prev) => {
-                            const dias = new Set(prev.dias_semana);
-                            if (e.target.checked) dias.add(opt.value);
-                            else dias.delete(opt.value);
-                            return { ...prev, dias_semana: Array.from(dias) };
-                          });
-                        }}
+                        onChange={(e) => handleToggleDay(opt.value, e.target.checked)}
                       />
                       {opt.label}
                     </label>
