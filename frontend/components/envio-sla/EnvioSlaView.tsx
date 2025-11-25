@@ -443,15 +443,15 @@ export default function EnvioSlaView() {
                       aria-label="Selecionar todos"
                     />
                   </th>
-                  <th className="px-3 py-2 text-left">Grupo</th>
-                  <th className="px-3 py-2 text-left">CR</th>
-                  <th className="px-3 py-2 text-left">Tipo</th>
-                  <th className="px-3 py-2 text-left">Dias</th>
-                  <th className="px-3 py-2 text-left">Janela</th>
-                  <th className="px-3 py-2 text-left">Próximo envio</th>
-                  <th className="px-3 py-2 text-left">Status</th>
-                  <th className="px-3 py-2 text-left">Último envio</th>
-                  <th className="px-3 py-2 text-center">Ações</th>
+                  <th className="px-3 py-2 text-left w-[200px]">Grupo</th>
+                  <th className="px-3 py-2 text-left w-[90px]">CR</th>
+                  <th className="px-3 py-2 text-left w-[80px]">Tipo</th>
+                  <th className="px-3 py-2 text-left w-[140px]">Dias</th>
+                  <th className="px-3 py-2 text-left w-[140px]">Janela</th>
+                  <th className="px-3 py-2 text-left w-[140px]">Próximo envio</th>
+                  <th className="px-3 py-2 text-left w-[110px]">Status</th>
+                  <th className="px-3 py-2 text-left w-[160px]">Último envio</th>
+                  <th className="px-3 py-2 text-center w-[420px]">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -495,8 +495,8 @@ export default function EnvioSlaView() {
                         "--"
                       )}
                     </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+                    <td className="px-3 py-2" style={{ minWidth: "420px" }}>
+                      <div className="flex flex-nowrap items-center justify-center gap-2 text-xs">
                         <button
                           className={`${ACCENT_BUTTON_CLASS} rounded-lg px-3 py-1 text-xs`}
                           onClick={() => openEditModal(item)}
