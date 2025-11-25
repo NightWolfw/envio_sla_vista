@@ -66,6 +66,7 @@ export type DashboardSlaPayload = {
   serie_mensal: { mes: string; finalizadas?: number; nao_realizadas?: number }[];
   heatmap: { cr: string; dias: Record<string | number, number> }[];
   pizza: { finalizadas: number; nao_realizadas: number; total: number };
+  ranking_executores?: { executor: string; finalizadas: number; nao_realizadas: number; total: number }[];
   filtros: Record<string, string>;
   periodo: { inicio: string; fim: string; descricao: string };
   last_updated?: string;

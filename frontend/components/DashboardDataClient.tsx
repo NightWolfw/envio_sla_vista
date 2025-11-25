@@ -165,14 +165,14 @@ export default function DashboardDataClient() {
     new Set(heatCells.map((c) => Number(c.dia)))
   ).sort((a, b) => a - b);
 
-  const monthOptions = data.serie_mensal.map((m) => m.mes);
+  const monthOptions = data.serie_diaria
+    .map((d) => d.dia.slice(0, 7))
+    .filter((v, i, arr) => arr.indexOf(v) === i);
   const activeMonth = selectedMonth || data.periodo.inicio.slice(0, 7);
 
   const filteredDaily = data.serie_diaria.filter((item) => item.dia.startsWith(activeMonth));
   const dailyMax =
     Math.max(...filteredDaily.map((d) => (d.finalizadas || 0) + (d.nao_realizadas || 0)), 1);
-  const monthlyMax =
-    Math.max(...data.serie_mensal.map((d) => (d.finalizadas || 0) + (d.nao_realizadas || 0)), 1);
 
   const heatmapFiltered = data.heatmap.filter((row) => {
     const t = textFilters;
@@ -414,36 +414,43 @@ export default function DashboardDataClient() {
 
       <section className={cardClass}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text">Tarefas por mês (últimos 6 meses)</h3>
+          <h3 className="text-sm font-semibold text-text">Ranking de executores (mês atual)</h3>
+          <span className="text-xs text-textMuted">Top executores por finalizações</span>
         </div>
-        <div className="mt-4 flex items-end gap-3 overflow-x-auto">
-          {data.serie_mensal.map((item) => {
-            const total = (item.finalizadas || 0) + (item.nao_realizadas || 0);
-            const maxHeight = 220;
-            const scale = maxHeight / (monthlyMax || 1);
-            const heightFinal = Math.max(6, (item.finalizadas || 0) * scale);
-            const heightNao = Math.max(6, (item.nao_realizadas || 0) * scale);
-            const labelDate = new Date(item.mes + "T00:00:00");
-            const label = `${String(labelDate.getMonth() + 1).padStart(2, "0")}/${labelDate.getFullYear()}`;
-            return (
-              <div key={item.mes} className="flex flex-col items-center text-xs text-textMuted min-w-[42px]">
-                <div className="flex w-8 flex-col-reverse overflow-hidden rounded" style={{ height: maxHeight }}>
-                  <div
-                    className="bg-rose-500/80"
-                    style={{ height: heightNao }}
-                    title={`Não realizadas: ${item.nao_realizadas || 0}`}
-                  />
-                  <div
-                    className="bg-emerald-500/80"
-                    style={{ height: heightFinal }}
-                    title={`Finalizadas: ${item.finalizadas || 0}`}
-                  />
-                </div>
-                <span className="mt-1">{label}</span>
-                <span className="text-[10px] text-textMuted">{total}</span>
-              </div>
-            );
-          })}
+        <div className="mt-3 max-h-72 overflow-y-auto">
+          {data.ranking_executores && data.ranking_executores.length > 0 ? (
+            <div className="space-y-2">
+              {data.ranking_executores.map((item, idx) => {
+                const total = item.total || 0;
+                const final = item.finalizadas || 0;
+                const nao = item.nao_realizadas || 0;
+                const widthFinal = Math.min(100, (final / (total || 1)) * 100);
+                const widthNao = Math.min(100, (nao / (total || 1)) * 100);
+                return (
+                  <div key={item.executor + idx} className="rounded border border-border/40 bg-surfaceMuted/30 p-2">
+                    <div className="flex items-center justify-between text-xs text-text">
+                      <span className="font-semibold text-text">{item.executor}</span>
+                      <span className="text-textMuted">{total} tarefas</span>
+                    </div>
+                    <div className="mt-2 flex h-4 w-full overflow-hidden rounded bg-border/40">
+                      <div
+                        className="bg-emerald-500/80"
+                        style={{ width: `${widthFinal}%` }}
+                        title={`Finalizadas: ${final}`}
+                      />
+                      <div
+                        className="bg-rose-500/80"
+                        style={{ width: `${widthNao}%` }}
+                        title={`Não realizadas: ${nao}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-textMuted">Sem dados de executores.</p>
+          )}
         </div>
       </section>
 

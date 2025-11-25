@@ -22,6 +22,7 @@ from app.models.dashboard import (
 from app.models.dashboard_config import obter_config_dashboard, salvar_config_dashboard
 from app.services.dashboard_cache import get_cached_dashboard, set_cached_dashboard, clear_cached_dashboard
 from app.services.dashboard_refresh import atualizar_dashboard_cache
+from app.services.dashboard_etl import carregar_mes_corrente
 
 TIMEZONE_BRASILIA = pytz.timezone("America/Sao_Paulo")
 
@@ -406,6 +407,8 @@ def dashboard_sla_sync(
             pec_02=pec_02,
         )
     )
+    # ETL: carrega mês corrente para o dw_sla
+    carregar_mes_corrente(filtros)
     data = atualizar_dashboard_cache(filtros)
     return {"success": True, "cached": False, "last_updated": data.get("last_updated"), "data": data}
 

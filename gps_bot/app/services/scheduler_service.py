@@ -455,6 +455,8 @@ def _refresh_dashboard_cache_if_needed():
 
         if delta_ok:
             logger.info(f"[Dashboard] Atualizando cache (intervalo {cfg['intervalo_minutos']} min).")
+            from app.services.dashboard_etl import carregar_mes_corrente
+            carregar_mes_corrente({})
             atualizar_dashboard_cache({})
     except Exception as exc:
         logger.error(f"[Dashboard] Falha ao atualizar cache: {exc}")
