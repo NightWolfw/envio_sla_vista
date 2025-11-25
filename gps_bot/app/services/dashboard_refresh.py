@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 import pytz
 
-from app.models.database import get_db_vista
+from app.models.database import conectar_com_retry
 from app.models.dashboard import buscar_opcoes_filtros
 from app.services.dashboard_cache import set_cached_dashboard
 from config import DB_CONFIG
@@ -99,7 +99,13 @@ def _classificar(status: int, expirada: bool, terminoreal, prazo) -> str:
 
 
 def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
-    conn = get_db_vista()
+    # Para o dashboard usamos retry finito para não travar o scheduler
+    conn = conectar_com_retry(
+        DB_CONFIG,
+        max_tentativas=3,
+        delay_inicial=2,
+        db_nome="Vista-dashboard",
+    )
     cur = conn.cursor()
 
     agora = datetime.now(TIMEZONE_BRASILIA)
