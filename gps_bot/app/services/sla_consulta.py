@@ -1,8 +1,12 @@
 """
 Service para consultar tarefas do GPS Vista
 """
-from app.models.database import get_db_vista
+import logging
 from datetime import datetime
+
+from app.models.database import get_db_vista
+
+logger = logging.getLogger(__name__)
 
 
 def buscar_tarefas_por_periodo(cr, data_inicio, data_fim, tipo_envio='resultados'):
@@ -38,6 +42,15 @@ def buscar_tarefas_por_periodo(cr, data_inicio, data_fim, tipo_envio='resultados
 
     cur.execute(query, (cr, data_inicio, data_fim))
     resultados = cur.fetchall()
+
+    logger.info(
+        "[SLA] Consulta agregada tarefas CR=%s tipo=%s inicio=%s fim=%s rows=%s",
+        cr,
+        tipo_envio,
+        data_inicio,
+        data_fim,
+        len(resultados),
+    )
 
     # Inicializa contadores
     stats = {
@@ -140,6 +153,17 @@ def buscar_tarefas_detalhadas(cr, data_inicio, data_fim, tipos_status=None):
     for row in cur.fetchall():
         tarefa = dict(zip(colunas, row))
         tarefas.append(tarefa)
+
+    sample_numeros = [t.get('numero') for t in tarefas[:3] if t.get('numero') is not None]
+    logger.info(
+        "[SLA] Consulta detalhada tarefas CR=%s inicio=%s fim=%s filtros=%s rows=%s sample_numeros=%s",
+        cr,
+        data_inicio,
+        data_fim,
+        tipos_status,
+        len(tarefas),
+        sample_numeros,
+    )
 
     cur.close()
     conn.close()
