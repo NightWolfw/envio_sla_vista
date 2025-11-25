@@ -357,7 +357,7 @@ def dashboard_sla_cached(
     pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Retorna o dashboard (cache Redis). Se não houver cache, tenta gerar uma vez.
+    Retorna o dashboard (cache Redis). Se não houver cache, NÃO gera dados novos.
     """
     filtros = _ensure_default_diretor(
         _collect_filtros(
@@ -373,11 +373,9 @@ def dashboard_sla_cached(
         )
     )
     cached = get_cached_dashboard(filtros)
-    if cached:
-        return {"success": True, "cached": True, "last_updated": cached.get("last_updated"), "data": cached}
-    # Gera on-demand apenas para evitar tela vazia; usa diretor padrão
-    data = atualizar_dashboard_cache(filtros)
-    return {"success": True, "cached": False, "last_updated": data.get("last_updated"), "data": data}
+    if not cached:
+        return {"success": False, "cached": False, "last_updated": None, "data": None, "reason": "no_cache"}
+    return {"success": True, "cached": True, "last_updated": cached.get("last_updated"), "data": cached}
 
 
 @router.post("/sla/sync")

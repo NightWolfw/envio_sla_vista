@@ -46,6 +46,12 @@ export default function DashboardDataClient() {
     setError(null);
     try {
       const payload = await getDashboardSla(filters);
+      if (!payload.success || !payload.data) {
+        setData(null);
+        setLastUpdated(undefined);
+        setError("Dashboard ainda não foi sincronizado. Clique em \"Sincronizar agora\".");
+        return;
+      }
       setData(payload.data);
       setLastUpdated(payload.last_updated || payload.data?.last_updated);
       const cfg = await getDashboardConfig();
@@ -73,8 +79,8 @@ export default function DashboardDataClient() {
     setError(null);
     try {
       const payload = await syncDashboardSla(buildFiltersParams());
-      setData(payload.data);
-      setLastUpdated(payload.last_updated);
+      // Garante que aplicamos os dados já escritos no Redis
+      await loadDashboard(buildFiltersParams());
     } catch (err: any) {
       setError(err?.message ?? "Falha ao sincronizar");
     } finally {
@@ -147,7 +153,7 @@ export default function DashboardDataClient() {
         <h2 className="text-lg font-semibold">Dashboard</h2>
         <p className="text-sm text-rose-300">{error}</p>
         <button onClick={handleSync} className={`${btnPrimary} mt-3`} disabled={syncing}>
-          {syncing ? "Sincronizando..." : "Sincronizar agora"}
+          {syncing ? "Sincronizando..." : 'Sincronizar agora'}
         </button>
       </section>
     );
