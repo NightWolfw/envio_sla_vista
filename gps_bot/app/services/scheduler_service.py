@@ -35,6 +35,7 @@ PUBLIC_BASE_URL = project_config.PUBLIC_API_BASE_URL.rstrip('/')
 scheduler = BackgroundScheduler(timezone=TIMEZONE_BRASILIA)
 ultimos_envios: Dict[str, bool] = {}  # Cache em memória para evitar duplicação
 _scheduler_started = False
+_dashboard_refresh_running = False
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 LOCKFILE_PATH = Path(os.getenv("SCHEDULER_LOCKFILE", BASE_DIR / 'scheduler.lock'))
@@ -424,6 +425,10 @@ def _refresh_dashboard_cache_if_needed():
     Atualiza cache do dashboard conforme intervalo configurado.
     Reintenta a cada execução do scheduler (minuto) verificando janela de horário.
     """
+    global _dashboard_refresh_running
+    if _dashboard_refresh_running:
+        return
+    _dashboard_refresh_running = True
     try:
         cfg = obter_config_dashboard()
         agora = datetime.now(TIMEZONE_BRASILIA)
@@ -453,6 +458,8 @@ def _refresh_dashboard_cache_if_needed():
             atualizar_dashboard_cache({})
     except Exception as exc:
         logger.error(f"[Dashboard] Falha ao atualizar cache: {exc}")
+    finally:
+        _dashboard_refresh_running = False
 
 
 def iniciar_scheduler():
