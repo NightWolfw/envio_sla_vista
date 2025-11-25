@@ -62,8 +62,8 @@ export async function getDashboardPizza(params?: URLSearchParams) {
 
 // Dashboard SLA (cacheado)
 export type DashboardSlaPayload = {
-  serie_diaria: { dia: string; total: number }[];
-  serie_mensal: { mes: string; total: number }[];
+  serie_diaria: { dia: string; finalizadas?: number; nao_realizadas?: number }[];
+  serie_mensal: { mes: string; finalizadas?: number; nao_realizadas?: number }[];
   heatmap: { cr: string; dias: Record<string | number, number> }[];
   pizza: { finalizadas: number; nao_realizadas: number; total: number };
   filtros: Record<string, string>;
@@ -71,22 +71,24 @@ export type DashboardSlaPayload = {
   last_updated?: string;
 };
 
-export async function getDashboardSla(): Promise<{
+export async function getDashboardSla(params?: Record<string, any>): Promise<{
   success: boolean;
   cached: boolean;
   last_updated?: string;
   data: DashboardSlaPayload;
 }> {
-  return apiFetch(`/dashboard/sla`);
+  const query = buildQuery(params ?? {});
+  return apiFetch(`/dashboard/sla${query}`);
 }
 
-export async function syncDashboardSla(): Promise<{
+export async function syncDashboardSla(params?: Record<string, any>): Promise<{
   success: boolean;
   cached: boolean;
   last_updated?: string;
   data: DashboardSlaPayload;
 }> {
-  return clientApi.post(`/dashboard/sla/sync`);
+  const query = buildQuery(params ?? {});
+  return clientApi.post(`/dashboard/sla/sync${query}`);
 }
 
 export type DashboardConfig = {

@@ -343,24 +343,72 @@ def supervisores_por_gerente(gerente: Optional[str] = None) -> Dict[str, Any]:
 
 
 @router.get("/sla")
-def dashboard_sla_cached() -> Dict[str, Any]:
+def dashboard_sla_cached(
+    mes: Optional[int] = Query(None, ge=1, le=12),
+    ano: Optional[int] = Query(None, ge=2000),
+    cr: Optional[str] = None,
+    cliente: Optional[str] = None,
+    diretor_executivo: Optional[str] = None,
+    diretor_regional: Optional[str] = None,
+    gerente_regional: Optional[str] = None,
+    gerente: Optional[str] = None,
+    supervisor: Optional[str] = None,
+    pec_01: Optional[str] = None,
+    pec_02: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Retorna o dashboard (cache Redis). Se não houver cache, tenta gerar uma vez.
     """
-    cached = get_cached_dashboard()
+    filtros = _ensure_default_diretor(
+        _collect_filtros(
+            cr=cr,
+            cliente=cliente,
+            diretor_executivo=diretor_executivo,
+            diretor_regional=diretor_regional,
+            gerente_regional=gerente_regional,
+            gerente=gerente,
+            supervisor=supervisor,
+            pec_01=pec_01,
+            pec_02=pec_02,
+        )
+    )
+    cached = get_cached_dashboard(filtros)
     if cached:
         return {"success": True, "cached": True, "last_updated": cached.get("last_updated"), "data": cached}
     # Gera on-demand apenas para evitar tela vazia; usa diretor padrão
-    data = atualizar_dashboard_cache({})
+    data = atualizar_dashboard_cache(filtros)
     return {"success": True, "cached": False, "last_updated": data.get("last_updated"), "data": data}
 
 
 @router.post("/sla/sync")
-def dashboard_sla_sync() -> Dict[str, Any]:
+def dashboard_sla_sync(
+    cr: Optional[str] = None,
+    cliente: Optional[str] = None,
+    diretor_executivo: Optional[str] = None,
+    diretor_regional: Optional[str] = None,
+    gerente_regional: Optional[str] = None,
+    gerente: Optional[str] = None,
+    supervisor: Optional[str] = None,
+    pec_01: Optional[str] = None,
+    pec_02: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Sincronização manual: força atualização agora (retorna o payload atualizado).
     """
-    data = atualizar_dashboard_cache({})
+    filtros = _ensure_default_diretor(
+        _collect_filtros(
+            cr=cr,
+            cliente=cliente,
+            diretor_executivo=diretor_executivo,
+            diretor_regional=diretor_regional,
+            gerente_regional=gerente_regional,
+            gerente=gerente,
+            supervisor=supervisor,
+            pec_01=pec_01,
+            pec_02=pec_02,
+        )
+    )
+    data = atualizar_dashboard_cache(filtros)
     return {"success": True, "cached": False, "last_updated": data.get("last_updated"), "data": data}
 
 

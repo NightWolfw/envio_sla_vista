@@ -14,8 +14,9 @@ type HeatCell = { cr: string; dia: string; valor: number };
 
 const cardClass = "panel rounded-xl border border-border/60 bg-surface/60 p-4";
 const btnPrimary =
-  "rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-[#0f172a] shadow hover:bg-cyan-300 transition disabled:opacity-50";
-const btnGhost = "rounded-lg border border-border px-3 py-2 text-sm text-text hover:bg-surfaceMuted/40 transition";
+  "inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-[#0f172a] shadow hover:bg-cyan-300 transition disabled:opacity-50";
+const btnGhost =
+  "inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-text hover:bg-surfaceMuted/40 transition";
 
 export default function DashboardDataClient() {
   const [data, setData] = useState<DashboardSlaPayload | null>(null);
@@ -25,23 +26,41 @@ export default function DashboardDataClient() {
   const [savingConfig, setSavingConfig] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showDateFilters, setShowDateFilters] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | undefined>(undefined);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [textFilters, setTextFilters] = useState<Record<string, string>>({
+    diretor_regional: "",
+    gerente_regional: "",
+    gerente: "",
+    supervisor: "",
+    cr: "",
+    cliente: "",
+    pec_01: "",
+    pec_02: ""
+  });
+
+  const loadDashboard = async (filters?: Record<string, string | number | undefined | null>) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const payload = await getDashboardSla(filters);
+      setData(payload.data);
+      setLastUpdated(payload.last_updated || payload.data?.last_updated);
+      const cfg = await getDashboardConfig();
+      setConfig(cfg.data);
+    } catch (err: any) {
+      setError(err?.message ?? "Falha ao carregar dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      try {
-        const [payload, cfg] = await Promise.all([getDashboardSla(), getDashboardConfig()]);
-        if (cancelled) return;
-        setData(payload.data);
-        setLastUpdated(payload.last_updated);
-        setConfig(cfg.data);
-      } catch (err: any) {
-        if (!cancelled) setError(err?.message ?? "Falha ao carregar dashboard");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      await loadDashboard();
     }
     load();
     return () => {
@@ -53,7 +72,7 @@ export default function DashboardDataClient() {
     setSyncing(true);
     setError(null);
     try {
-      const payload = await syncDashboardSla();
+      const payload = await syncDashboardSla(buildFiltersParams());
       setData(payload.data);
       setLastUpdated(payload.last_updated);
     } catch (err: any) {
@@ -75,6 +94,26 @@ export default function DashboardDataClient() {
       setSavingConfig(false);
       setShowConfig(false);
     }
+  };
+
+  const buildFiltersParams = () => {
+    const params: Record<string, string> = {};
+    Object.entries(textFilters).forEach(([k, v]) => {
+      if (v) params[k] = v;
+    });
+    if (selectedMonth) {
+      const d = new Date(selectedMonth + "-01T00:00:00");
+      params["mes"] = String(d.getMonth() + 1);
+      params["ano"] = String(d.getFullYear());
+    }
+    return params;
+  };
+
+  const applyFilters = () => {
+    const params = buildFiltersParams();
+    loadDashboard(params);
+    setShowFilters(false);
+    setShowDateFilters(false);
   };
 
   const heatCells: HeatCell[] = useMemo(() => {
@@ -116,101 +155,220 @@ export default function DashboardDataClient() {
 
   if (!data) return null;
 
+  const diasOrdenados = Array.from(
+    new Set(heatCells.map((c) => Number(c.dia)))
+  ).sort((a, b) => a - b);
+
+  const monthOptions = data.serie_mensal.map((m) => m.mes);
+  const activeMonth = selectedMonth || data.periodo.inicio.slice(0, 7);
+
+  const filteredDaily = data.serie_diaria.filter((item) => item.dia.startsWith(activeMonth));
+  const dailyMax =
+    Math.max(...filteredDaily.map((d) => (d.finalizadas || 0) + (d.nao_realizadas || 0)), 1);
+  const monthlyMax =
+    Math.max(...data.serie_mensal.map((d) => (d.finalizadas || 0) + (d.nao_realizadas || 0)), 1);
+
+  const heatmapFiltered = data.heatmap.filter((row) => {
+    const t = textFilters;
+    const match = (value: string, needle: string) =>
+      !needle || value.toLowerCase().includes(needle.toLowerCase());
+    return (
+      match(row.cr, t.cr) &&
+      match(row.cr, t.cliente) && // fallback: sem cliente no payload, usa cr como proxy
+      match(row.cr, t.pec_01) &&
+      match(row.cr, t.pec_02)
+    );
+  });
+
+  const pctFinal = data.pizza.total ? Math.round((data.pizza.finalizadas / data.pizza.total) * 100) : 0;
+  const pctNao = 100 - pctFinal;
+
   return (
     <div className="grid gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 bg-surface/80 p-2 backdrop-blur">
         <div>
           <h1 className="text-xl font-semibold text-text">Dashboard SLA</h1>
           <p className="text-sm text-textMuted">Diretor executivo travado: MARCOS NASCIMENTO PEDREIRA</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-textMuted">
-          <span>Última atualização: {ultimoAtualizado}</span>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-text">
+          <span className="text-xs text-textMuted">Última atualização (BRT): {ultimoAtualizado}</span>
           <button onClick={() => setShowFilters((v) => !v)} className={btnGhost} title="Filtros">
-            Filtros
+            <span role="img" aria-label="filtros">
+              🧰
+            </span>
+          </button>
+          <button onClick={() => setShowDateFilters((v) => !v)} className={btnGhost} title="Filtros de data">
+            <span role="img" aria-label="data">
+              📅
+            </span>
           </button>
           <button onClick={() => setShowConfig((v) => !v)} className={btnGhost} title="Configurações">
-            Configurações
+            <span role="img" aria-label="config">
+              ⚙️
+            </span>
           </button>
-          <button onClick={handleSync} className={btnPrimary} disabled={syncing}>
-            {syncing ? "Sincronizando..." : "Sincronizar agora"}
+          <button onClick={handleSync} className={btnPrimary} disabled={syncing} title="Sincronizar agora">
+            <span role="img" aria-label="sync">
+              🔄
+            </span>
           </button>
         </div>
       </header>
 
       {showFilters && (
-        <section className={cardClass}>
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-text">Filtros</h3>
-            <button className={btnGhost} onClick={() => setShowFilters(false)}>
-              Fechar
-            </button>
+        <div className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm">
+          <div className="absolute right-4 top-4 w-full max-w-md rounded-xl border border-border bg-surface p-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-text">Filtros</h3>
+              <button className={btnGhost} onClick={() => setShowFilters(false)}>
+                Fechar
+              </button>
+            </div>
+            <p className="text-xs text-textMuted mt-2">Diretor Executivo: MARCOS NASCIMENTO PEDREIRA (fixo)</p>
+            <div className="mt-3 grid gap-2">
+              {[
+                "diretor_regional",
+                "gerente_regional",
+                "gerente",
+                "supervisor",
+                "cr",
+                "cliente",
+                "pec_01",
+                "pec_02"
+              ].map((f) => (
+                <label key={f} className="text-xs text-text flex flex-col gap-1">
+                  {f.replace("_", " ").toUpperCase()}
+                  <input
+                    type="text"
+                    placeholder={`Buscar ${f}`}
+                    className="rounded border border-border bg-surface px-2 py-1 text-sm text-text"
+                    value={textFilters[f] || ""}
+                    onChange={(e) =>
+                      setTextFilters((prev) => ({
+                        ...prev,
+                        [f]: e.target.value
+                      }))
+                    }
+                  />
+                </label>
+              ))}
+              <div className="mt-2 flex justify-end gap-2">
+                <button className={btnGhost} onClick={() => setShowFilters(false)}>
+                  Cancelar
+                </button>
+                <button className={btnPrimary} onClick={applyFilters}>
+                  Aplicar
+                </button>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-textMuted mt-2">Diretor Executivo: MARCOS NASCIMENTO PEDREIRA (fixo)</p>
-          <p className="text-xs text-textMuted">Demais filtros serão aplicados sobre o cache atual.</p>
-        </section>
+        </div>
+      )}
+
+      {showDateFilters && (
+        <div className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm">
+          <div className="absolute right-4 top-4 w-full max-w-sm rounded-xl border border-border bg-surface p-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-text">Filtros de data</h3>
+              <button className={btnGhost} onClick={() => setShowDateFilters(false)}>
+                Fechar
+              </button>
+            </div>
+            <div className="mt-3">
+              <label className="text-sm text-text">
+                Mês/Ano (últimos 6 meses)
+                <select
+                  className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-sm"
+                  value={activeMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                >
+                  {monthOptions.map((m) => {
+                    const d = new Date(m + "T00:00:00");
+                    const label = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+                    return (
+                      <option key={m} value={m.slice(0, 7)}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              <div className="mt-3 flex justify-end gap-2">
+                <button className={btnGhost} onClick={() => setShowDateFilters(false)}>
+                  Cancelar
+                </button>
+                <button className={btnPrimary} onClick={applyFilters}>
+                  Aplicar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {showConfig && config && (
-        <section className={cardClass}>
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-text">Configuração de atualização</h3>
-            <button className={btnGhost} onClick={() => setShowConfig(false)}>
-              Fechar
-            </button>
-          </div>
-          <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <label className="text-sm text-text">
-              Início (HH:MM)
-              <input
-                type="time"
-                defaultValue={config.hora_inicio}
-                className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-sm"
-                onChange={(e) => setConfig((prev) => (prev ? { ...prev, hora_inicio: e.target.value } : prev))}
-              />
-            </label>
-            <label className="text-sm text-text">
-              Fim (HH:MM)
-              <input
-                type="time"
-                defaultValue={config.hora_fim}
-                className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-sm"
-                onChange={(e) => setConfig((prev) => (prev ? { ...prev, hora_fim: e.target.value } : prev))}
-              />
-            </label>
-            <label className="text-sm text-text">
-              Intervalo (min)
-              <input
-                type="number"
-                min={1}
-                defaultValue={config.intervalo_minutos}
-                className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-sm"
-                onChange={(e) =>
-                  setConfig((prev) =>
-                    prev ? { ...prev, intervalo_minutos: Number(e.target.value || 10) } : prev
-                  )
+        <div className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm">
+          <div className="absolute right-4 top-4 w-full max-w-md rounded-xl border border-border bg-surface p-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-text">Configuração de atualização</h3>
+              <button className={btnGhost} onClick={() => setShowConfig(false)}>
+                Fechar
+              </button>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <label className="text-sm text-text">
+                Início (HH:MM)
+                <input
+                  type="time"
+                  defaultValue={config.hora_inicio}
+                  className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-sm"
+                  onChange={(e) => setConfig((prev) => (prev ? { ...prev, hora_inicio: e.target.value } : prev))}
+                />
+              </label>
+              <label className="text-sm text-text">
+                Fim (HH:MM)
+                <input
+                  type="time"
+                  defaultValue={config.hora_fim}
+                  className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-sm"
+                  onChange={(e) => setConfig((prev) => (prev ? { ...prev, hora_fim: e.target.value } : prev))}
+                />
+              </label>
+              <label className="text-sm text-text">
+                Intervalo (min)
+                <input
+                  type="number"
+                  min={1}
+                  defaultValue={config.intervalo_minutos}
+                  className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-sm"
+                  onChange={(e) =>
+                    setConfig((prev) =>
+                      prev ? { ...prev, intervalo_minutos: Number(e.target.value || 10) } : prev
+                    )
+                  }
+                />
+              </label>
+            </div>
+            <div className="mt-3 flex justify-end gap-2">
+              <button className={btnGhost} onClick={() => setShowConfig(false)}>
+                Cancelar
+              </button>
+              <button
+                className={btnPrimary}
+                disabled={savingConfig}
+                onClick={() =>
+                  handleSaveConfig({
+                    hora_inicio: config.hora_inicio,
+                    hora_fim: config.hora_fim,
+                    intervalo_minutos: config.intervalo_minutos
+                  })
                 }
-              />
-            </label>
+              >
+                {savingConfig ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
           </div>
-          <div className="mt-3 flex justify-end gap-2">
-            <button className={btnGhost} onClick={() => setShowConfig(false)}>
-              Cancelar
-            </button>
-            <button
-              className={btnPrimary}
-              disabled={savingConfig}
-              onClick={() =>
-                handleSaveConfig({
-                  hora_inicio: config.hora_inicio,
-                  hora_fim: config.hora_fim,
-                  intervalo_minutos: config.intervalo_minutos
-                })
-              }
-            >
-              {savingConfig ? "Salvando..." : "Salvar"}
-            </button>
-          </div>
-        </section>
+        </div>
       )}
 
       <section className={cardClass}>
@@ -219,18 +377,29 @@ export default function DashboardDataClient() {
           <span className="text-xs text-textMuted">{data.periodo.descricao}</span>
         </div>
         <div className="mt-4 flex items-end gap-2 overflow-x-auto">
-          {data.serie_diaria.map((item) => {
-            const valor = item.total || 0;
-            const height = Math.min(160, 8 + valor * 6);
+          {filteredDaily.map((item) => {
             const diaLabel = new Date(item.dia).getDate();
+            const total = (item.finalizadas || 0) + (item.nao_realizadas || 0);
+            const maxHeight = 200;
+            const scale = maxHeight / (dailyMax || 1);
+            const heightFinal = Math.max(4, (item.finalizadas || 0) * scale);
+            const heightNao = Math.max(4, (item.nao_realizadas || 0) * scale);
             return (
-              <div key={item.dia} className="flex flex-col items-center text-xs text-textMuted">
-                <div
-                  className="w-6 rounded-t bg-accent"
-                  style={{ height, minHeight: 12, transition: "height 0.2s" }}
-                  title={`${valor} tarefas`}
-                />
+              <div key={item.dia} className="flex flex-col items-center text-xs text-textMuted min-w-[28px]">
+                <div className="flex w-6 flex-col-reverse overflow-hidden rounded" style={{ height: maxHeight }}>
+                  <div
+                    className="bg-rose-500/80"
+                    style={{ height: heightNao }}
+                    title={`Não realizadas: ${item.nao_realizadas || 0}`}
+                  />
+                  <div
+                    className="bg-emerald-500/80"
+                    style={{ height: heightFinal }}
+                    title={`Finalizadas: ${item.finalizadas || 0}`}
+                  />
+                </div>
                 <span className="mt-1">{diaLabel}</span>
+                <span className="text-[10px] text-textMuted">{total}</span>
               </div>
             );
           })}
@@ -243,18 +412,29 @@ export default function DashboardDataClient() {
         </div>
         <div className="mt-4 flex items-end gap-3 overflow-x-auto">
           {data.serie_mensal.map((item) => {
-            const valor = item.total || 0;
-            const height = Math.min(180, 10 + valor * 4);
+            const total = (item.finalizadas || 0) + (item.nao_realizadas || 0);
+            const maxHeight = 220;
+            const scale = maxHeight / (monthlyMax || 1);
+            const heightFinal = Math.max(6, (item.finalizadas || 0) * scale);
+            const heightNao = Math.max(6, (item.nao_realizadas || 0) * scale);
             const labelDate = new Date(item.mes + "T00:00:00");
             const label = `${String(labelDate.getMonth() + 1).padStart(2, "0")}/${labelDate.getFullYear()}`;
             return (
-              <div key={item.mes} className="flex flex-col items-center text-xs text-textMuted">
-                <div
-                  className="w-8 rounded-t bg-accent"
-                  style={{ height, minHeight: 14, transition: "height 0.2s" }}
-                  title={`${valor} tarefas`}
-                />
+              <div key={item.mes} className="flex flex-col items-center text-xs text-textMuted min-w-[42px]">
+                <div className="flex w-8 flex-col-reverse overflow-hidden rounded" style={{ height: maxHeight }}>
+                  <div
+                    className="bg-rose-500/80"
+                    style={{ height: heightNao }}
+                    title={`Não realizadas: ${item.nao_realizadas || 0}`}
+                  />
+                  <div
+                    className="bg-emerald-500/80"
+                    style={{ height: heightFinal }}
+                    title={`Finalizadas: ${item.finalizadas || 0}`}
+                  />
+                </div>
                 <span className="mt-1">{label}</span>
+                <span className="text-[10px] text-textMuted">{total}</span>
               </div>
             );
           })}
@@ -266,46 +446,41 @@ export default function DashboardDataClient() {
           <h3 className="text-sm font-semibold text-text">Heatmap SLA (CR x Dia)</h3>
           <p className="text-xs text-textMuted">Verde &gt;=90 • Amarelo 65-89.9 • Vermelho &lt;65</p>
         </div>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-xs text-text">
-            <thead>
+        <div className="mt-3 max-h-72 overflow-y-auto overflow-x-auto">
+          <table className="w-full min-w-[640px] text-xs text-text">
+            <thead className="sticky top-0 bg-surface">
               <tr>
                 <th className="px-2 py-1 text-left">CR</th>
-                {Array.from(new Set(heatCells.map((c) => c.dia)))
-                  .sort((a, b) => Number(a) - Number(b))
-                  .map((dia) => (
-                    <th key={dia} className="px-2 py-1 text-center">
-                      {dia}
-                    </th>
-                  ))}
+                {diasOrdenados.map((dia) => (
+                  <th key={dia} className="px-2 py-1 text-center">
+                    {dia}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {data.heatmap.map((row) => (
                 <tr key={row.cr}>
                   <td className="px-2 py-1 font-semibold">{row.cr}</td>
-                  {Array.from(new Set(heatCells.map((c) => c.dia)))
-                    .sort((a, b) => Number(a) - Number(b))
-                    .map((dia) => {
-                      const valor = row.dias?.[dia] ?? row.dias?.[Number(dia)] ?? 0;
-                      const cor =
-                        valor >= 90 ? "#16a34a" : valor >= 65 ? "#eab308" : "#dc2626";
-                      return (
-                        <td key={dia} className="px-1 py-1 text-center">
-                          <div
-                            className="rounded text-[11px] font-semibold text-white"
-                            style={{
-                              background: cor,
-                              minWidth: 32,
-                              padding: "4px 6px"
-                            }}
-                            title={`${valor}%`}
-                          >
-                            {valor}%
-                          </div>
-                        </td>
-                      );
-                    })}
+                  {diasOrdenados.map((dia) => {
+                    const valor = row.dias?.[dia] ?? row.dias?.[String(dia)] ?? 0;
+                    const cor = valor >= 90 ? "#16a34a" : valor >= 65 ? "#eab308" : "#dc2626";
+                    return (
+                      <td key={`${row.cr}-${dia}`} className="px-1 py-1 text-center">
+                        <div
+                          className="rounded text-[11px] font-semibold text-white"
+                          style={{
+                            background: cor,
+                            minWidth: 32,
+                            padding: "4px 6px"
+                          }}
+                          title={`${valor}%`}
+                        >
+                          {valor}%
+                        </div>
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -318,17 +493,31 @@ export default function DashboardDataClient() {
           <h3 className="text-sm font-semibold text-text">Finalizadas x Não realizadas</h3>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-6 text-sm">
-          <div className="flex flex-col gap-2">
-            <span className="font-semibold text-text">Finalizadas</span>
-            <span className="text-emerald-300 text-lg">{data.pizza.finalizadas}</span>
+          <div
+            className="relative h-32 w-32 rounded-full"
+            style={{
+              background: `conic-gradient(#22c55e 0% ${pctFinal}%, #ef4444 ${pctFinal}% 100%)`
+            }}
+            title={`Finalizadas ${pctFinal}% | Não realizadas ${pctNao}%`}
+          >
+            <div className="absolute inset-3 rounded-full bg-surface flex items-center justify-center text-xs text-text">
+              <div className="text-center">
+                <div className="text-lg font-semibold text-text">{data.pizza.total}</div>
+                <div className="text-[11px] text-textMuted">total</div>
+              </div>
+            </div>
           </div>
           <div className="flex flex-col gap-2">
-            <span className="font-semibold text-text">Não realizadas</span>
-            <span className="text-rose-300 text-lg">{data.pizza.nao_realizadas}</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            <span className="font-semibold text-text">Total</span>
-            <span className="text-text text-lg">{data.pizza.total}</span>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
+              <span className="font-semibold text-text">Finalizadas</span>
+              <span className="text-emerald-300 text-sm">{data.pizza.finalizadas} ({pctFinal}%)</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="h-3 w-3 rounded-full bg-rose-500/80" />
+              <span className="font-semibold text-text">Não realizadas</span>
+              <span className="text-rose-300 text-sm">{data.pizza.nao_realizadas} ({pctNao}%)</span>
+            </div>
           </div>
         </div>
       </section>

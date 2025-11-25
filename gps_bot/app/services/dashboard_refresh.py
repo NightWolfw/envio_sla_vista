@@ -86,6 +86,18 @@ def _calc_pizza(stats_rows: List[tuple]) -> Dict[str, int]:
     return {"finalizadas": finalizadas_no_prazo, "nao_realizadas": nao_realizadas, "total": total}
 
 
+def _classificar(status: int, expirada: bool, terminoreal, prazo) -> str:
+    """
+    Retorna 'finalizada' se status=85, não expirada e (terminoreal <= prazo ou terminoreal é None),
+    caso contrário 'nao_realizada'.
+    """
+    if status == 85 and not expirada:
+        if terminoreal is None:
+            return "finalizada"
+        return "finalizada" if terminoreal <= prazo else "nao_realizada"
+    return "nao_realizada"
+
+
 def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
     conn = get_db_vista()
     cur = conn.cursor()
@@ -93,25 +105,39 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
     agora = datetime.now(TIMEZONE_BRASILIA)
     seis_meses_atras = (agora.replace(day=1) - timedelta(days=1)).replace(day=1)
 
-    # 1) Série diária do mês atual (total por dia)
+    # 1) Série diária do mês atual (finalizadas vs não realizadas)
     primeiro_mes = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     ultimo_mes = (primeiro_mes + timedelta(days=32)).replace(day=1) - timedelta(microseconds=1)
     where_mes, params_mes, join_mes = _where_and_params(filtros, primeiro_mes, ultimo_mes)
     cur.execute(
         f"""
-        SELECT DATE(t.disponibilizacao) AS dia, COUNT(*) AS total
+        SELECT 
+            DATE(t.disponibilizacao) AS dia,
+            t.status,
+            t.expirada,
+            t.terminoreal,
+            t.prazo,
+            COUNT(*) AS total
         FROM dbo.tarefa t
         INNER JOIN dw_vista.dm_estrutura e ON t.estruturaid = e.id_estrutura
         {join_mes}
         WHERE {where_mes}
-        GROUP BY DATE(t.disponibilizacao)
-        ORDER BY dia
+        GROUP BY DATE(t.disponibilizacao), t.status, t.expirada, t.terminoreal, t.prazo
+        ORDER BY DATE(t.disponibilizacao)
         """,
         params_mes,
     )
-    diarios = [{"dia": row[0].isoformat(), "total": row[1]} for row in cur.fetchall()]
+    diarios_tmp = {}
+    for row in cur.fetchall():
+        dia = row[0].isoformat()
+        status, expirada, terminoreal, prazo, total = row[1], row[2], row[3], row[4], row[5]
+        cls = _classificar(status, expirada, terminoreal, prazo)
+        if dia not in diarios_tmp:
+            diarios_tmp[dia] = {"dia": dia, "finalizadas": 0, "nao_realizadas": 0}
+        diarios_tmp[dia][cls == "finalizada" and "finalizadas" or "nao_realizadas"] += total
+    diarios = sorted(diarios_tmp.values(), key=lambda x: x["dia"])
 
-    # 2) Série mensal dos últimos 6 meses (inclusive mês atual)
+    # 2) Série mensal dos últimos 6 meses (finalizadas vs não realizadas)
     where_6m, params_6m, join_6m = _where_and_params(filtros, seis_meses_atras, ultimo_mes)
     cur.execute(
         f"""
@@ -125,7 +151,34 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
         """,
         params_6m,
     )
-    mensais = [{"mes": row[0].date().isoformat(), "total": row[1]} for row in cur.fetchall()]
+    # Reconsulta com classificação
+    cur.execute(
+        f"""
+        SELECT 
+            DATE_TRUNC('month', t.disponibilizacao) AS mes,
+            t.status,
+            t.expirada,
+            t.terminoreal,
+            t.prazo,
+            COUNT(*) AS total
+        FROM dbo.tarefa t
+        INNER JOIN dw_vista.dm_estrutura e ON t.estruturaid = e.id_estrutura
+        {join_6m}
+        WHERE {where_6m}
+        GROUP BY DATE_TRUNC('month', t.disponibilizacao), t.status, t.expirada, t.terminoreal, t.prazo
+        ORDER BY mes
+        """,
+        params_6m,
+    )
+    mensais_tmp = {}
+    for row in cur.fetchall():
+        mes = row[0].date().isoformat()
+        status, expirada, terminoreal, prazo, total = row[1], row[2], row[3], row[4], row[5]
+        cls = _classificar(status, expirada, terminoreal, prazo)
+        if mes not in mensais_tmp:
+            mensais_tmp[mes] = {"mes": mes, "finalizadas": 0, "nao_realizadas": 0}
+        mensais_tmp[mes][cls == "finalizada" and "finalizadas" or "nao_realizadas"] += total
+    mensais = sorted(mensais_tmp.values(), key=lambda x: x["mes"])
 
     # 3) Heatmap: CR x dia (porcentagem SLA)
     where_heat, params_heat, join_heat = _where_and_params(filtros, primeiro_mes, ultimo_mes)
@@ -179,7 +232,7 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
     cur.close()
     conn.close()
 
-    return {
+    payload = {
         "serie_diaria": diarios,
         "serie_mensal": mensais,
         "heatmap": heatmap_list,
@@ -191,6 +244,7 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
             "descricao": f"Mês {primeiro_mes.strftime('%m/%Y')}",
         },
     }
+    return payload
 
 
 def atualizar_dashboard_cache(filtros: Dict[str, Optional[str]]) -> Dict[str, Any]:
@@ -200,6 +254,5 @@ def atualizar_dashboard_cache(filtros: Dict[str, Optional[str]]) -> Dict[str, An
     filtros_ok = _coerce_filters(filtros)
     logger.info(f"[Dashboard] Atualizando cache com filtros: {filtros_ok}")
     payload = _fetch_dashboard_data(filtros_ok)
-    set_cached_dashboard(payload)
+    set_cached_dashboard(payload, filtros_ok)
     return payload
-
