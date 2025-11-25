@@ -433,7 +433,7 @@ def _refresh_dashboard_cache_if_needed():
         if not (inicio <= agora <= fim):
             return
 
-        cached = get_cached_dashboard()
+        cached = get_cached_dashboard({})
         last = None
         if cached and cached.get("last_updated"):
             try:
