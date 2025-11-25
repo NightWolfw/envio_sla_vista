@@ -133,10 +133,10 @@ export default function DashboardDataClient() {
 
   if (loading) {
     return (
-      <div className="grid gap-4">
-        <div className={`${cardClass} h-28 animate-pulse`} />
-        <div className={`${cardClass} h-64 animate-pulse`} />
-        <div className={`${cardClass} h-64 animate-pulse`} />
+      <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-xl border border-border/60 bg-surface/60 p-6 text-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+        <p className="text-sm font-semibold text-text">Carregando dados...</p>
+        <p className="text-xs text-textMuted">Estimativa: alguns segundos</p>
       </div>
     );
   }
