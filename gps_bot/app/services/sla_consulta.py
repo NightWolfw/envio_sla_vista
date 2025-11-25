@@ -9,7 +9,7 @@ from app.models.database import get_db_vista
 logger = logging.getLogger(__name__)
 
 
-def buscar_tarefas_por_periodo(cr, data_inicio, data_fim, tipo_envio='resultados'):
+def buscar_tarefas_por_periodo(cr, data_inicio, data_fim, tipo_envio='resultados', return_meta: bool = False):
     """
     Busca tarefas no Vista por CR e período de disponibilização
 
@@ -40,7 +40,8 @@ def buscar_tarefas_por_periodo(cr, data_inicio, data_fim, tipo_envio='resultados
         GROUP BY t.status, t.expirada
     """
 
-    cur.execute(query, (cr, data_inicio, data_fim))
+    params = (cr, data_inicio, data_fim)
+    cur.execute(query, params)
     resultados = cur.fetchall()
 
     logger.info(
@@ -78,10 +79,23 @@ def buscar_tarefas_por_periodo(cr, data_inicio, data_fim, tipo_envio='resultados
     cur.close()
     conn.close()
 
+    if return_meta:
+        meta = {
+            "query": query.strip(),
+            "params": {
+                "cr": cr,
+                "data_inicio": data_inicio.isoformat(),
+                "data_fim": data_fim.isoformat(),
+                "tipo_envio": tipo_envio,
+            },
+            "rows": len(resultados),
+        }
+        return stats, meta
+
     return stats
 
 
-def buscar_tarefas_detalhadas(cr, data_inicio, data_fim, tipos_status=None):
+def buscar_tarefas_detalhadas(cr, data_inicio, data_fim, tipos_status=None, return_meta: bool = False):
     """
     Busca detalhes das tarefas para geração de PDF
     """
@@ -145,7 +159,8 @@ def buscar_tarefas_detalhadas(cr, data_inicio, data_fim, tipos_status=None):
         ORDER BY t.disponibilizacao, status_texto
     """
 
-    cur.execute(query, (cr, data_inicio, data_fim))
+    params = (cr, data_inicio, data_fim)
+    cur.execute(query, params)
 
     colunas = [desc[0] for desc in cur.description]
     tarefas = []
@@ -167,5 +182,19 @@ def buscar_tarefas_detalhadas(cr, data_inicio, data_fim, tipos_status=None):
 
     cur.close()
     conn.close()
+
+    if return_meta:
+        meta = {
+            "query": query.strip(),
+            "params": {
+                "cr": cr,
+                "data_inicio": data_inicio.isoformat(),
+                "data_fim": data_fim.isoformat(),
+                "tipos_status": tipos_status,
+            },
+            "rows": len(tarefas),
+            "sample_numeros": sample_numeros,
+        }
+        return tarefas, meta
 
     return tarefas

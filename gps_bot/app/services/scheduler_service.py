@@ -73,12 +73,35 @@ def _obter_relatorio_contexto(agendamento: Dict[str, Any], cr: Any):
         agendamento['dia_offset_fim']
     )
 
-    if agendamento['tipo_envio'] == 'programadas':
-        tarefas = buscar_tarefas_detalhadas(cr, data_inicio, data_fim, tipos_status=['em_aberto', 'iniciadas'])
-    else:
-        tarefas = buscar_tarefas_detalhadas(cr, data_inicio, data_fim)
+    meta_detalhes = None
+    meta_stats = None
 
-    return data_envio_local, data_inicio, data_fim, tarefas
+    if agendamento['tipo_envio'] == 'programadas':
+        tarefas, meta_detalhes = buscar_tarefas_detalhadas(
+            cr,
+            data_inicio,
+            data_fim,
+            tipos_status=['em_aberto', 'iniciadas'],
+            return_meta=True
+        )
+    else:
+        tarefas, meta_detalhes = buscar_tarefas_detalhadas(
+            cr,
+            data_inicio,
+            data_fim,
+            return_meta=True
+        )
+
+    # Stats agregados
+    stats, meta_stats = buscar_tarefas_por_periodo(
+        cr,
+        data_inicio,
+        data_fim,
+        agendamento['tipo_envio'],
+        return_meta=True
+    )
+
+    return data_envio_local, data_inicio, data_fim, tarefas, stats, meta_detalhes, meta_stats
 
 
 def gerar_pdf_agendamento(agendamento_id: int) -> str:
@@ -95,7 +118,7 @@ def gerar_pdf_agendamento(agendamento_id: int) -> str:
     cr = grupo['cr']
     nome_grupo = grupo['nome_grupo']
 
-    _, data_inicio, data_fim, tarefas = _obter_relatorio_contexto(agendamento, cr)
+    _, data_inicio, data_fim, tarefas, _, _, _ = _obter_relatorio_contexto(agendamento, cr)
     caminho_pdf = gerar_pdf_relatorio(cr, nome_grupo, tarefas, data_inicio, data_fim, agendamento['tipo_envio'])
     _agendar_remocao_pdf(caminho_pdf)
     return _pdf_download_url(caminho_pdf)
@@ -221,10 +244,15 @@ def enviar_sla_agendado(agendamento, atualizar_proximo=True):
         nome_grupo = grupo['nome_grupo']
         envio_pdf_habilitado = bool(grupo.get('envio_pdf'))
 
-        data_envio_local, data_inicio, data_fim, tarefas = _obter_relatorio_contexto(agendamento, cr)
-
-        # Busca stats
-        stats = buscar_tarefas_por_periodo(cr, data_inicio, data_fim, agendamento['tipo_envio'])
+        (
+            data_envio_local,
+            data_inicio,
+            data_fim,
+            tarefas,
+            stats,
+            meta_detalhes,
+            meta_stats,
+        ) = _obter_relatorio_contexto(agendamento, cr)
 
         # Formata mensagem
         if agendamento['tipo_envio'] == 'resultados':
@@ -269,7 +297,12 @@ def enviar_sla_agendado(agendamento, atualizar_proximo=True):
             f"periodo={data_inicio.isoformat()}->{data_fim.isoformat()} "
             f"tz=America/Sao_Paulo tarefas={len(tarefas)} stats={stats}"
         )
-        resposta_api = f"{contexto_envio} | MSG: {resposta_msg}"
+        resposta_api = (
+            f"{contexto_envio} "
+            f"| query_detalhes={meta_detalhes} "
+            f"| query_stats={meta_stats} "
+            f"| MSG: {resposta_msg}"
+        )
         if pdf_resposta:
             resposta_api += f", PDF: {pdf_resposta}"
 
