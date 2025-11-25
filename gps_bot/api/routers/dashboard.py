@@ -408,9 +408,9 @@ def dashboard_sla_sync(
         )
     )
     # ETL: carrega mês corrente para o dw_sla
-    carregar_mes_corrente(filtros)
-    data = atualizar_dashboard_cache(filtros)
-    return {"success": True, "cached": False, "last_updated": data.get("last_updated"), "data": data}
+    tentativas = carregar_mes_corrente(filtros)
+    data = atualizar_dashboard_cache(filtros, etl_attempts=tentativas)
+    return {"success": True, "cached": False, "last_updated": data.get("last_updated"), "data": data, "attempts": tentativas}
 
 
 @router.get("/sla/config")

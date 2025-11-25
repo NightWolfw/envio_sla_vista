@@ -70,6 +70,7 @@ export type DashboardSlaPayload = {
   filtros: Record<string, string>;
   periodo: { inicio: string; fim: string; descricao: string };
   last_updated?: string;
+  etl_attempts?: number;
 };
 
 export async function getDashboardSla(params?: Record<string, any>): Promise<{

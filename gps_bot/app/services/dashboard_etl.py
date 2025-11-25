@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 
@@ -27,7 +28,30 @@ def _coerce_filters(filtros: Dict[str, Optional[str]]) -> Dict[str, str]:
     return base
 
 
-def carregar_mes_corrente(filtros: Dict[str, Optional[str]] | None = None) -> None:
+def _conectar_vista_sem_limite() -> tuple:
+    """
+    Tenta conectar ao Vista repetidamente até conseguir, registrando número de tentativas.
+    """
+    tentativas = 0
+    delay = 2.0
+    while True:
+        tentativas += 1
+        try:
+            conn = conectar_com_retry(
+                DB_CONFIG,
+                max_tentativas=1,  # uma tentativa por ciclo
+                delay_inicial=int(delay),
+                db_nome="Vista-dashboard",
+            )
+            return conn, tentativas
+        except Exception as exc:
+            logger.warning(f"[Vista-dashboard] Tentativa {tentativas} falhou: {exc}")
+            delay = min(delay * 1.5, 30)
+            logger.warning(f"[Vista-dashboard] Reagendando nova tentativa em {delay:.1f}s...")
+            time.sleep(delay)
+
+
+def carregar_mes_corrente(filtros: Dict[str, Optional[str]] | None = None) -> int:
     """
     ETL: lê do Vista (dw_gps) o mês corrente e grava agregados no dw_sla (dashboard_tarefas_dia e dashboard_executores).
     Remove dados anteriores do mês antes de inserir.
@@ -35,8 +59,8 @@ def carregar_mes_corrente(filtros: Dict[str, Optional[str]] | None = None) -> No
     filtros_ok = _coerce_filters(filtros or {})
     inicio, fim = _intervalo_mes_atual()
 
-    # Conexão Vista com retry finito
-    conn_vista = conectar_com_retry(DB_CONFIG, max_tentativas=3, delay_inicial=2, db_nome="Vista-dashboard")
+    # Conexão Vista (tenta até conseguir)
+    conn_vista, tentativas = _conectar_vista_sem_limite()
     cur_v = conn_vista.cursor()
 
     # Conexão dw_sla
@@ -211,5 +235,6 @@ def carregar_mes_corrente(filtros: Dict[str, Optional[str]] | None = None) -> No
     conn_vista.close()
     cur_s.close()
     conn_sla.close()
-    logger.info(f"[Dashboard ETL] Atualizado mês corrente {inicio.date()} -> {fim.date()} com {len(rows_dia)} dias e {len(rows_exec)} executores.")
+    logger.info(f"[Dashboard ETL] Atualizado mês corrente {inicio.date()} -> {fim.date()} com {len(rows_dia)} dias e {len(rows_exec)} executores. Tentativas de conexão: {tentativas}.")
 
+    return tentativas

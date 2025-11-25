@@ -245,12 +245,14 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
     return payload
 
 
-def atualizar_dashboard_cache(filtros: Dict[str, Optional[str]]) -> Dict[str, Any]:
+def atualizar_dashboard_cache(filtros: Dict[str, Optional[str]], etl_attempts: Optional[int] = None) -> Dict[str, Any]:
     """
     Gera os dados do dashboard e grava no Redis.
     """
     filtros_ok = _coerce_filters(filtros)
     logger.info(f"[Dashboard] Atualizando cache com filtros: {filtros_ok}")
     payload = _fetch_dashboard_data(filtros_ok)
+    if etl_attempts is not None:
+        payload["etl_attempts"] = etl_attempts
     set_cached_dashboard(payload, filtros_ok)
     return payload

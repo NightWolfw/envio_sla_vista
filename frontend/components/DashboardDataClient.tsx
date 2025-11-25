@@ -188,6 +188,7 @@ export default function DashboardDataClient() {
 
   const pctFinal = data.pizza.total ? Math.round((data.pizza.finalizadas / data.pizza.total) * 100) : 0;
   const pctNao = 100 - pctFinal;
+  const attempts = data.etl_attempts ?? null;
 
   return (
     <div className="grid gap-4">
@@ -195,6 +196,9 @@ export default function DashboardDataClient() {
         <div>
           <h1 className="text-xl font-semibold text-text">Dashboard SLA</h1>
           <p className="text-sm text-textMuted">Diretor executivo travado: MARCOS NASCIMENTO PEDREIRA</p>
+          {attempts !== null && (
+            <p className="text-[11px] text-textMuted">Tentativas de conexão (última sync): {attempts}</p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm text-text">
           <span className="text-xs text-textMuted">Última atualização (BRT): {ultimoAtualizado}</span>
