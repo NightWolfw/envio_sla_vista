@@ -13,6 +13,7 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 # ===== CONFIGURA
 SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 PDF_STORAGE_DIR = Path(os.getenv('PDF_STORAGE_DIR', str(BASE_DIR / 'temp_pdfs'))).resolve()
+REDIS_URL = os.getenv('DASHBOARD_REDIS_URL', 'redis://redis:6379/2')
 
 # ===== BANCO DE DADOS VISTA (dw_gps) =====
 DB_CONFIG = {

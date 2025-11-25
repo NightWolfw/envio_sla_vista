@@ -24,6 +24,9 @@ from app.services.mensagem_agendamento import (
 )
 from app.services.pdf_sla import gerar_pdf_relatorio
 from app.services.sla_consulta import buscar_tarefas_por_periodo, buscar_tarefas_detalhadas
+from app.services.dashboard_cache import get_cached_dashboard
+from app.services.dashboard_refresh import atualizar_dashboard_cache
+from app.models.dashboard_config import obter_config_dashboard
 from app.services.whatsapp import enviar_mensagem_texto, enviar_pdf_whatsapp
 logger = logging.getLogger(__name__)
 TIMEZONE_BRASILIA = pytz.timezone('America/Sao_Paulo')
@@ -416,6 +419,42 @@ def verificar_agendamentos():
         logger.error(f"[PID {os.getpid()}] Erro: {traceback.format_exc()}")
 
 
+def _refresh_dashboard_cache_if_needed():
+    """
+    Atualiza cache do dashboard conforme intervalo configurado.
+    Reintenta a cada execução do scheduler (minuto) verificando janela de horário.
+    """
+    try:
+        cfg = obter_config_dashboard()
+        agora = datetime.now(TIMEZONE_BRASILIA)
+        inicio = datetime.combine(agora.date(), cfg["hora_inicio"]).replace(tzinfo=TIMEZONE_BRASILIA)
+        fim = datetime.combine(agora.date(), cfg["hora_fim"]).replace(tzinfo=TIMEZONE_BRASILIA)
+
+        if not (inicio <= agora <= fim):
+            return
+
+        cached = get_cached_dashboard()
+        last = None
+        if cached and cached.get("last_updated"):
+            try:
+                last = datetime.fromisoformat(cached["last_updated"])
+            except Exception:
+                last = None
+
+        delta_ok = False
+        if last:
+            delta = agora - last.astimezone(TIMEZONE_BRASILIA)
+            delta_ok = delta.total_seconds() >= cfg["intervalo_minutos"] * 60
+        else:
+            delta_ok = True
+
+        if delta_ok:
+            logger.info(f"[Dashboard] Atualizando cache (intervalo {cfg['intervalo_minutos']} min).")
+            atualizar_dashboard_cache({})
+    except Exception as exc:
+        logger.error(f"[Dashboard] Falha ao atualizar cache: {exc}")
+
+
 def iniciar_scheduler():
     """Inicia scheduler COM PROTEÇÃO ANTI-DUPLICAÇÃO (LOCKFILE)"""
     global _scheduler_started
@@ -463,6 +502,12 @@ def iniciar_scheduler():
             verificar_agendamentos,
             CronTrigger(minute='*', timezone=TIMEZONE_BRASILIA),
             id='verificar_agendamentos',
+            replace_existing=True
+        )
+        scheduler.add_job(
+            _refresh_dashboard_cache_if_needed,
+            CronTrigger(minute='*', timezone=TIMEZONE_BRASILIA),
+            id='atualizar_dashboard_cache',
             replace_existing=True
         )
         scheduler.start()

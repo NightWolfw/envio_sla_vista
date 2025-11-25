@@ -60,6 +60,55 @@ export async function getDashboardPizza(params?: URLSearchParams) {
   return apiFetch<{ data: Record<string, number> }>("/dashboard/pizza" + query);
 }
 
+// Dashboard SLA (cacheado)
+export type DashboardSlaPayload = {
+  serie_diaria: { dia: string; total: number }[];
+  serie_mensal: { mes: string; total: number }[];
+  heatmap: { cr: string; dias: Record<string | number, number> }[];
+  pizza: { finalizadas: number; nao_realizadas: number; total: number };
+  filtros: Record<string, string>;
+  periodo: { inicio: string; fim: string; descricao: string };
+  last_updated?: string;
+};
+
+export async function getDashboardSla(): Promise<{
+  success: boolean;
+  cached: boolean;
+  last_updated?: string;
+  data: DashboardSlaPayload;
+}> {
+  return apiFetch(`/dashboard/sla`);
+}
+
+export async function syncDashboardSla(): Promise<{
+  success: boolean;
+  cached: boolean;
+  last_updated?: string;
+  data: DashboardSlaPayload;
+}> {
+  return clientApi.post(`/dashboard/sla/sync`);
+}
+
+export type DashboardConfig = {
+  id: number | null;
+  hora_inicio: string;
+  hora_fim: string;
+  intervalo_minutos: number;
+  atualizado_em?: string | null;
+};
+
+export async function getDashboardConfig(): Promise<{ success: boolean; data: DashboardConfig }> {
+  return apiFetch(`/dashboard/sla/config`);
+}
+
+export async function updateDashboardConfig(payload: {
+  hora_inicio: string;
+  hora_fim: string;
+  intervalo_minutos: number;
+}): Promise<{ success: boolean; data: DashboardConfig }> {
+  return clientApi.put(`/dashboard/sla/config`, payload);
+}
+
 export type Grupo = {
   id: number;
   group_id: string;

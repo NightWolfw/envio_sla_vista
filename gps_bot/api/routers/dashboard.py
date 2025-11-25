@@ -6,6 +6,7 @@ import pytz
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi import Body
 
 from app.models.dashboard import (
     buscar_distribuicao_status,
@@ -18,6 +19,9 @@ from app.models.dashboard import (
     buscar_top_executores,
     buscar_top_locais,
 )
+from app.models.dashboard_config import obter_config_dashboard, salvar_config_dashboard
+from app.services.dashboard_cache import get_cached_dashboard, set_cached_dashboard, clear_cached_dashboard
+from app.services.dashboard_refresh import atualizar_dashboard_cache
 
 TIMEZONE_BRASILIA = pytz.timezone("America/Sao_Paulo")
 
@@ -336,3 +340,50 @@ def supervisores_por_gerente(gerente: Optional[str] = None) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail="Gerente não informado")
     supervisores = buscar_supervisores_por_gerente(gerente)
     return {"success": True, "data": supervisores}
+
+
+@router.get("/sla")
+def dashboard_sla_cached() -> Dict[str, Any]:
+    """
+    Retorna o dashboard (cache Redis). Se não houver cache, tenta gerar uma vez.
+    """
+    cached = get_cached_dashboard()
+    if cached:
+        return {"success": True, "cached": True, "last_updated": cached.get("last_updated"), "data": cached}
+    # Gera on-demand apenas para evitar tela vazia; usa diretor padrão
+    data = atualizar_dashboard_cache({})
+    return {"success": True, "cached": False, "last_updated": data.get("last_updated"), "data": data}
+
+
+@router.post("/sla/sync")
+def dashboard_sla_sync() -> Dict[str, Any]:
+    """
+    Sincronização manual: força atualização agora (retorna o payload atualizado).
+    """
+    data = atualizar_dashboard_cache({})
+    return {"success": True, "cached": False, "last_updated": data.get("last_updated"), "data": data}
+
+
+@router.get("/sla/config")
+def dashboard_config_get() -> Dict[str, Any]:
+    config = obter_config_dashboard()
+    return {"success": True, "data": config}
+
+
+@router.put("/sla/config")
+def dashboard_config_put(
+    hora_inicio: str = Body(..., embed=True),
+    hora_fim: str = Body(..., embed=True),
+    intervalo_minutos: int = Body(10, embed=True),
+) -> Dict[str, Any]:
+    try:
+        h_inicio = datetime.strptime(hora_inicio, "%H:%M").time()
+        h_fim = datetime.strptime(hora_fim, "%H:%M").time()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de hora inválido. Use HH:MM.")
+    if intervalo_minutos <= 0:
+        raise HTTPException(status_code=400, detail="intervalo_minutos deve ser > 0")
+    data = salvar_config_dashboard(h_inicio, h_fim, intervalo_minutos)
+    # Limpa cache para forçar regeneração conforme nova config
+    clear_cached_dashboard()
+    return {"success": True, "data": data}
