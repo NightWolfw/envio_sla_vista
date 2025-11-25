@@ -265,7 +265,11 @@ def enviar_sla_agendado(agendamento, atualizar_proximo=True):
             atualizar_proximo_envio(agendamento['id'], proxima_data)
 
         # Registra log
-        resposta_api = f"MSG: {resposta_msg}"
+        contexto_envio = (
+            f"periodo={data_inicio.isoformat()}->{data_fim.isoformat()} "
+            f"tz=America/Sao_Paulo tarefas={len(tarefas)} stats={stats}"
+        )
+        resposta_api = f"{contexto_envio} | MSG: {resposta_msg}"
         if pdf_resposta:
             resposta_api += f", PDF: {pdf_resposta}"
 

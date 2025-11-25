@@ -40,6 +40,12 @@ export default function LogsModal({ agendamento, onClose }: Props) {
     };
   }, [agendamento.id, page, pageSize]);
 
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "--";
+    const date = new Date(value);
+    return `${date.toLocaleDateString("pt-BR")} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+  };
+
   return (
     <div className="modal-backdrop">
       <div className="modal max-h-[85vh] w-full max-w-3xl overflow-y-auto">
@@ -60,7 +66,7 @@ export default function LogsModal({ agendamento, onClose }: Props) {
             {logs.map((log) => (
               <div key={log.id} className="rounded-xl border border-border/60 bg-surface/80 p-3 text-sm">
                 <div className="flex items-center justify-between text-xs text-textMuted">
-                  <span>{log.data_envio || log.criado_em}</span>
+                  <span>{formatDateTime(log.data_envio || log.criado_em)}</span>
                   <span
                     className={`rounded-full px-2 py-0.5 font-semibold ${
                       log.status === "sucesso"
@@ -71,15 +77,33 @@ export default function LogsModal({ agendamento, onClose }: Props) {
                     {log.status}
                   </span>
                 </div>
-                {log.erro && <p className="mt-2 text-rose-300">{log.erro}</p>}
-                {log.resposta_api && (
-                  <details className="mt-2 text-xs text-textMuted">
-                    <summary className="cursor-pointer text-text">Detalhes</summary>
-                    <pre className="mt-1 whitespace-pre-wrap rounded bg-surfaceMuted/40 p-2 text-xs text-textMuted">
-                      {log.resposta_api}
-                    </pre>
-                  </details>
-                )}
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-textMuted">Criado em: {formatDateTime(log.criado_em)}</p>
+                  {log.mensagem_enviada && (
+                    <details className="text-xs text-textMuted">
+                      <summary className="cursor-pointer text-text">Mensagem enviada</summary>
+                      <pre className="mt-1 whitespace-pre-wrap rounded bg-surfaceMuted/40 p-2 text-xs text-textMuted">
+                        {log.mensagem_enviada}
+                      </pre>
+                    </details>
+                  )}
+                  {log.resposta_api && (
+                    <details className="text-xs text-textMuted">
+                      <summary className="cursor-pointer text-text">Resposta / detalhes (API/consulta)</summary>
+                      <pre className="mt-1 whitespace-pre-wrap rounded bg-surfaceMuted/40 p-2 text-xs text-textMuted">
+                        {log.resposta_api}
+                      </pre>
+                    </details>
+                  )}
+                  {log.erro && (
+                    <details className="text-xs text-rose-200">
+                      <summary className="cursor-pointer text-rose-200">Erro</summary>
+                      <pre className="mt-1 whitespace-pre-wrap rounded bg-rose-500/10 p-2 text-xs text-rose-200">
+                        {log.erro}
+                      </pre>
+                    </details>
+                  )}
+                </div>
               </div>
             ))}
             {!logs.length && <p className="text-sm text-textMuted">Ainda não há registros.</p>}
