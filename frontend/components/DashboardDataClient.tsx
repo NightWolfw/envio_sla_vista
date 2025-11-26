@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getDashboardConfig,
   getDashboardSla,
@@ -133,27 +133,21 @@ export default function DashboardDataClient() {
     setShowFilters(false);
   };
 
-  const heatCells: HeatCell[] = useMemo(() => {
-    const rows: HeatCell[] = [];
-    data.heatmap.forEach((crItem) => {
-      Object.entries(crItem.dias || {}).forEach(([dia, valor]) => {
-        rows.push({ cr: crItem.cr, dia: String(dia), valor: Number(valor) });
-      });
+  const heatCells: HeatCell[] = [];
+  data.heatmap.forEach((crItem) => {
+    Object.entries(crItem.dias || {}).forEach(([dia, valor]) => {
+      heatCells.push({ cr: crItem.cr, dia: String(dia), valor: Number(valor) });
     });
-    return rows;
-  }, [data]);
+  });
 
-  const filteredDaily = useMemo(() => {
-    const activeMonth = data.periodo.inicio.slice(0, 7);
-    return data.serie_diaria
-      .filter((item) => item.dia.startsWith(activeMonth))
-      .sort((a, b) => new Date(a.dia).getTime() - new Date(b.dia).getTime());
-  }, [data]);
+  const activeMonth = data.periodo.inicio.slice(0, 7);
+  const filteredDaily = data.serie_diaria
+    .filter((item) => item.dia.startsWith(activeMonth))
+    .sort((a, b) => new Date(a.dia).getTime() - new Date(b.dia).getTime());
 
-  const dailyMax = useMemo(() => {
-    if (!filteredDaily.length) return 1;
-    return Math.max(...filteredDaily.map((d) => (d.finalizadas || 0) + (d.nao_realizadas || 0)), 1);
-  }, [filteredDaily]);
+  const dailyMax = filteredDaily.length
+    ? Math.max(...filteredDaily.map((d) => (d.finalizadas || 0) + (d.nao_realizadas || 0)), 1)
+    : 1;
 
   const ultimoAtualizadoDate = lastUpdated ? new Date(lastUpdated) : null;
   const ultimoAtualizado = ultimoAtualizadoDate
@@ -194,17 +188,15 @@ export default function DashboardDataClient() {
     );
   });
 
-  const diasOrdenados = useMemo(() => {
-    const refDay = (ultimoAtualizadoDate || new Date()).getDate();
-    return Array.from(
-      new Set(
-        heatCells
-          .filter((cell) => heatmapFiltered.some((row) => row.cr === cell.cr))
-          .map((c) => Number(c.dia))
-          .filter((n) => n <= refDay)
-      )
-    ).sort((a, b) => a - b);
-  }, [heatCells, heatmapFiltered, ultimoAtualizadoDate]);
+  const refDay = (ultimoAtualizadoDate || new Date()).getDate();
+  const diasOrdenados = Array.from(
+    new Set(
+      heatCells
+        .filter((cell) => heatmapFiltered.some((row) => row.cr === cell.cr))
+        .map((c) => Number(c.dia))
+        .filter((n) => n <= refDay)
+    )
+  ).sort((a, b) => a - b);
 
   const pctFinal = data.pizza.total ? Math.round((data.pizza.finalizadas / data.pizza.total) * 100) : 0;
   const pctNao = 100 - pctFinal;
