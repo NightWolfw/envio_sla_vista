@@ -18,8 +18,25 @@ const btnPrimary =
 const btnGhost =
   "inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-text hover:bg-surfaceMuted/40 transition";
 
+const createEmptyPayload = (): DashboardSlaPayload => {
+  const now = new Date();
+  const inicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const fim = now.toISOString();
+  return {
+    serie_diaria: [],
+    serie_mensal: [],
+    heatmap: [],
+    pizza: { finalizadas: 0, nao_realizadas: 0, total: 0 },
+    ranking_executores: [],
+    filtros: {},
+    periodo: { inicio, fim, descricao: "Mês atual (sem dados)" },
+    last_updated: undefined,
+    etl_attempts: undefined
+  };
+};
+
 export default function DashboardDataClient() {
-  const [data, setData] = useState<DashboardSlaPayload | null>(null);
+  const [data, setData] = useState<DashboardSlaPayload>(createEmptyPayload());
   const [config, setConfig] = useState<DashboardConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -45,13 +62,12 @@ export default function DashboardDataClient() {
     try {
       const payload = await getDashboardSla(filters);
       if (!payload.success || !payload.data) {
-        setData(null);
+        setData(createEmptyPayload());
         setLastUpdated(undefined);
-        setError("Dashboard ainda não foi sincronizado. Clique em \"Sincronizar agora\".");
-        return;
+      } else {
+        setData(payload.data);
+        setLastUpdated(payload.last_updated || payload.data?.last_updated);
       }
-      setData(payload.data);
-      setLastUpdated(payload.last_updated || payload.data?.last_updated);
       const cfg = await getDashboardConfig();
       setConfig(cfg.data);
     } catch (err: any) {
@@ -118,7 +134,6 @@ export default function DashboardDataClient() {
   };
 
   const heatCells: HeatCell[] = useMemo(() => {
-    if (!data) return [];
     const rows: HeatCell[] = [];
     data.heatmap.forEach((crItem) => {
       Object.entries(crItem.dias || {}).forEach(([dia, valor]) => {
@@ -129,7 +144,6 @@ export default function DashboardDataClient() {
   }, [data]);
 
   const filteredDaily = useMemo(() => {
-    if (!data) return [];
     const activeMonth = data.periodo.inicio.slice(0, 7);
     return data.serie_diaria
       .filter((item) => item.dia.startsWith(activeMonth))
@@ -167,8 +181,6 @@ export default function DashboardDataClient() {
       </section>
     );
   }
-
-  if (!data) return null;
 
   const heatmapFiltered = data.heatmap.filter((row) => {
     const t = textFilters;
