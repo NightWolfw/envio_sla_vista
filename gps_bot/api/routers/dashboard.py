@@ -408,9 +408,8 @@ def dashboard_sla_sync(
         )
     )
     # ETL: carrega mês corrente para o dw_sla
-    tentativas = carregar_mes_corrente(filtros)
-    data = atualizar_dashboard_cache(filtros, etl_attempts=tentativas)
-    return {"success": True, "cached": False, "last_updated": data.get("last_updated"), "data": data, "attempts": tentativas}
+    data = atualizar_dashboard_cache(filtros)
+    return {"success": True, "cached": False, "last_updated": data.get("last_updated"), "data": data, "attempts": data.get("etl_attempts")}
 
 
 @router.get("/sla/config")
@@ -421,18 +420,12 @@ def dashboard_config_get() -> Dict[str, Any]:
 
 @router.put("/sla/config")
 def dashboard_config_put(
-    hora_inicio: str = Body(..., embed=True),
-    hora_fim: str = Body(..., embed=True),
     intervalo_minutos: int = Body(10, embed=True),
+    monitor_ativo: bool = Body(False, embed=True),
 ) -> Dict[str, Any]:
-    try:
-        h_inicio = datetime.strptime(hora_inicio, "%H:%M").time()
-        h_fim = datetime.strptime(hora_fim, "%H:%M").time()
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Formato de hora inválido. Use HH:MM.")
     if intervalo_minutos <= 0:
         raise HTTPException(status_code=400, detail="intervalo_minutos deve ser > 0")
-    data = salvar_config_dashboard(h_inicio, h_fim, intervalo_minutos)
+    data = salvar_config_dashboard(intervalo_minutos, monitor_ativo)
     # Limpa cache para forçar regeneração conforme nova config
     clear_cached_dashboard()
     return {"success": True, "data": data}

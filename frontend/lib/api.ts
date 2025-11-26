@@ -95,9 +95,8 @@ export async function syncDashboardSla(params?: Record<string, any>): Promise<{
 
 export type DashboardConfig = {
   id: number | null;
-  hora_inicio: string;
-  hora_fim: string;
   intervalo_minutos: number;
+  monitor_ativo: boolean;
   atualizado_em?: string | null;
 };
 
@@ -106,9 +105,8 @@ export async function getDashboardConfig(): Promise<{ success: boolean; data: Da
 }
 
 export async function updateDashboardConfig(payload: {
-  hora_inicio: string;
-  hora_fim: string;
   intervalo_minutos: number;
+  monitor_ativo: boolean;
 }): Promise<{ success: boolean; data: DashboardConfig }> {
   return clientApi.put(`/dashboard/sla/config`, payload);
 }

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import pytz
 
-from app.models.database import get_db_site
+from app.models.database import conectar_com_retry
 from app.services.dashboard_cache import set_cached_dashboard
 from config import DB_CONFIG
 
@@ -97,84 +98,81 @@ def _classificar(status: int, expirada: bool, terminoreal, prazo) -> str:
 
 
 def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
-    conn = get_db_site()
+    tentativas = 0
+    delay = 3.0
+    conn = None
+    while conn is None:
+        tentativas += 1
+        try:
+            conn = conectar_com_retry(
+                DB_CONFIG,
+                max_tentativas=1,
+                delay_inicial=int(delay),
+                db_nome="Vista-dashboard",
+            )
+        except Exception as exc:
+            logger.warning(f"[Dashboard] Tentativa {tentativas} falhou: {exc}")
+            time.sleep(delay)
+            continue
+
     cur = conn.cursor()
 
     agora = datetime.now(TIMEZONE_BRASILIA)
-    inicio_mes = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0).date()
-    fim_mes = (agora.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    inicio_mes = agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    fim_agora = agora  # até a data/hora atual
 
-    # Filtros preparados
-    filtros_sql = []
-    params: List[Any] = []
-    if filtros.get("cr"):
-        filtros_sql.append("cr = %s")
-        params.append(filtros["cr"])
-    if filtros.get("cliente"):
-        filtros_sql.append("cliente = %s")
-        params.append(filtros["cliente"])
-    if filtros.get("diretor_executivo"):
-        filtros_sql.append("diretor_executivo = %s")
-        params.append(filtros["diretor_executivo"])
-    if filtros.get("diretor_regional"):
-        filtros_sql.append("diretor_regional = %s")
-        params.append(filtros["diretor_regional"])
-    if filtros.get("gerente_regional"):
-        filtros_sql.append("gerente_regional = %s")
-        params.append(filtros["gerente_regional"])
-    if filtros.get("gerente"):
-        filtros_sql.append("gerente = %s")
-        params.append(filtros["gerente"])
-    if filtros.get("supervisor"):
-        filtros_sql.append("supervisor = %s")
-        params.append(filtros["supervisor"])
-    if filtros.get("pec_01"):
-        filtros_sql.append("pec_01 = %s")
-        params.append(filtros["pec_01"])
-    if filtros.get("pec_02"):
-        filtros_sql.append("pec_02 = %s")
-        params.append(filtros["pec_02"])
-    where_extra = (" AND " + " AND ".join(filtros_sql)) if filtros_sql else ""
+    where_sql, params_base, join_cr = _where_and_params(filtros, inicio_mes, fim_agora)
 
-    # Série diária (mês corrente) a partir do dw_sla
+    # Série diária (mês corrente até agora)
     cur.execute(
         f"""
         SELECT 
-            data,
-            SUM(finalizadas_ok) AS finalizadas,
-            SUM(nao_realizadas) AS nao_realizadas
-        FROM dashboard_tarefas_dia
-        WHERE data >= %s AND data <= %s {where_extra}
-        GROUP BY data
-        ORDER BY data
+            DATE(t.disponibilizacao) AS dia,
+            t.status,
+            t.expirada,
+            t.terminoreal,
+            t.prazo,
+            COUNT(*) AS total
+        FROM dbo.tarefa t
+        INNER JOIN dw_vista.dm_estrutura e ON t.estruturaid = e.id_estrutura
+        {join_cr}
+        WHERE {where_sql}
+        GROUP BY DATE(t.disponibilizacao), t.status, t.expirada, t.terminoreal, t.prazo
+        ORDER BY DATE(t.disponibilizacao)
         """,
-        [inicio_mes, fim_mes] + params,
+        params_base,
     )
-    diarios = [
-        {"dia": row[0].isoformat(), "finalizadas": row[1] or 0, "nao_realizadas": row[2] or 0}
-        for row in cur.fetchall()
-    ]
+    diarios_tmp = {}
+    for row in cur.fetchall():
+        dia = row[0].isoformat()
+        status, expirada, terminoreal, prazo, total = row[1], row[2], row[3], row[4], row[5]
+        cls = _classificar(status, expirada, terminoreal, prazo)
+        if dia not in diarios_tmp:
+            diarios_tmp[dia] = {"dia": dia, "finalizadas": 0, "nao_realizadas": 0}
+        diarios_tmp[dia][cls == "finalizada" and "finalizadas" or "nao_realizadas"] += total
+    diarios = sorted(diarios_tmp.values(), key=lambda x: x["dia"])
 
     # Heatmap (CR x dia)
     cur.execute(
         f"""
         SELECT 
-            cr,
-            data,
-            SUM(finalizadas_ok) AS finalizadas,
-            SUM(total) AS total
-        FROM dashboard_tarefas_dia
-        WHERE data >= %s AND data <= %s {where_extra}
-        GROUP BY cr, data
-        HAVING SUM(total) > 0
-        ORDER BY cr, data
+            e.crno as cr,
+            EXTRACT(DAY FROM t.disponibilizacao)::int as dia,
+            SUM(CASE WHEN t.status = 85 AND t.expirada = FALSE AND (t.terminoreal IS NULL OR t.terminoreal <= t.prazo) THEN 1 ELSE 0 END) as finalizadas_prazo,
+            COUNT(*) as total
+        FROM dbo.tarefa t
+        INNER JOIN dw_vista.dm_estrutura e ON t.estruturaid = e.id_estrutura
+        {join_cr}
+        WHERE {where_sql}
+        GROUP BY e.crno, EXTRACT(DAY FROM t.disponibilizacao)
+        HAVING COUNT(*) > 0
+        ORDER BY e.crno, dia
         """,
-        [inicio_mes, fim_mes] + params,
+        params_base,
     )
     heatmap = {}
-    for cr, data, finalizadas, total in cur.fetchall():
-        porcent = (finalizadas / total * 100) if total else 0
-        dia = datetime.fromisoformat(str(data)).day
+    for cr, dia, finalizadas_prazo, total in cur.fetchall():
+        porcent = (finalizadas_prazo / total * 100) if total else 0
         if cr not in heatmap:
             heatmap[cr] = {"cr": cr, "dias": {}}
         heatmap[cr]["dias"][dia] = round(porcent, 1)
@@ -184,37 +182,41 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
     cur.execute(
         f"""
         SELECT 
-            SUM(finalizadas_ok) AS finalizadas,
-            SUM(nao_realizadas) AS nao_realizadas,
-            SUM(total) AS total
-        FROM dashboard_tarefas_dia
-        WHERE data >= %s AND data <= %s {where_extra}
+            t.status,
+            t.expirada,
+            t.terminoreal,
+            t.prazo,
+            COUNT(*) as total
+        FROM dbo.tarefa t
+        INNER JOIN dw_vista.dm_estrutura e ON t.estruturaid = e.id_estrutura
+        {join_cr}
+        WHERE {where_sql}
+        GROUP BY t.status, t.expirada, t.terminoreal, t.prazo
         """,
-        [inicio_mes, fim_mes] + params,
+        params_base,
     )
-    row_pizza = cur.fetchone() or (0, 0, 0)
-    pizza_stats = {
-        "finalizadas": row_pizza[0] or 0,
-        "nao_realizadas": row_pizza[1] or 0,
-        "total": row_pizza[2] or 0,
-    }
+    pizza_rows = cur.fetchall()
+    pizza_stats = _calc_pizza(pizza_rows)
 
-    # Ranking de executores (top 20)
+    # Ranking executores (top 20)
     cur.execute(
         f"""
         SELECT 
-            executor,
-            SUM(finalizadas_ok) AS finalizadas,
-            SUM(nao_realizadas) AS nao_realizadas,
-            SUM(total) AS total
-        FROM dashboard_executores
-        WHERE atualizado_em >= %s AND atualizado_em <= %s {where_extra}
+            COALESCE(r.nome, 'Sem Executor') as executor,
+            SUM(CASE WHEN t.status = 85 AND t.expirada = FALSE AND (t.terminoreal IS NULL OR t.terminoreal <= t.prazo) THEN 1 ELSE 0 END) AS finalizadas_ok,
+            SUM(CASE WHEN t.status = 85 AND ((t.expirada = TRUE) OR (t.expirada = FALSE AND t.terminoreal IS NOT NULL AND t.terminoreal > t.prazo)) THEN 1 ELSE 0 END) AS nao_realizadas,
+            COUNT(*) AS total
+        FROM dbo.tarefa t
+        INNER JOIN dw_vista.dm_estrutura e ON t.estruturaid = e.id_estrutura
+        LEFT JOIN dbo.recurso r ON t.finalizadoporhash = r.codigohash
+        {join_cr}
+        WHERE {where_sql}
         GROUP BY executor
-        HAVING SUM(total) > 0
-        ORDER BY finalizadas DESC, total DESC
+        HAVING COUNT(*) > 0
+        ORDER BY total DESC
         LIMIT 20
         """,
-        [inicio_mes, fim_mes] + params,
+        params_base,
     )
     ranking = [
         {
@@ -231,15 +233,16 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
 
     payload = {
         "serie_diaria": diarios,
-        "serie_mensal": [],  # removido conforme solicitação
+        "serie_mensal": [],
         "heatmap": heatmap_list,
         "pizza": pizza_stats,
         "ranking_executores": ranking,
+        "etl_attempts": tentativas,
         "filtros": filtros,
         "periodo": {
             "inicio": inicio_mes.isoformat(),
-            "fim": fim_mes.isoformat(),
-            "descricao": f"Mês {inicio_mes.strftime('%m/%Y')}",
+            "fim": fim_agora.isoformat(),
+            "descricao": f"Mês {inicio_mes.strftime('%m/%Y')} até {fim_agora.strftime('%d/%m %H:%M')}",
         },
     }
     return payload

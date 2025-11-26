@@ -40,4 +40,3 @@ CREATE TABLE IF NOT EXISTS dashboard_executores (
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_dashboard_executores_executor ON dashboard_executores(executor);
-

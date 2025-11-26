@@ -431,13 +431,10 @@ def _refresh_dashboard_cache_if_needed():
     _dashboard_refresh_running = True
     try:
         cfg = obter_config_dashboard()
-        agora = datetime.now(TIMEZONE_BRASILIA)
-        inicio = datetime.combine(agora.date(), cfg["hora_inicio"]).replace(tzinfo=TIMEZONE_BRASILIA)
-        fim = datetime.combine(agora.date(), cfg["hora_fim"]).replace(tzinfo=TIMEZONE_BRASILIA)
-
-        if not (inicio <= agora <= fim):
+        if not cfg.get("monitor_ativo", False):
             return
 
+        agora = datetime.now(TIMEZONE_BRASILIA)
         cached = get_cached_dashboard({})
         last = None
         if cached and cached.get("last_updated"):
@@ -455,9 +452,7 @@ def _refresh_dashboard_cache_if_needed():
 
         if delta_ok:
             logger.info(f"[Dashboard] Atualizando cache (intervalo {cfg['intervalo_minutos']} min).")
-            from app.services.dashboard_etl import carregar_mes_corrente
-            tentativas = carregar_mes_corrente({})
-            atualizar_dashboard_cache({}, etl_attempts=tentativas)
+            atualizar_dashboard_cache({})
     except Exception as exc:
         logger.error(f"[Dashboard] Falha ao atualizar cache: {exc}")
     finally:

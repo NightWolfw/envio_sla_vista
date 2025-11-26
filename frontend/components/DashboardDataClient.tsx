@@ -26,10 +26,8 @@ export default function DashboardDataClient() {
   const [savingConfig, setSavingConfig] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [showDateFilters, setShowDateFilters] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | undefined>(undefined);
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [textFilters, setTextFilters] = useState<Record<string, string>>({
     diretor_regional: "",
     gerente_regional: "",
@@ -88,11 +86,14 @@ export default function DashboardDataClient() {
     }
   };
 
-  const handleSaveConfig = async (newConfig: { hora_inicio: string; hora_fim: string; intervalo_minutos: number }) => {
+  const handleSaveConfig = async (newConfig: { intervalo_minutos: number }) => {
     setSavingConfig(true);
     setError(null);
     try {
-      const res = await updateDashboardConfig(newConfig);
+      const res = await updateDashboardConfig({
+        intervalo_minutos: newConfig.intervalo_minutos,
+        monitor_ativo: config?.monitor_ativo ?? false
+      });
       setConfig(res.data);
     } catch (err: any) {
       setError(err?.message ?? "Falha ao salvar configuração");
@@ -107,11 +108,6 @@ export default function DashboardDataClient() {
     Object.entries(textFilters).forEach(([k, v]) => {
       if (v) params[k] = v;
     });
-    if (selectedMonth) {
-      const d = new Date(selectedMonth + "-01T00:00:00");
-      params["mes"] = String(d.getMonth() + 1);
-      params["ano"] = String(d.getFullYear());
-    }
     return params;
   };
 
@@ -119,7 +115,6 @@ export default function DashboardDataClient() {
     const params = buildFiltersParams();
     loadDashboard(params);
     setShowFilters(false);
-    setShowDateFilters(false);
   };
 
   const heatCells: HeatCell[] = useMemo(() => {
@@ -133,8 +128,22 @@ export default function DashboardDataClient() {
     return rows;
   }, [data]);
 
-  const ultimoAtualizado = lastUpdated
-    ? new Date(lastUpdated).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
+  const filteredDaily = useMemo(() => {
+    if (!data) return [];
+    const activeMonth = data.periodo.inicio.slice(0, 7);
+    return data.serie_diaria
+      .filter((item) => item.dia.startsWith(activeMonth))
+      .sort((a, b) => new Date(a.dia).getTime() - new Date(b.dia).getTime());
+  }, [data]);
+
+  const dailyMax = useMemo(() => {
+    if (!filteredDaily.length) return 1;
+    return Math.max(...filteredDaily.map((d) => (d.finalizadas || 0) + (d.nao_realizadas || 0)), 1);
+  }, [filteredDaily]);
+
+  const ultimoAtualizadoDate = lastUpdated ? new Date(lastUpdated) : null;
+  const ultimoAtualizado = ultimoAtualizadoDate
+    ? ultimoAtualizadoDate.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
     : "—";
 
   if (loading) {
@@ -161,19 +170,6 @@ export default function DashboardDataClient() {
 
   if (!data) return null;
 
-  const diasOrdenados = Array.from(
-    new Set(heatCells.map((c) => Number(c.dia)))
-  ).sort((a, b) => a - b);
-
-  const monthOptions = data.serie_diaria
-    .map((d) => d.dia.slice(0, 7))
-    .filter((v, i, arr) => arr.indexOf(v) === i);
-  const activeMonth = selectedMonth || data.periodo.inicio.slice(0, 7);
-
-  const filteredDaily = data.serie_diaria.filter((item) => item.dia.startsWith(activeMonth));
-  const dailyMax =
-    Math.max(...filteredDaily.map((d) => (d.finalizadas || 0) + (d.nao_realizadas || 0)), 1);
-
   const heatmapFiltered = data.heatmap.filter((row) => {
     const t = textFilters;
     const match = (value: string, needle: string) =>
@@ -186,9 +182,39 @@ export default function DashboardDataClient() {
     );
   });
 
+  const diasOrdenados = useMemo(() => {
+    const refDay = (ultimoAtualizadoDate || new Date()).getDate();
+    return Array.from(
+      new Set(
+        heatCells
+          .filter((cell) => heatmapFiltered.some((row) => row.cr === cell.cr))
+          .map((c) => Number(c.dia))
+          .filter((n) => n <= refDay)
+      )
+    ).sort((a, b) => a - b);
+  }, [heatCells, heatmapFiltered, ultimoAtualizadoDate]);
+
   const pctFinal = data.pizza.total ? Math.round((data.pizza.finalizadas / data.pizza.total) * 100) : 0;
   const pctNao = 100 - pctFinal;
   const attempts = data.etl_attempts ?? null;
+  const monitorAtivo = config?.monitor_ativo ?? false;
+
+  const handleToggleMonitor = async () => {
+    if (!config) return;
+    setSavingConfig(true);
+    setError(null);
+    try {
+      const res = await updateDashboardConfig({
+        intervalo_minutos: config.intervalo_minutos || 10,
+        monitor_ativo: !config.monitor_ativo
+      });
+      setConfig(res.data);
+    } catch (err: any) {
+      setError(err?.message ?? "Falha ao atualizar monitoramento");
+    } finally {
+      setSavingConfig(false);
+    }
+  };
 
   return (
     <div className="grid gap-4">
@@ -199,17 +225,15 @@ export default function DashboardDataClient() {
           {attempts !== null && (
             <p className="text-[11px] text-textMuted">Tentativas de conexão (última sync): {attempts}</p>
           )}
+          <p className="text-[11px] text-textMuted">
+            Monitoramento: {monitorAtivo ? "Ativo" : "Parado"} • Intervalo: {config?.intervalo_minutos ?? 10} min
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm text-text">
           <span className="text-xs text-textMuted">Última atualização (BRT): {ultimoAtualizado}</span>
           <button onClick={() => setShowFilters((v) => !v)} className={btnGhost} title="Filtros">
             <span role="img" aria-label="filtros">
               🧰
-            </span>
-          </button>
-          <button onClick={() => setShowDateFilters((v) => !v)} className={btnGhost} title="Filtros de data">
-            <span role="img" aria-label="data">
-              📅
             </span>
           </button>
           <button onClick={() => setShowConfig((v) => !v)} className={btnGhost} title="Configurações">
@@ -220,6 +244,16 @@ export default function DashboardDataClient() {
           <button onClick={handleSync} className={btnPrimary} disabled={syncing} title="Sincronizar agora">
             <span role="img" aria-label="sync">
               🔄
+            </span>
+          </button>
+          <button
+            onClick={handleToggleMonitor}
+            className={btnPrimary}
+            disabled={savingConfig}
+            title={monitorAtivo ? "Parar monitoramento" : "Iniciar monitoramento"}
+          >
+            <span role="img" aria-label="monitor">
+              {monitorAtivo ? "⏹️" : "▶️"}
             </span>
           </button>
         </div>
@@ -275,47 +309,6 @@ export default function DashboardDataClient() {
         </div>
       )}
 
-      {showDateFilters && (
-        <div className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm">
-          <div className="absolute right-4 top-4 w-full max-w-sm rounded-xl border border-border bg-surface p-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-text">Filtros de data</h3>
-              <button className={btnGhost} onClick={() => setShowDateFilters(false)}>
-                Fechar
-              </button>
-            </div>
-            <div className="mt-3">
-              <label className="text-sm text-text">
-                Mês/Ano (últimos 6 meses)
-                <select
-                  className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-sm"
-                  value={activeMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                >
-                  {monthOptions.map((m) => {
-                    const d = new Date(m + "T00:00:00");
-                    const label = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-                    return (
-                      <option key={m} value={m.slice(0, 7)}>
-                        {label}
-                      </option>
-                    );
-                  })}
-                </select>
-              </label>
-              <div className="mt-3 flex justify-end gap-2">
-                <button className={btnGhost} onClick={() => setShowDateFilters(false)}>
-                  Cancelar
-                </button>
-                <button className={btnPrimary} onClick={applyFilters}>
-                  Aplicar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showConfig && config && (
         <div className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm">
           <div className="absolute right-4 top-4 w-full max-w-md rounded-xl border border-border bg-surface p-4 shadow-2xl">
@@ -325,25 +318,7 @@ export default function DashboardDataClient() {
                 Fechar
               </button>
             </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              <label className="text-sm text-text">
-                Início (HH:MM)
-                <input
-                  type="time"
-                  defaultValue={config.hora_inicio}
-                  className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-sm"
-                  onChange={(e) => setConfig((prev) => (prev ? { ...prev, hora_inicio: e.target.value } : prev))}
-                />
-              </label>
-              <label className="text-sm text-text">
-                Fim (HH:MM)
-                <input
-                  type="time"
-                  defaultValue={config.hora_fim}
-                  className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-sm"
-                  onChange={(e) => setConfig((prev) => (prev ? { ...prev, hora_fim: e.target.value } : prev))}
-                />
-              </label>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
               <label className="text-sm text-text">
                 Intervalo (min)
                 <input
@@ -358,6 +333,16 @@ export default function DashboardDataClient() {
                   }
                 />
               </label>
+              <label className="text-sm text-text flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={config.monitor_ativo}
+                  onChange={(e) =>
+                    setConfig((prev) => (prev ? { ...prev, monitor_ativo: e.target.checked } : prev))
+                  }
+                />
+                Monitoramento ativo
+              </label>
             </div>
             <div className="mt-3 flex justify-end gap-2">
               <button className={btnGhost} onClick={() => setShowConfig(false)}>
@@ -368,8 +353,6 @@ export default function DashboardDataClient() {
                 disabled={savingConfig}
                 onClick={() =>
                   handleSaveConfig({
-                    hora_inicio: config.hora_inicio,
-                    hora_fim: config.hora_fim,
                     intervalo_minutos: config.intervalo_minutos
                   })
                 }
@@ -381,163 +364,176 @@ export default function DashboardDataClient() {
         </div>
       )}
 
-      <section className={cardClass}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text">Tarefas por dia (mês atual)</h3>
-          <span className="text-xs text-textMuted">{data.periodo.descricao}</span>
-        </div>
-        <div className="mt-4 flex items-end gap-2 overflow-x-auto">
-          {filteredDaily.map((item) => {
-            const diaLabel = new Date(item.dia).getDate();
-            const total = (item.finalizadas || 0) + (item.nao_realizadas || 0);
-            const maxHeight = 200;
-            const scale = maxHeight / (dailyMax || 1);
-            const heightFinal = Math.max(4, (item.finalizadas || 0) * scale);
-            const heightNao = Math.max(4, (item.nao_realizadas || 0) * scale);
-            return (
-              <div key={item.dia} className="flex flex-col items-center text-xs text-textMuted min-w-[28px]">
-                <div className="flex w-6 flex-col-reverse overflow-hidden rounded" style={{ height: maxHeight }}>
-                  <div
-                    className="bg-rose-500/80"
-                    style={{ height: heightNao }}
-                    title={`Não realizadas: ${item.nao_realizadas || 0}`}
-                  />
-                  <div
-                    className="bg-emerald-500/80"
-                    style={{ height: heightFinal }}
-                    title={`Finalizadas: ${item.finalizadas || 0}`}
-                  />
-                </div>
-                <span className="mt-1">{diaLabel}</span>
-                <span className="text-[10px] text-textMuted">{total}</span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className={cardClass}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text">Ranking de executores (mês atual)</h3>
-          <span className="text-xs text-textMuted">Top executores por finalizações</span>
-        </div>
-        <div className="mt-3 max-h-72 overflow-y-auto">
-          {data.ranking_executores && data.ranking_executores.length > 0 ? (
-            <div className="space-y-2">
-              {data.ranking_executores.map((item, idx) => {
-                const total = item.total || 0;
-                const final = item.finalizadas || 0;
-                const nao = item.nao_realizadas || 0;
-                const widthFinal = Math.min(100, (final / (total || 1)) * 100);
-                const widthNao = Math.min(100, (nao / (total || 1)) * 100);
-                return (
-                  <div key={item.executor + idx} className="rounded border border-border/40 bg-surfaceMuted/30 p-2">
-                    <div className="flex items-center justify-between text-xs text-text">
-                      <span className="font-semibold text-text">{item.executor}</span>
-                      <span className="text-textMuted">{total} tarefas</span>
-                    </div>
-                    <div className="mt-2 flex h-4 w-full overflow-hidden rounded bg-border/40">
-                      <div
-                        className="bg-emerald-500/80"
-                        style={{ width: `${widthFinal}%` }}
-                        title={`Finalizadas: ${final}`}
-                      />
-                      <div
-                        className="bg-rose-500/80"
-                        style={{ width: `${widthNao}%` }}
-                        title={`Não realizadas: ${nao}`}
-                      />
-                    </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className={cardClass}>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-text">Tarefas por dia (mês atual)</h3>
+            <span className="text-xs text-textMuted">{data.periodo.descricao}</span>
+          </div>
+          <div className="mt-4 flex items-end gap-2 overflow-x-auto">
+            {filteredDaily.map((item) => {
+              const diaLabel = new Date(item.dia).getDate();
+              const total = (item.finalizadas || 0) + (item.nao_realizadas || 0);
+              const maxHeight = 200;
+              const scale = maxHeight / (dailyMax || 1);
+              const heightFinal = Math.max(4, (item.finalizadas || 0) * scale);
+              const heightNao = Math.max(4, (item.nao_realizadas || 0) * scale);
+              return (
+                <div key={item.dia} className="flex min-w-[28px] flex-col items-center text-xs text-textMuted">
+                  <div className="flex w-8 flex-col-reverse overflow-hidden rounded" style={{ height: maxHeight }}>
+                    <div
+                      className="bg-rose-500/80"
+                      style={{ height: heightNao }}
+                      title={`Não realizadas: ${item.nao_realizadas || 0}`}
+                    />
+                    <div
+                      className="bg-emerald-500/80"
+                      style={{ height: heightFinal }}
+                      title={`Finalizadas: ${item.finalizadas || 0}`}
+                    />
                   </div>
-                );
-              })}
+                  <span className="mt-1 font-semibold text-text">{diaLabel}</span>
+                  <span className="text-[10px] text-textMuted">{total}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className={cardClass}>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-text">Finalizadas x Não realizadas</h3>
+            <span className="text-xs text-textMuted">Distribuição no mês</span>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-6 text-sm">
+            <div
+              className="relative h-32 w-32 rounded-full"
+              style={{
+                background: `conic-gradient(#22c55e 0% ${pctFinal}%, #ef4444 ${pctFinal}% 100%)`
+              }}
+              title={`Finalizadas ${pctFinal}% | Não realizadas ${pctNao}%`}
+            >
+              <div className="absolute inset-3 flex items-center justify-center rounded-full bg-surface text-xs text-text">
+                <div className="text-center">
+                  <div className="text-lg font-semibold text-text">{data.pizza.total}</div>
+                  <div className="text-[11px] text-textMuted">total</div>
+                </div>
+              </div>
             </div>
-          ) : (
-            <p className="text-sm text-textMuted">Sem dados de executores.</p>
-          )}
-        </div>
-      </section>
-
-      <section className={cardClass}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text">Heatmap SLA (CR x Dia)</h3>
-          <p className="text-xs text-textMuted">Verde &gt;=90 • Amarelo 65-89.9 • Vermelho &lt;65</p>
-        </div>
-        <div className="mt-3 max-h-72 overflow-y-auto overflow-x-auto">
-          <table className="w-full min-w-[640px] text-xs text-text">
-            <thead className="sticky top-0 bg-surface">
-              <tr>
-                <th className="px-2 py-1 text-left">CR</th>
-                {diasOrdenados.map((dia) => (
-                  <th key={dia} className="px-2 py-1 text-center">
-                    {dia}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.heatmap.map((row) => (
-                <tr key={row.cr}>
-                  <td className="px-2 py-1 font-semibold">{row.cr}</td>
-                  {diasOrdenados.map((dia) => {
-                    const valor = row.dias?.[dia] ?? row.dias?.[String(dia)] ?? 0;
-                    const cor = valor >= 90 ? "#16a34a" : valor >= 65 ? "#eab308" : "#dc2626";
-                    return (
-                      <td key={`${row.cr}-${dia}`} className="px-1 py-1 text-center">
-                        <div
-                          className="rounded text-[11px] font-semibold text-white"
-                          style={{
-                            background: cor,
-                            minWidth: 32,
-                            padding: "4px 6px"
-                          }}
-                          title={`${valor}%`}
-                        >
-                          {valor}%
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className={cardClass}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text">Finalizadas x Não realizadas</h3>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-6 text-sm">
-          <div
-            className="relative h-32 w-32 rounded-full"
-            style={{
-              background: `conic-gradient(#22c55e 0% ${pctFinal}%, #ef4444 ${pctFinal}% 100%)`
-            }}
-            title={`Finalizadas ${pctFinal}% | Não realizadas ${pctNao}%`}
-          >
-            <div className="absolute inset-3 rounded-full bg-surface flex items-center justify-center text-xs text-text">
-              <div className="text-center">
-                <div className="text-lg font-semibold text-text">{data.pizza.total}</div>
-                <div className="text-[11px] text-textMuted">total</div>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
+                <span className="font-semibold text-text">Finalizadas</span>
+                <span className="text-emerald-300 text-sm">
+                  {data.pizza.finalizadas} ({pctFinal}%)
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="h-3 w-3 rounded-full bg-rose-500/80" />
+                <span className="font-semibold text-text">Não realizadas</span>
+                <span className="text-rose-300 text-sm">
+                  {data.pizza.nao_realizadas} ({pctNao}%)
+                </span>
               </div>
             </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
-              <span className="font-semibold text-text">Finalizadas</span>
-              <span className="text-emerald-300 text-sm">{data.pizza.finalizadas} ({pctFinal}%)</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="h-3 w-3 rounded-full bg-rose-500/80" />
-              <span className="font-semibold text-text">Não realizadas</span>
-              <span className="text-rose-300 text-sm">{data.pizza.nao_realizadas} ({pctNao}%)</span>
-            </div>
+        </section>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className={cardClass}>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-text">Ranking de executores (mês atual)</h3>
+            <span className="text-xs text-textMuted">Top executores por finalizações</span>
           </div>
-        </div>
-      </section>
+          <div className="mt-3 max-h-72 overflow-y-auto">
+            {data.ranking_executores && data.ranking_executores.length > 0 ? (
+              <div className="space-y-2">
+                {data.ranking_executores.map((item, idx) => {
+                  const total = item.total || 0;
+                  const final = item.finalizadas || 0;
+                  const nao = item.nao_realizadas || 0;
+                  const widthFinal = Math.min(100, (final / (total || 1)) * 100);
+                  const widthNao = Math.min(100, (nao / (total || 1)) * 100);
+                  return (
+                    <div key={item.executor + idx} className="rounded border border-border/40 bg-surfaceMuted/30 p-2">
+                      <div className="flex items-center justify-between text-xs text-text">
+                        <span className="font-semibold text-text">{item.executor}</span>
+                        <span className="text-textMuted">{total} tarefas</span>
+                      </div>
+                      <div className="mt-2 flex h-4 w-full overflow-hidden rounded bg-border/40">
+                        <div
+                          className="bg-emerald-500/80"
+                          style={{ width: `${widthFinal}%` }}
+                          title={`Finalizadas: ${final}`}
+                        />
+                        <div
+                          className="bg-rose-500/80"
+                          style={{ width: `${widthNao}%` }}
+                          title={`Não realizadas: ${nao}`}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-textMuted">Sem dados de executores.</p>
+            )}
+          </div>
+        </section>
+
+        <section className={cardClass}>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-text">Heatmap SLA (CR x Dia)</h3>
+            <p className="text-xs text-textMuted">Verde &gt;=90 • Amarelo 65-89.9 • Vermelho &lt;65</p>
+          </div>
+          <div className="mt-3 h-80 overflow-auto">
+            {heatmapFiltered.length === 0 ? (
+              <p className="text-sm text-textMuted">Sem dados para os filtros atuais.</p>
+            ) : (
+              <table className="w-full min-w-[640px] text-xs text-text">
+                <thead className="sticky top-0 bg-surface">
+                  <tr>
+                    <th className="px-2 py-1 text-left">CR</th>
+                    {diasOrdenados.map((dia) => (
+                      <th key={dia} className="px-2 py-1 text-center">
+                        {dia}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {heatmapFiltered.map((row) => (
+                    <tr key={row.cr}>
+                      <td className="px-2 py-1 font-semibold">{row.cr}</td>
+                      {diasOrdenados.map((dia) => {
+                        const valor = row.dias?.[dia] ?? row.dias?.[String(dia)] ?? 0;
+                        const cor = valor >= 90 ? "#16a34a" : valor >= 65 ? "#eab308" : "#dc2626";
+                        return (
+                          <td key={`${row.cr}-${dia}`} className="px-1 py-1 text-center">
+                            <div
+                              className="rounded text-[11px] font-semibold text-white"
+                              style={{
+                                background: cor,
+                                minWidth: 32,
+                                padding: "4px 6px"
+                              }}
+                              title={`${valor}%`}
+                            >
+                              {valor}%
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

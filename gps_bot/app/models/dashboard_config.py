@@ -14,7 +14,7 @@ def obter_config_dashboard() -> Dict[str, Any]:
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT id, hora_inicio, hora_fim, intervalo_minutos, atualizado_em
+        SELECT id, hora_inicio, hora_fim, intervalo_minutos, monitor_ativo, atualizado_em
         FROM dashboard_config
         ORDER BY id
         LIMIT 1
@@ -30,6 +30,7 @@ def obter_config_dashboard() -> Dict[str, Any]:
             "hora_inicio": time(0, 0),
             "hora_fim": time(23, 59),
             "intervalo_minutos": 10,
+            "monitor_ativo": False,
             "atualizado_em": None,
         }
 
@@ -38,11 +39,12 @@ def obter_config_dashboard() -> Dict[str, Any]:
         "hora_inicio": row[1],
         "hora_fim": row[2],
         "intervalo_minutos": row[3],
-        "atualizado_em": row[4],
+        "monitor_ativo": row[4],
+        "atualizado_em": row[5],
     }
 
 
-def salvar_config_dashboard(hora_inicio: time, hora_fim: time, intervalo_minutos: int) -> Dict[str, Any]:
+def salvar_config_dashboard(intervalo_minutos: int, monitor_ativo: bool) -> Dict[str, Any]:
     """
     Atualiza (ou insere) a configuração global.
     """
@@ -51,15 +53,14 @@ def salvar_config_dashboard(hora_inicio: time, hora_fim: time, intervalo_minutos
     cur.execute(
         """
         INSERT INTO dashboard_config (id, hora_inicio, hora_fim, intervalo_minutos, atualizado_em)
-        VALUES (1, %s, %s, %s, NOW())
+        VALUES (1, '00:00', '23:59', %s, NOW())
         ON CONFLICT (id)
-        DO UPDATE SET hora_inicio = EXCLUDED.hora_inicio,
-                      hora_fim = EXCLUDED.hora_fim,
-                      intervalo_minutos = EXCLUDED.intervalo_minutos,
+        DO UPDATE SET intervalo_minutos = EXCLUDED.intervalo_minutos,
+                      monitor_ativo = %s,
                       atualizado_em = NOW()
-        RETURNING id, hora_inicio, hora_fim, intervalo_minutos, atualizado_em
+        RETURNING id, hora_inicio, hora_fim, intervalo_minutos, monitor_ativo, atualizado_em
         """,
-        (hora_inicio, hora_fim, intervalo_minutos),
+        (intervalo_minutos, monitor_ativo),
     )
     row = cur.fetchone()
     conn.commit()
@@ -71,6 +72,6 @@ def salvar_config_dashboard(hora_inicio: time, hora_fim: time, intervalo_minutos
         "hora_inicio": row[1],
         "hora_fim": row[2],
         "intervalo_minutos": row[3],
-        "atualizado_em": row[4],
+        "monitor_ativo": row[4],
+        "atualizado_em": row[5],
     }
-
