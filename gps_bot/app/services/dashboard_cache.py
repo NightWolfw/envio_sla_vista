@@ -26,23 +26,40 @@ def _key(filtros: Dict[str, Any]) -> str:
 
 
 def get_cached_dashboard(filtros: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    chave = _key(filtros)
     try:
-        raw = _client().get(_key(filtros))
+        raw = _client().get(chave)
         if not raw:
+            logger.info("[Dashboard] Cache MISS no Redis para chave: %s", chave)
             return None
-        return json.loads(raw)
+        data = json.loads(raw)
+        last = data.get("last_updated")
+        logger.info(
+            "[Dashboard] Cache HIT no Redis para chave: %s (last_updated=%s)",
+            chave,
+            last,
+        )
+        return data
     except Exception as exc:
-        logger.error(f"Erro ao ler cache do dashboard: {exc}")
+        logger.error("Erro ao ler cache do dashboard no Redis (chave=%s): %s", chave, exc)
         return None
 
 
 def set_cached_dashboard(payload: Dict[str, Any], filtros: Dict[str, Any]) -> None:
+    chave = _key(filtros)
     data = dict(payload)
     data["last_updated"] = datetime.utcnow().isoformat()
     try:
-        _client().set(_key(filtros), json.dumps(data))
+        _client().set(chave, json.dumps(data))
+        logger.info(
+            "[Dashboard] Cache SET no Redis (chave=%s, dias=%s, heatmap_cr=%s, total=%s)",
+            chave,
+            len(data.get("serie_diaria", [])),
+            len(data.get("heatmap", [])),
+            data.get("pizza", {}).get("total"),
+        )
     except Exception as exc:
-        logger.error(f"Erro ao salvar cache do dashboard: {exc}")
+        logger.error("Erro ao salvar cache do dashboard no Redis (chave=%s): %s", chave, exc)
         raise
 
 
@@ -53,7 +70,12 @@ def clear_cached_dashboard(filtros: Dict[str, Any] | None = None) -> None:
             keys = _client().keys("dashboard:sla:*")
             if keys:
                 _client().delete(*keys)
+                logger.info("[Dashboard] Cache CLEAR completo no Redis. Chaves removidas: %s", len(keys))
+            else:
+                logger.info("[Dashboard] Cache CLEAR solicitado, mas nenhuma chave encontrada.")
         else:
-            _client().delete(_key(filtros))
+            chave = _key(filtros)
+            _client().delete(chave)
+            logger.info("[Dashboard] Cache CLEAR no Redis para chave: %s", chave)
     except Exception as exc:
-        logger.error(f"Erro ao limpar cache do dashboard: {exc}")
+        logger.error("Erro ao limpar cache do dashboard no Redis: %s", exc)

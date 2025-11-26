@@ -98,20 +98,44 @@ def _classificar(status: int, expirada: bool, terminoreal, prazo) -> str:
 
 
 def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
+    """
+    Busca os dados diretamente no banco Vista. Tenta reconectar indefinidamente,
+    com logs detalhados para acompanhamento no container envio_sla_app.
+    """
     tentativas = 0
     delay = 3.0
     conn = None
+
+    logger.info(
+        "[Dashboard] ETAPA 1/4 - Iniciando conexão com Vista para geração do SLA. Filtros=%s",
+        filtros,
+    )
+
     while conn is None:
         tentativas += 1
         try:
+            logger.info(
+                "[Dashboard] [Vista] Tentativa %s de conexão (delay %.1fs entre tentativas)...",
+                tentativas,
+                delay,
+            )
             conn = conectar_com_retry(
                 DB_CONFIG,
                 max_tentativas=1,
                 delay_inicial=int(delay),
                 db_nome="Vista-dashboard",
             )
+            logger.info(
+                "[Dashboard] [Vista] ✅ Conexão estabelecida com sucesso na tentativa %s",
+                tentativas,
+            )
         except Exception as exc:
-            logger.warning(f"[Dashboard] Tentativa {tentativas} falhou: {exc}")
+            logger.warning(
+                "[Dashboard] [Vista] ❌ Tentativa %s falhou: %s. Aguardando %.1fs para tentar novamente...",
+                tentativas,
+                exc,
+                delay,
+            )
             time.sleep(delay)
             continue
 
@@ -122,8 +146,14 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
     fim_agora = agora  # até a data/hora atual
 
     where_sql, params_base, join_cr = _where_and_params(filtros, inicio_mes, fim_agora)
+    periodo_desc = f"{inicio_mes.isoformat()} -> {fim_agora.isoformat()}"
 
     # Série diária (mês corrente até agora)
+    logger.info(
+        "[Dashboard] ETAPA 2/4 - Executando query de série diária (período %s)...",
+        periodo_desc,
+    )
+    t_ini = datetime.now(TIMEZONE_BRASILIA)
     cur.execute(
         f"""
         SELECT 
@@ -142,8 +172,16 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
         """,
         params_base,
     )
-    diarios_tmp = {}
-    for row in cur.fetchall():
+    rows_diaria = cur.fetchall()
+    t_fim = datetime.now(TIMEZONE_BRASILIA)
+    logger.info(
+        "[Dashboard] Série diária concluída: %s linhas em %.3fs.",
+        len(rows_diaria),
+        (t_fim - t_ini).total_seconds(),
+    )
+
+    diarios_tmp: Dict[str, Dict[str, Any]] = {}
+    for row in rows_diaria:
         dia = row[0].isoformat()
         status, expirada, terminoreal, prazo, total = row[1], row[2], row[3], row[4], row[5]
         cls = _classificar(status, expirada, terminoreal, prazo)
@@ -153,6 +191,8 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
     diarios = sorted(diarios_tmp.values(), key=lambda x: x["dia"])
 
     # Heatmap (CR x dia)
+    logger.info("[Dashboard] ETAPA 3/4 - Executando query de heatmap (CR x dia)...")
+    t_ini = datetime.now(TIMEZONE_BRASILIA)
     cur.execute(
         f"""
         SELECT 
@@ -170,8 +210,16 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
         """,
         params_base,
     )
-    heatmap = {}
-    for cr, dia, finalizadas_prazo, total in cur.fetchall():
+    rows_heatmap = cur.fetchall()
+    t_fim = datetime.now(TIMEZONE_BRASILIA)
+    logger.info(
+        "[Dashboard] Heatmap concluído: %s linhas em %.3fs.",
+        len(rows_heatmap),
+        (t_fim - t_ini).total_seconds(),
+    )
+
+    heatmap: Dict[str, Dict[str, Any]] = {}
+    for cr, dia, finalizadas_prazo, total in rows_heatmap:
         porcent = (finalizadas_prazo / total * 100) if total else 0
         if cr not in heatmap:
             heatmap[cr] = {"cr": cr, "dias": {}}
@@ -179,6 +227,8 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
     heatmap_list = list(heatmap.values())
 
     # Pizza (finalizadas x não realizadas) no mês corrente
+    logger.info("[Dashboard] ETAPA 3.1/4 - Executando query de pizza (finalizadas x não realizadas)...")
+    t_ini = datetime.now(TIMEZONE_BRASILIA)
     cur.execute(
         f"""
         SELECT 
@@ -196,9 +246,17 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
         params_base,
     )
     pizza_rows = cur.fetchall()
+    t_fim = datetime.now(TIMEZONE_BRASILIA)
+    logger.info(
+        "[Dashboard] Pizza concluída: %s linhas em %.3fs.",
+        len(pizza_rows),
+        (t_fim - t_ini).total_seconds(),
+    )
     pizza_stats = _calc_pizza(pizza_rows)
 
     # Ranking executores (top 20)
+    logger.info("[Dashboard] ETAPA 3.2/4 - Executando query de ranking de executores (top 20)...")
+    t_ini = datetime.now(TIMEZONE_BRASILIA)
     cur.execute(
         f"""
         SELECT 
@@ -218,6 +276,14 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
         """,
         params_base,
     )
+    ranking_rows = cur.fetchall()
+    t_fim = datetime.now(TIMEZONE_BRASILIA)
+    logger.info(
+        "[Dashboard] Ranking executores concluído: %s linhas em %.3fs.",
+        len(ranking_rows),
+        (t_fim - t_ini).total_seconds(),
+    )
+
     ranking = [
         {
             "executor": r[0],
@@ -225,7 +291,7 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
             "nao_realizadas": r[2] or 0,
             "total": r[3] or 0,
         }
-        for r in cur.fetchall()
+        for r in ranking_rows
     ]
 
     cur.close()
@@ -245,6 +311,14 @@ def _fetch_dashboard_data(filtros: Dict[str, str]) -> Dict[str, Any]:
             "descricao": f"Mês {inicio_mes.strftime('%m/%Y')} até {fim_agora.strftime('%d/%m %H:%M')}",
         },
     }
+    logger.info(
+        "[Dashboard] ETAPA 3.3/4 - Dados calculados: dias=%s, heatmap_cr=%s, pizza_total=%s, ranking_itens=%s, tentativas_vista=%s",
+        len(diarios),
+        len(heatmap_list),
+        pizza_stats.get("total"),
+        len(ranking),
+        tentativas,
+    )
     return payload
 
 
@@ -253,9 +327,16 @@ def atualizar_dashboard_cache(filtros: Dict[str, Optional[str]], etl_attempts: O
     Gera os dados do dashboard e grava no Redis.
     """
     filtros_ok = _coerce_filters(filtros)
-    logger.info(f"[Dashboard] Atualizando cache com filtros: {filtros_ok}")
+    logger.info("[Dashboard] ETAPA 0/4 - Solicitada atualização de cache com filtros: %s", filtros_ok)
     payload = _fetch_dashboard_data(filtros_ok)
     if etl_attempts is not None:
         payload["etl_attempts"] = etl_attempts
+    logger.info(
+        "[Dashboard] ETAPA 4/4 - Gravando payload no Redis (dias=%s, heatmap_cr=%s, total=%s)...",
+        len(payload.get("serie_diaria", [])),
+        len(payload.get("heatmap", [])),
+        payload.get("pizza", {}).get("total"),
+    )
     set_cached_dashboard(payload, filtros_ok)
+    logger.info("[Dashboard] ✅ Atualização de cache concluída para filtros: %s", filtros_ok)
     return payload
