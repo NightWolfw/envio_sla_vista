@@ -38,10 +38,13 @@ _sync_running = False
 def _run_sync_background(filtros: Dict[str, str]) -> None:
     global _sync_running
     try:
+        print(f"[Dashboard] [SYNC] Iniciando sync em background para filtros: {filtros}")
         logger.info("[Dashboard] Sync background iniciada para filtros: %s", filtros)
         atualizar_dashboard_cache(filtros)
+        print(f"[Dashboard] [SYNC] Sync em background concluída para filtros: {filtros}")
         logger.info("[Dashboard] Sync background concluída para filtros: %s", filtros)
     except Exception as exc:  # noqa: BLE001
+        print(f"[Dashboard] [SYNC] Erro na sync em background: {exc}")
         logger.error("[Dashboard] Sync background falhou: %s", exc)
     finally:
         with _sync_lock:
