@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import calendar
+import logging
+import threading
 from datetime import datetime, timedelta
 import pytz
 from typing import Any, Dict, Optional
@@ -27,6 +29,23 @@ from app.services.dashboard_etl import carregar_mes_corrente
 TIMEZONE_BRASILIA = pytz.timezone("America/Sao_Paulo")
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+_sync_lock = threading.Lock()
+_sync_running = False
+
+
+def _run_sync_background(filtros: Dict[str, str]) -> None:
+    global _sync_running
+    try:
+        logger.info("[Dashboard] Sync background iniciada para filtros: %s", filtros)
+        atualizar_dashboard_cache(filtros)
+        logger.info("[Dashboard] Sync background concluída para filtros: %s", filtros)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("[Dashboard] Sync background falhou: %s", exc)
+    finally:
+        with _sync_lock:
+            _sync_running = False
 
 
 def _collect_filtros(**params: Optional[str]) -> Dict[str, str]:
@@ -392,7 +411,8 @@ def dashboard_sla_sync(
     pec_02: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Sincronização manual: força atualização agora (retorna o payload atualizado).
+    Sincronização manual agora é assíncrona: dispara atualização em background e retorna rápido.
+    Se já houver cache, devolve o cache atual para evitar 504/timeout.
     """
     filtros = _ensure_default_diretor(
         _collect_filtros(
@@ -407,9 +427,32 @@ def dashboard_sla_sync(
             pec_02=pec_02,
         )
     )
-    # ETL: carrega mês corrente para o dw_sla
-    data = atualizar_dashboard_cache(filtros)
-    return {"success": True, "cached": False, "last_updated": data.get("last_updated"), "data": data, "attempts": data.get("etl_attempts")}
+    cached = get_cached_dashboard(filtros)
+
+    # Dispara em background se não estiver rodando
+    started = False
+    global _sync_running  # noqa: PLW0603
+    with _sync_lock:
+        if not _sync_running:
+            _sync_running = True
+            started = True
+            t = threading.Thread(target=_run_sync_background, args=(filtros,), daemon=True)
+            t.start()
+
+    if started:
+        logger.info("[Dashboard] Sync manual disparada em background (daemon) para filtros: %s", filtros)
+    else:
+        logger.info("[Dashboard] Sync manual ignorada porque já existe uma em execução (filtros: %s)", filtros)
+
+    # Se já existe cache, devolve imediatamente para evitar 504; senão retorna com data=None
+    return {
+        "success": True,
+        "cached": bool(cached),
+        "last_updated": cached.get("last_updated") if cached else None,
+        "data": cached,
+        "sync_running": True,
+        "sync_started": started,
+    }
 
 
 @router.get("/sla/config")

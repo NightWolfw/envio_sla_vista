@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 TIMEZONE_BRASILIA = pytz.timezone('America/Sao_Paulo')
 PUBLIC_BASE_URL = project_config.PUBLIC_API_BASE_URL.rstrip('/')
 
-scheduler = BackgroundScheduler(timezone=TIMEZONE_BRASILIA)
+scheduler = BackgroundScheduler(timezone=TIMEZONE_BRASILIA, job_defaults={"max_instances": 2, "coalesce": True})
 ultimos_envios: Dict[str, bool] = {}  # Cache em memória para evitar duplicação
 _scheduler_started = False
 _dashboard_refresh_running = False
@@ -427,6 +427,7 @@ def _refresh_dashboard_cache_if_needed():
     """
     global _dashboard_refresh_running
     if _dashboard_refresh_running:
+        logger.info("[Dashboard] Skip agendado: atualização já em execução (guard interno).")
         return
     _dashboard_refresh_running = True
     try:
@@ -512,7 +513,10 @@ def iniciar_scheduler():
             _refresh_dashboard_cache_if_needed,
             CronTrigger(minute='*', timezone=TIMEZONE_BRASILIA),
             id='atualizar_dashboard_cache',
-            replace_existing=True
+            replace_existing=True,
+            max_instances=2,
+            coalesce=True,
+            misfire_grace_time=300
         )
         scheduler.start()
         print(f"[PID {os.getpid()}] [SUCCESS] Scheduler iniciado com sucesso!")
